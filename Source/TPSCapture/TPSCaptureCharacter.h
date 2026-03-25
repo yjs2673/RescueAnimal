@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -13,6 +11,8 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
+
+class APortalActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -49,20 +49,29 @@ class ATPSCaptureCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* PunchAction;
 
+	/** Interact Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractAction;
+
 public:
 	ATPSCaptureCharacter();
 	
 public:
-	/** Called for Punch input */
-	void Punch(const FInputActionValue& Value);
-
+	void SetCurrentPortal(APortalActor* NewPortal);			// 포탈에 들어갈 때 현재 포탈 설정
+	void ClearCurrentPortal(APortalActor* PortalToClear);	// 포탈에서 나올 때 현재 포탈 해제
+	
 protected:
-
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Called for Punch input */
+	void Punch(const FInputActionValue& Value);
+
+	/** Called for Interact input */
+	void Interact();
 
 protected:
 	/** Animation montage for the punch attack */
@@ -104,6 +113,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	int32 MaxComboCount = 3;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	APortalActor* CurrentPortal = nullptr;
+	
 protected:
 	void StartComboAttack();
 

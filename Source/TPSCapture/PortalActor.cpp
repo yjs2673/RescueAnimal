@@ -2,7 +2,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "GameFramework/Character.h"
+#include "TPSCaptureCharacter.h"
 
 APortalActor::APortalActor()
 {
@@ -30,6 +30,7 @@ void APortalActor::BeginPlay()
 	if (TriggerBox)
 	{
 		TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &APortalActor::OnOverlapBegin);
+		TriggerBox->OnComponentEndOverlap.AddDynamic(this, &APortalActor::OnOverlapEnd);
 	}
 }
 
@@ -41,18 +42,50 @@ void APortalActor::OnOverlapBegin(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (!OtherActor || bIsTeleporting)
+	if (!OtherActor)
 	{
 		return;
 	}
 
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-	if (OtherActor != PlayerPawn)
+	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(OtherActor);
+	if (!PlayerCharacter)
 	{
 		return;
 	}
 
-	TeleportPlayer(OtherActor);
+	PlayerCharacter->SetCurrentPortal(this);
+	UE_LOG(LogTemp, Warning, TEXT("Entered Portal Range"));
+}
+
+void APortalActor::OnOverlapEnd(
+	UPrimitiveComponent* OverlappedComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex)
+{
+	if (!OtherActor)
+	{
+		return;
+	}
+
+	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(OtherActor);
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	PlayerCharacter->ClearCurrentPortal(this);
+	UE_LOG(LogTemp, Warning, TEXT("Exited Portal Range"));
+}
+
+void APortalActor::Interact(AActor* InteractingActor)
+{
+	if (!InteractingActor || bIsTeleporting)
+	{
+		return;
+	}
+
+	TeleportPlayer(InteractingActor);
 }
 
 void APortalActor::TeleportPlayer(AActor* OverlappingActor)
@@ -69,6 +102,5 @@ void APortalActor::TeleportPlayer(AActor* OverlappingActor)
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Teleporting to level: %s"), *DestinationLevelName.ToString());
-
 	UGameplayStatics::OpenLevel(this, DestinationLevelName);
 }

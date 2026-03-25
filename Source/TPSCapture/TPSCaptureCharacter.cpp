@@ -1,6 +1,5 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "TPSCaptureCharacter.h"
+#include "PortalActor.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -94,6 +93,9 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		// Punching
 		EnhancedInputComponent->BindAction(PunchAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Punch);
+	
+		// Interacting
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Interact);
 	}
 	else
 	{
@@ -312,4 +314,32 @@ void ATPSCaptureCharacter::OnPunchMontageEnded(UAnimMontage* Montage, bool bInte
 	CurrentComboIndex = 0;
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch Montage Ended"));
+}
+
+void ATPSCaptureCharacter::SetCurrentPortal(APortalActor* NewPortal)
+{
+	CurrentPortal = NewPortal;
+	UE_LOG(LogTemp, Warning, TEXT("Current Portal Set"));
+}
+
+void ATPSCaptureCharacter::ClearCurrentPortal(APortalActor* PortalToClear)
+{
+	if (CurrentPortal == PortalToClear)
+	{
+		CurrentPortal = nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("Current Portal Cleared"));
+	}
+}
+
+void ATPSCaptureCharacter::Interact()
+{
+	if (CurrentPortal)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interacting with Portal"));
+		CurrentPortal->Interact(this);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Portal to Interact With"));
+	}
 }
