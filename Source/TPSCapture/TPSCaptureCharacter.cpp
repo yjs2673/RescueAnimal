@@ -103,6 +103,8 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
+	if (bIsPunching) return;
+
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
