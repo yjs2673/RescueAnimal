@@ -98,7 +98,7 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATPSCaptureCharacter::Look);
 
 		// Punching
-		EnhancedInputComponent->BindAction(PunchAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Punch);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Attack);
 	
 		// Interacting
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Interact);
@@ -125,7 +125,7 @@ void ATPSCaptureCharacter::BeginPlay()
 
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
-	if (bIsPunching) return;
+	if (bIsAttacking) return;
 
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -161,15 +161,79 @@ void ATPSCaptureCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void ATPSCaptureCharacter::Punch(const FInputActionValue& Value)
+void ATPSCaptureCharacter::Attack()
+{
+	if (bIsAttacking && !bIsPunching)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Already Attacking"));
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		AttackWithWeapon();
+	}
+	else
+	{
+		AttackUnarmed();
+	}
+}
+
+void ATPSCaptureCharacter::AttackUnarmed()
 {
 	if (!bIsPunching)
 	{
+		bIsAttacking = true;
 		StartComboAttack();
 		return;
 	}
 
 	QueueComboInput();
+}
+
+void ATPSCaptureCharacter::AttackWithWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AttackWithWeapon: No CurrentWeapon"));
+		return;
+	}
+
+	bIsAttacking = true;
+
+	UE_LOG(LogTemp, Warning, TEXT("Weapon Attack: %s"), *CurrentWeapon->GetName());
+
+	if (CurrentWeapon->AttackMontage && GetMesh() && GetMesh()->GetAnimInstance())
+	{
+		float Duration = GetMesh()->GetAnimInstance()->Montage_Play(CurrentWeapon->AttackMontage);
+
+		if (Duration > 0.0f)
+		{
+			FTimerHandle AttackEndTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				AttackEndTimerHandle,
+				this,
+				&ATPSCaptureCharacter::EndAttack,
+				Duration,
+				false
+			);
+		}
+		else
+		{
+			EndAttack();
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Weapon AttackMontage is missing"));
+		EndAttack();
+	}
+}
+
+void ATPSCaptureCharacter::EndAttack()
+{
+	bIsAttacking = false;
+	UE_LOG(LogTemp, Warning, TEXT("Attack End"));
 }
 
 void ATPSCaptureCharacter::PerformPunchHit()
@@ -244,6 +308,7 @@ void ATPSCaptureCharacter::StartComboAttack()
 	}
 
 	bIsPunching = true;
+	bIsAttacking = true;
 	bComboInputBuffered = false;
 	bCanAcceptComboInput = false;
 	CurrentComboIndex = 1;
@@ -329,6 +394,7 @@ void ATPSCaptureCharacter::OnPunchMontageEnded(UAnimMontage* Montage, bool bInte
 	}
 
 	bIsPunching = false;
+	bIsAttacking = false;
 	bComboInputBuffered = false;
 	bCanAcceptComboInput = false;
 	CurrentComboIndex = 0;

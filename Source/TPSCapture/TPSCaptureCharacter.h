@@ -6,7 +6,7 @@
 
 #include "Animation/AnimMontage.h"
 
-#include "WeaponBase.h"
+// #include "WeaponBase.h"
 
 #include "TPSCaptureCharacter.generated.h"
 
@@ -50,9 +50,9 @@ class ATPSCaptureCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
-	/** Punch Input Action */
+	/** Attack Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* PunchAction;
+	UInputAction* AttackAction;
 
 	/** Interact Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -64,7 +64,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:
+public: // 무기 시스템 관련 변수와 함수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")	// 현재 장착된 무기
 	AWeaponBase* CurrentWeapon;
 
@@ -92,20 +92,30 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	/** Called for Punch input */
-	void Punch(const FInputActionValue& Value);
+	// void Punch(const FInputActionValue& Value);
+	UFUNCTION(BlueprintCallable, Category = "Combat") // 공격 애니메이션에서 호출할 Attack 함수. 공격 판정과 데미지 적용을 담당
+	void Attack();
+	void AttackUnarmed();
+	void AttackWithWeapon();
+	void EndAttack();
 
 	/** Called for Interact input */
 	void Interact();
 
-protected:
+protected: // 공격 시스템 관련 변수와 함수
 	/** Animation montage for the punch attack */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* PunchMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* AttackMontage;
+
 	/** State to track if the character is currently punching */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = "true"))
 	bool bIsPunching = false;
-	//FTimerHandle PunchTimerHandle;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat") 
+	bool bIsAttacking = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // 한 번 때릴 때 데미지
 	float PunchDamage = 20.0f;
@@ -136,6 +146,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	int32 MaxComboCount = 3;
+
+
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	APortalActor* CurrentPortal = nullptr;
