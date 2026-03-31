@@ -3,7 +3,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+
 #include "Animation/AnimMontage.h"
+
+#include "WeaponBase.h"
+
 #include "TPSCaptureCharacter.generated.h"
 
 class USpringArmComponent;
@@ -13,6 +17,7 @@ class UInputAction;
 struct FInputActionValue;
 
 class APortalActor;
+class AWeaponBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -56,6 +61,25 @@ class ATPSCaptureCharacter : public ACharacter
 public:
 	ATPSCaptureCharacter();
 	
+protected:
+	virtual void BeginPlay() override;
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")	// 현재 장착된 무기
+	AWeaponBase* CurrentWeapon;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 무기를 장착할 때 사용할 소켓 이름
+	FName WeaponSocketName = TEXT("RightHandSocket");
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon") // 새로운 무기를 장착하는 함수. 이미 무기가 장착되어 있다면 교체
+	void EquipWeapon(AWeaponBase* NewWeapon);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon") // 현재 장착된 무기를 해제하는 함수. 우선 무기를 버리는 형태로 구현
+	void UnequipWeapon();
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon") // 시작할 때 지급할 무기 클래스: 테스트용
+	TSubclassOf<AWeaponBase> StarterWeaponClass;
+
 public:
 	void SetCurrentPortal(APortalActor* NewPortal);			// 포탈에 들어갈 때 현재 포탈 설정
 	void ClearCurrentPortal(APortalActor* PortalToClear);	// 포탈에서 나올 때 현재 포탈 해제

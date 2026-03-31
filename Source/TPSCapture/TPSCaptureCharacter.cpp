@@ -1,11 +1,18 @@
 #include "TPSCaptureCharacter.h"
+
 #include "PortalActor.h"
+#include "WeaponBase.h"
+
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
+
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -17,9 +24,6 @@
 #include "Animation/AnimInstance.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
-
-//////////////////////////////////////////////////////////////////////////
-// ATPSCaptureCharacter
 
 ATPSCaptureCharacter::ATPSCaptureCharacter()
 {
@@ -57,6 +61,8 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	CurrentWeapon = nullptr; // 처음에는 무기를 들고 있지 않으므로 nullptr로 초기화
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -100,6 +106,20 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	else
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void ATPSCaptureCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (StarterWeaponClass)
+	{
+		AWeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(StarterWeaponClass);
+		if (SpawnedWeapon)
+		{
+			EquipWeapon(SpawnedWeapon);
+		}
 	}
 }
 
@@ -342,4 +362,63 @@ void ATPSCaptureCharacter::Interact()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("No Portal to Interact With"));
 	}
+}
+
+void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon)
+{
+	if (!NewWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EquipWeapon: NewWeapon is null"));
+		return;
+	}
+
+	if (CurrentWeapon == NewWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EquipWeapon: Weapon is already equipped"));
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		UnequipWeapon();
+	}
+
+	CurrentWeapon = NewWeapon;
+
+	CurrentWeapon->SetOwner(this);
+
+	if (CurrentWeapon->WeaponMesh)
+	{
+		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
+		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	CurrentWeapon->AttachToComponent(
+		GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		WeaponSocketName
+	);
+
+	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s"), *CurrentWeapon->GetName());
+}
+
+void ATPSCaptureCharacter::UnequipWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+
+	CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	CurrentWeapon->SetOwner(nullptr);
+
+	if (CurrentWeapon->WeaponMesh)
+	{
+		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Unequipped Weapon: %s"), *CurrentWeapon->GetName());
+
+	CurrentWeapon = nullptr;
 }
