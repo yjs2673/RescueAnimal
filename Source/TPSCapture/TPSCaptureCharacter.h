@@ -167,10 +167,10 @@ protected:
 #pragma endregion Base Combat Func
 
 #pragma region Punch Attack Func
-	UFUNCTION(BlueprintCallable) // 애니메이션 노티파이에서 호출할 Punch 함수
-	void TriggerPunchHit();
+	UFUNCTION(BlueprintCallable) // 애니메이션 노티파이에서 호출
+	void TriggerMeleeHit();
 
-	void PerformPunchHit();
+	void PerformPunchHit(float damage, float range, float radius);
 	void StartComboAttack();
 	void QueueComboInput();
 #pragma endregion Punch Attack Func

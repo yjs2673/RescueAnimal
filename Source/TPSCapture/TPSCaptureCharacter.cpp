@@ -302,22 +302,33 @@ void ATPSCaptureCharacter::EndAttack()
 }
 #pragma endregion Base Combat Func
 
-#pragma region Punch Attack Func
-void ATPSCaptureCharacter::TriggerPunchHit()
+void ATPSCaptureCharacter::TriggerMeleeHit()
 {
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("TriggerPunchHit"));
-	PerformPunchHit();
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("TriggerMeleeHit"));
+	float Damage = 20.0f;
+	float Range = 150.0f;
+	float Radius = 50.0f;
+
+	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Melee)
+	{
+		Damage = CurrentWeapon->AttackDamage;
+		Range = CurrentWeapon->AttackRange;
+		Radius = CurrentWeapon->AttackRadius;
+	}
+
+	PerformPunchHit(Damage, Range, Radius);
 }
 
-void ATPSCaptureCharacter::PerformPunchHit()
+#pragma region Punch Attack Func
+void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radius)
 {
 	if (!GetWorld())
 		return;
 
 	const FVector Start = GetActorLocation() + FVector(0.f, 0.f, 50.f);
-	const FVector End = Start + (GetActorForwardVector() * PunchRange);
+	const FVector End = Start + (GetActorForwardVector() * range);
 
-	FCollisionShape Sphere = FCollisionShape::MakeSphere(PunchRadius);
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(radius);
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
@@ -337,8 +348,8 @@ void ATPSCaptureCharacter::PerformPunchHit()
 	DrawDebugCapsule(
 		GetWorld(),
 		(Start + End) * 0.5f,
-		PunchRange * 0.5f,
-		PunchRadius,
+		range * 0.5f,
+		radius,
 		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
 		DebugColor,
 		false,
@@ -351,7 +362,7 @@ void ATPSCaptureCharacter::PerformPunchHit()
 
 		UGameplayStatics::ApplyDamage(
 			HitResult.GetActor(),
-			PunchDamage,
+			damage,
 			GetController(),
 			this,
 			UDamageType::StaticClass()
