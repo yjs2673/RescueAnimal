@@ -503,21 +503,25 @@ void ATPSCaptureCharacter::OnAttackReleased()
 
 void ATPSCaptureCharacter::StartBowCharge()
 {
-	if (!CurrentWeapon)
+	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
 		return;
-	if (CurrentWeapon->AttackType != EAttackType::Ranged)
-		return;
+
 	if (bIsAttacking || bIsBowCharging)
+		return;
+
+	if (!CurrentWeapon->AttackMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
 		return;
 
 	bIsAttacking = true;
 	bIsBowCharging = true;
+	CachedBowChargeAlpha = 0.0f;
 	BowChargeStartTime = GetWorld()->GetTimeSeconds();
 
-	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Start"));
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
+	AnimInstance->Montage_JumpToSection(FName("Drawing"), CurrentWeapon->AttackMontage);
 
-	if (CurrentWeapon->AttackMontage && GetMesh() && GetMesh()->GetAnimInstance())
-		GetMesh()->GetAnimInstance()->Montage_Play(CurrentWeapon->AttackMontage);
+	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Start"));
 }
 
 void ATPSCaptureCharacter::ReleaseBowCharge()
@@ -525,19 +529,38 @@ void ATPSCaptureCharacter::ReleaseBowCharge()
 	if (!bIsBowCharging)
 		return;
 
+	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
+	{
+		bIsBowCharging = false;
+		EndAttack();
+		return;
+	}
+
+	if (!CurrentWeapon->AttackMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
+	{
+		bIsBowCharging = false;
+		EndAttack();
+		return;
+	}
+
 	bIsBowCharging = false;
 
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	const float ChargeDuration = CurrentTime - BowChargeStartTime;
 
 	const float ClampedCharge = FMath::Clamp(ChargeDuration, MinBowChargeTime, MaxBowChargeTime);
-	const float ChargeAlpha = (MaxBowChargeTime > MinBowChargeTime) ? 
-		(ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime) : 1.0f;
 
-	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Released: Duration=%.2f Alpha=%.2f"), ChargeDuration, ChargeAlpha);
+	CachedBowChargeAlpha =
+		(MaxBowChargeTime > MinBowChargeTime)
+		? (ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime)
+		: 1.0f;
 
-	FireChargedArrow(ChargeAlpha);
-	EndAttack();
+	CachedBowChargeAlpha = FMath::Clamp(CachedBowChargeAlpha, 0.0f, 1.0f);
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_JumpToSection(FName("Releasing"), CurrentWeapon->AttackMontage);
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Released | Alpha=%.2f"), CachedBowChargeAlpha);
 }
 
 void ATPSCaptureCharacter::UpdateBowFacing(float DeltaTime)
@@ -550,12 +573,10 @@ void ATPSCaptureCharacter::UpdateBowFacing(float DeltaTime)
 	SetActorRotation(TargetRot);
 }
 
-void ATPSCaptureCharacter::FireChargedArrow(float ChargeAlpha)
+void ATPSCaptureCharacter::FireChargedArrow()
 {
 	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
-	{
 		return;
-	}
 
 	if (!CurrentWeapon->ProjectileClass)
 	{
@@ -578,12 +599,10 @@ void ATPSCaptureCharacter::FireChargedArrow(float ChargeAlpha)
 	);
 
 	if (!Arrow)
-	{
 		return;
-	}
 
-	const float DamageMultiplier = FMath::Lerp(MinBowDamageMultiplier, MaxBowDamageMultiplier, ChargeAlpha);
-	const float SpeedMultiplier = FMath::Lerp(MinBowSpeedMultiplier, MaxBowSpeedMultiplier, ChargeAlpha);
+	const float DamageMultiplier = FMath::Lerp(MinBowDamageMultiplier, MaxBowDamageMultiplier, CachedBowChargeAlpha);
+	const float SpeedMultiplier = FMath::Lerp(MinBowSpeedMultiplier, MaxBowSpeedMultiplier, CachedBowChargeAlpha);
 
 	Arrow->Damage = CurrentWeapon->AttackDamage * DamageMultiplier;
 
@@ -594,7 +613,7 @@ void ATPSCaptureCharacter::FireChargedArrow(float ChargeAlpha)
 		Arrow->ProjectileMovement->MaxSpeed = FinalSpeed;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Damage=%.1f"), Arrow->Damage);
+	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"), CachedBowChargeAlpha, Arrow->Damage);
 }
 
 #pragma region Anim Montage Func

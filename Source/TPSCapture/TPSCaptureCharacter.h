@@ -141,6 +141,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
 	float MaxBowSpeedMultiplier = 1.8f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	float CachedBowChargeAlpha = 0.0f;	// 차징값
 #pragma region Montage & Interaction Var
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* PunchMontage;
@@ -187,6 +189,8 @@ protected:
 
 	void AttackUnarmed();		// 맨손
 	void AttackWithWeapon();	// 무기
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void EndAttack();	
 #pragma endregion Base Combat Func
 
@@ -196,7 +200,10 @@ protected:
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
 
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnAttackPressed();
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnAttackReleased();
 
 	void StartBowCharge();
@@ -204,7 +211,7 @@ protected:
 	void UpdateBowFacing(float DeltaTime);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void FireChargedArrow(float ChargeAlpha);
+	void FireChargedArrow();
 
 #pragma region Anim Montage Func
 	UFUNCTION(BlueprintCallable)
