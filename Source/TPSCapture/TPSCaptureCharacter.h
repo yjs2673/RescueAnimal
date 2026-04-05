@@ -63,13 +63,13 @@ class ATPSCaptureCharacter : public ACharacter
 	UInputAction* AttackAction;
 #pragma endregion Input Action
 
-#pragma region Constructor & Begin
+#pragma region Constructor & Tick & Begin
 public:
 	ATPSCaptureCharacter();
-	
+	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
-#pragma endregion Constructor & Begin
+#pragma endregion Constructor & Tick & Begin
 
 /* Variations */
 public:
@@ -116,6 +116,30 @@ protected:
 #pragma endregion Punch Var
 
 #pragma endregion Combat Var
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	bool bIsBowCharging = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	float BowChargeStartTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MinBowChargeTime = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MaxBowChargeTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MinBowDamageMultiplier = 0.7f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MaxBowDamageMultiplier = 1.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MinBowSpeedMultiplier = 0.7f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
+	float MaxBowSpeedMultiplier = 1.8f;
 
 #pragma region Montage & Interaction Var
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
@@ -171,6 +195,16 @@ protected:
 	void StartComboAttack();
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
+
+	void OnAttackPressed();
+	void OnAttackReleased();
+
+	void StartBowCharge();
+	void ReleaseBowCharge();
+	void UpdateBowFacing(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void FireChargedArrow(float ChargeAlpha);
 
 #pragma region Anim Montage Func
 	UFUNCTION(BlueprintCallable)

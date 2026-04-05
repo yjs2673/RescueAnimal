@@ -67,6 +67,7 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 #pragma endregion Base Setting
 
+	PrimaryActorTick.bCanEverTick = true; // Tick() 함수를 사용하기 위해 true로 설정
 	CurrentWeapon = nullptr; // 처음에는 무기를 들고 있지 않으므로 nullptr로 초기화
 }
 
@@ -100,9 +101,12 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATPSCaptureCharacter::Look);
 
-		// Punching
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Attack);
-	
+		// Attacking
+		// EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Attack);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::OnAttackPressed);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Completed, this, &ATPSCaptureCharacter::OnAttackReleased);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Canceled, this, &ATPSCaptureCharacter::OnAttackReleased);
+		
 		// Interacting
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Interact);
 	}
@@ -124,6 +128,15 @@ void ATPSCaptureCharacter::BeginPlay()
 		if (SpawnedWeapon)
 			EquipWeapon(SpawnedWeapon);
 	}
+}
+
+/* Tick */
+void ATPSCaptureCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bIsBowCharging)
+		UpdateBowFacing(DeltaTime);
 }
 
 #pragma region Base Action Func
@@ -470,6 +483,119 @@ void ATPSCaptureCharacter::QueueComboInput()
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Combo input buffered"));
 }
 #pragma endregion Punch Attack Func
+
+void ATPSCaptureCharacter::OnAttackPressed()
+{
+	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Ranged)
+	{
+		StartBowCharge();
+		return;
+	}
+
+	Attack();
+}
+
+void ATPSCaptureCharacter::OnAttackReleased()
+{
+	if (bIsBowCharging)
+		ReleaseBowCharge();
+}
+
+void ATPSCaptureCharacter::StartBowCharge()
+{
+	if (!CurrentWeapon)
+		return;
+	if (CurrentWeapon->AttackType != EAttackType::Ranged)
+		return;
+	if (bIsAttacking || bIsBowCharging)
+		return;
+
+	bIsAttacking = true;
+	bIsBowCharging = true;
+	BowChargeStartTime = GetWorld()->GetTimeSeconds();
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Start"));
+
+	if (CurrentWeapon->AttackMontage && GetMesh() && GetMesh()->GetAnimInstance())
+		GetMesh()->GetAnimInstance()->Montage_Play(CurrentWeapon->AttackMontage);
+}
+
+void ATPSCaptureCharacter::ReleaseBowCharge()
+{
+	if (!bIsBowCharging)
+		return;
+
+	bIsBowCharging = false;
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	const float ChargeDuration = CurrentTime - BowChargeStartTime;
+
+	const float ClampedCharge = FMath::Clamp(ChargeDuration, MinBowChargeTime, MaxBowChargeTime);
+	const float ChargeAlpha = (MaxBowChargeTime > MinBowChargeTime) ? 
+		(ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime) : 1.0f;
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Released: Duration=%.2f Alpha=%.2f"), ChargeDuration, ChargeAlpha);
+
+	FireChargedArrow(ChargeAlpha);
+	EndAttack();
+}
+
+void ATPSCaptureCharacter::UpdateBowFacing(float DeltaTime)
+{
+	if (!Controller)
+		return;
+
+	const FRotator ControlRot = Controller->GetControlRotation();
+	const FRotator TargetRot(0.0f, ControlRot.Yaw, 0.0f);
+	SetActorRotation(TargetRot);
+}
+
+void ATPSCaptureCharacter::FireChargedArrow(float ChargeAlpha)
+{
+	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
+	{
+		return;
+	}
+
+	if (!CurrentWeapon->ProjectileClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow: ProjectileClass is null"));
+		return;
+	}
+
+	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("ArrowSpawnSocket"));
+	const FRotator SpawnRotation = GetControlRotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+
+	AArrowProjectile* Arrow = GetWorld()->SpawnActor<AArrowProjectile>(
+		CurrentWeapon->ProjectileClass,
+		SpawnLocation,
+		SpawnRotation,
+		SpawnParams
+	);
+
+	if (!Arrow)
+	{
+		return;
+	}
+
+	const float DamageMultiplier = FMath::Lerp(MinBowDamageMultiplier, MaxBowDamageMultiplier, ChargeAlpha);
+	const float SpeedMultiplier = FMath::Lerp(MinBowSpeedMultiplier, MaxBowSpeedMultiplier, ChargeAlpha);
+
+	Arrow->Damage = CurrentWeapon->AttackDamage * DamageMultiplier;
+
+	if (Arrow->ProjectileMovement)
+	{
+		const float FinalSpeed = CurrentWeapon->ProjectileSpeed * SpeedMultiplier;
+		Arrow->ProjectileMovement->InitialSpeed = FinalSpeed;
+		Arrow->ProjectileMovement->MaxSpeed = FinalSpeed;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Damage=%.1f"), Arrow->Damage);
+}
 
 #pragma region Anim Montage Func
 void ATPSCaptureCharacter::ProceedCombo()
