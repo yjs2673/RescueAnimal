@@ -163,19 +163,19 @@ protected:
 
 	void AttackUnarmed();		// 맨손
 	void AttackWithWeapon();	// 무기
-	void EndAttack();
+	void EndAttack();	
 #pragma endregion Base Combat Func
 
 #pragma region Punch Attack Func
-	UFUNCTION(BlueprintCallable) // 애니메이션 노티파이에서 호출
-	void TriggerMeleeHit();
-
 	void PerformPunchHit(float damage, float range, float radius);
 	void StartComboAttack();
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
 
 #pragma region Anim Montage Func
+	UFUNCTION(BlueprintCallable)
+	void TriggerMeleeHit();
+
 	UFUNCTION(BlueprintCallable)
 	void ProceedCombo();
 
@@ -187,6 +187,9 @@ protected:
 
 	UFUNCTION()
 	void OnPunchMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(BlueprintCallable)
+	void FireArrow(); // 활
 #pragma endregion Anim Montage 
 
 public:

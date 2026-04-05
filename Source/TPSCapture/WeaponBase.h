@@ -9,6 +9,8 @@ class USkeletalMeshComponent;
 class UStaticMeshComponent;
 class UAnimMontage;
 
+class AArrowProjectile;
+
 UCLASS()
 class TPSCAPTURE_API AWeaponBase : public AActor
 {
@@ -50,4 +52,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Ranged")
+	TSubclassOf<AArrowProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Ranged")
+	float ProjectileSpeed = 2000.0f;
 };

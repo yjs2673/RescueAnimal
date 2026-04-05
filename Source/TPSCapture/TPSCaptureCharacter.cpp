@@ -2,6 +2,7 @@
 
 #include "PortalActor.h"
 #include "WeaponBase.h"
+#include "ArrowProjectile.h"
 
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
@@ -12,6 +13,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -299,6 +301,59 @@ void ATPSCaptureCharacter::EndAttack()
 {
 	bIsAttacking = false;
 	UE_LOG(LogTemp, Warning, TEXT("Attack End"));
+}
+
+void ATPSCaptureCharacter::FireArrow()
+{
+	if (!CurrentWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireArrow: No CurrentWeapon"));
+		return;
+	}
+
+	if (CurrentWeapon->AttackType != EAttackType::Ranged)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireArrow: CurrentWeapon is not ranged"));
+		return;
+	}
+
+	if (!CurrentWeapon->ProjectileClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireArrow: ProjectileClass is null"));
+		return;
+	}
+
+	if (!GetMesh())
+	{
+		return;
+	}
+
+	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("ArrowSpawnSocket"));
+	const FRotator SpawnRotation = GetControlRotation();
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+
+	AArrowProjectile* Arrow = GetWorld()->SpawnActor<AArrowProjectile>(
+		CurrentWeapon->ProjectileClass,
+		SpawnLocation,
+		SpawnRotation,
+		SpawnParams
+	);
+
+	if (Arrow)
+	{
+		Arrow->Damage = CurrentWeapon->AttackDamage;
+
+		if (Arrow->ProjectileMovement)
+		{
+			Arrow->ProjectileMovement->InitialSpeed = CurrentWeapon->ProjectileSpeed;
+			Arrow->ProjectileMovement->MaxSpeed = CurrentWeapon->ProjectileSpeed;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("Arrow Fired"));
+	}
 }
 #pragma endregion Base Combat Func
 
