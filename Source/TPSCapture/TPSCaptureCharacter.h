@@ -73,6 +73,12 @@ protected:
 
 /* Variations */
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
+	float MoveInputX = 0.0f; // 谅快
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
+	float MoveInputY = 0.0f; // 菊第
+
 #pragma region Equip Var
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 公扁 厘馒 家南
 	FName WeaponSocketName = TEXT("RightHandSocket");

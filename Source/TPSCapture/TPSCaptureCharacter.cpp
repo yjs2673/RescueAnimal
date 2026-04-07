@@ -142,11 +142,14 @@ void ATPSCaptureCharacter::Tick(float DeltaTime)
 #pragma region Base Action Func
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
-	if (bIsAttacking)
+	if (bIsAttacking && !bIsBowCharging)
 		return;
 
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
+
+	MoveInputX = MovementVector.X;
+	MoveInputY = MovementVector.Y;
 
 	if (Controller != nullptr)
 	{
@@ -313,6 +316,7 @@ void ATPSCaptureCharacter::AttackWithWeapon()
 void ATPSCaptureCharacter::EndAttack()
 {
 	bIsAttacking = false;
+	bIsBowCharging = false;
 	UE_LOG(LogTemp, Warning, TEXT("Attack End"));
 }
 
@@ -517,6 +521,8 @@ void ATPSCaptureCharacter::StartBowCharge()
 	CachedBowChargeAlpha = 0.0f;
 	BowChargeStartTime = GetWorld()->GetTimeSeconds();
 
+	GetCharacterMovement()->MaxWalkSpeed = 100.f;
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
 	AnimInstance->Montage_JumpToSection(FName("Drawing"), CurrentWeapon->AttackMontage);
@@ -531,19 +537,20 @@ void ATPSCaptureCharacter::ReleaseBowCharge()
 
 	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
 	{
-		bIsBowCharging = false;
 		EndAttack();
+		bIsBowCharging = false;
 		return;
 	}
 
 	if (!CurrentWeapon->AttackMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
 	{
-		bIsBowCharging = false;
 		EndAttack();
+		bIsBowCharging = false;
 		return;
 	}
 
 	bIsBowCharging = false;
+	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	const float ChargeDuration = CurrentTime - BowChargeStartTime;
@@ -558,6 +565,7 @@ void ATPSCaptureCharacter::ReleaseBowCharge()
 	CachedBowChargeAlpha = FMath::Clamp(CachedBowChargeAlpha, 0.0f, 1.0f);
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
 	AnimInstance->Montage_JumpToSection(FName("Releasing"), CurrentWeapon->AttackMontage);
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Released | Alpha=%.2f"), CachedBowChargeAlpha);
