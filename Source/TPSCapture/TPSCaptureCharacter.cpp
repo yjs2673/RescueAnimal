@@ -648,8 +648,66 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		return;
 	}
 
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+		return;
+
+	if (!GetMesh())
+		return;
+
+	// 1) 화면 중앙 좌표 구하기
+	int32 ViewportSizeX = 0;
+	int32 ViewportSizeY = 0;
+	PC->GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+	const FVector2D ScreenCenter(
+		ViewportSizeX * 0.5f,
+		ViewportSizeY * 0.5f
+	);
+
+	// 2) 화면 중앙을 월드 방향으로 변환
+	FVector WorldLocation;
+	FVector WorldDirection;
+	const bool bDeprojected = PC->DeprojectScreenPositionToWorld(
+		ScreenCenter.X,
+		ScreenCenter.Y,
+		WorldLocation,
+		WorldDirection
+	);
+
+	if (!bDeprojected)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow: Deproject failed"));
+		return;
+	}
+
+	// 3) 조준선 방향으로 라인트레이스
+	const FVector TraceStart = WorldLocation;
+	const FVector TraceEnd = TraceStart + (WorldDirection * 10000.0f);
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	if (CurrentWeapon)
+		QueryParams.AddIgnoredActor(CurrentWeapon);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		TraceStart,
+		TraceEnd,
+		ECC_Visibility,
+		QueryParams
+	);
+
+	// 4) 실제 조준 목표 지점
+	const FVector AimTargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
+
+	// 5) 화살은 손/활 소켓에서 생성
 	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("ArrowSpawnSocket"));
-	const FRotator SpawnRotation = GetControlRotation();
+
+	// 6) 스폰 위치에서 조준 목표를 향하도록 회전 계산
+	const FVector ShootDirection = (AimTargetLocation - SpawnLocation).GetSafeNormal();
+	const FRotator SpawnRotation = ShootDirection.Rotation();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
@@ -665,8 +723,17 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	if (!Arrow)
 		return;
 
-	const float DamageMultiplier = FMath::Lerp(MinBowDamageMultiplier, MaxBowDamageMultiplier, CachedBowChargeAlpha);
-	const float SpeedMultiplier = FMath::Lerp(MinBowSpeedMultiplier, MaxBowSpeedMultiplier, CachedBowChargeAlpha);
+	const float DamageMultiplier = FMath::Lerp(
+		MinBowDamageMultiplier,
+		MaxBowDamageMultiplier,
+		CachedBowChargeAlpha
+	);
+
+	const float SpeedMultiplier = FMath::Lerp(
+		MinBowSpeedMultiplier,
+		MaxBowSpeedMultiplier,
+		CachedBowChargeAlpha
+	);
 
 	Arrow->Damage = CurrentWeapon->AttackDamage * DamageMultiplier;
 
@@ -675,9 +742,18 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		const float FinalSpeed = CurrentWeapon->ProjectileSpeed * SpeedMultiplier;
 		Arrow->ProjectileMovement->InitialSpeed = FinalSpeed;
 		Arrow->ProjectileMovement->MaxSpeed = FinalSpeed;
+		Arrow->ProjectileMovement->Velocity = ShootDirection * FinalSpeed;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"), CachedBowChargeAlpha, Arrow->Damage);
+#if WITH_EDITOR
+	DrawDebugLine(GetWorld(), TraceStart, AimTargetLocation, FColor::Green, false, 1.5f, 0, 1.5f);
+	DrawDebugSphere(GetWorld(), AimTargetLocation, 12.0f, 12, FColor::Red, false, 1.5f);
+	DrawDebugLine(GetWorld(), SpawnLocation, AimTargetLocation, FColor::Yellow, false, 1.5f, 0, 1.5f);
+#endif
+
+	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"),
+		CachedBowChargeAlpha,
+		Arrow->Damage);
 }
 #pragma	endregion Bow Attack Func
 
