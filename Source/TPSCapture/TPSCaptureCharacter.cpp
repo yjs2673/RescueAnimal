@@ -10,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
+#include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -18,6 +19,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+
+#include "Blueprint/UserWidget.h"
+#include "CrosshairBowWidget.h"
 
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
@@ -128,6 +132,30 @@ void ATPSCaptureCharacter::BeginPlay()
 		if (SpawnedWeapon)
 			EquipWeapon(SpawnedWeapon);
 	}
+
+	//if (MainHUDClass) // MainHUDClass가 설정되어 있다면, MainHUDInstance를 생성하여 뷰포트에 추가
+	//{
+	//	APlayerController* PC = Cast<APlayerController>(GetController());
+	//	if (PC)
+	//	{
+	//		MainHUDInstance = CreateWidget<UUserWidget>(PC, MainHUDClass);
+	//		if (MainHUDInstance)
+	//			MainHUDInstance->AddToViewport();
+	//	}
+	//}
+	if (CrosshairWidgetClass)
+	{
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC)
+		{
+			CrosshairWidgetInstance = CreateWidget<UCrosshairBowWidget>(PC, CrosshairWidgetClass);
+			if (CrosshairWidgetInstance)
+			{
+				CrosshairWidgetInstance->AddToViewport();
+				CrosshairWidgetInstance->SetCrosshairVisible(false);
+			}
+		}
+	}
 }
 
 /* Tick */
@@ -135,8 +163,29 @@ void ATPSCaptureCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsBowCharging)
+	if (bIsBowCharging) // 활을 당기는 중이라면, 활의 방향과 충전 상태를 업데이트
+	{
 		UpdateBowFacing(DeltaTime);
+
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		const float ChargeDuration = CurrentTime - BowChargeStartTime;
+
+		const float ClampedCharge = FMath::Clamp(ChargeDuration, MinBowChargeTime, MaxBowChargeTime);
+		const float ChargeAlpha =
+			(MaxBowChargeTime > MinBowChargeTime)
+			? (ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime)
+			: 1.0f;
+
+		CachedBowChargeAlpha = FMath::Clamp(ChargeAlpha, 0.0f, 1.0f);
+
+		if (CrosshairWidgetInstance)
+		{
+			CrosshairWidgetInstance->SetChargeAlpha(CachedBowChargeAlpha);
+
+			if (CachedBowChargeAlpha >= 1.0f)
+				CrosshairWidgetInstance->PlayFullChargeEffect();
+		}
+	}
 }
 
 #pragma region Base Action Func
@@ -488,6 +537,7 @@ void ATPSCaptureCharacter::QueueComboInput()
 }
 #pragma endregion Punch Attack Func
 
+#pragma region Bow Attack Func
 void ATPSCaptureCharacter::OnAttackPressed()
 {
 	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Ranged)
@@ -522,6 +572,12 @@ void ATPSCaptureCharacter::StartBowCharge()
 	BowChargeStartTime = GetWorld()->GetTimeSeconds();
 
 	GetCharacterMovement()->MaxWalkSpeed = 100.f;
+
+	if (CrosshairWidgetInstance) // 조준선 위젯이 있다면 보이도록 설정하고 초기 알파값을 0으로 설정
+	{
+		CrosshairWidgetInstance->SetCrosshairVisible(true);
+		CrosshairWidgetInstance->SetChargeAlpha(0.0f);
+	}
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
@@ -623,6 +679,7 @@ void ATPSCaptureCharacter::FireChargedArrow()
 
 	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"), CachedBowChargeAlpha, Arrow->Damage);
 }
+#pragma	endregion Bow Attack Func
 
 #pragma region Anim Montage Func
 void ATPSCaptureCharacter::ProceedCombo()
@@ -672,6 +729,15 @@ void ATPSCaptureCharacter::OnPunchMontageEnded(UAnimMontage* Montage, bool bInte
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch Montage Ended"));
 }
 #pragma endregion Anim Montage Func
+
+void ATPSCaptureCharacter::ResetBowCrosshairUI()
+{
+	if (CrosshairWidgetInstance)
+	{
+		CrosshairWidgetInstance->ResetCrosshair();
+		CrosshairWidgetInstance->SetCrosshairVisible(false);
+	}
+}
 
 #pragma region Interaction Function
 void ATPSCaptureCharacter::SetCurrentPortal(APortalActor* NewPortal)

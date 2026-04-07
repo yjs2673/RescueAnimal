@@ -14,6 +14,10 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
+class UUserWidget;
+class UMainHUDWidget;
+class UCrosshairBowWidget;
+
 class AWeaponBase;
 
 #pragma region Interactive Object
@@ -79,6 +83,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
 	float MoveInputY = 0.0f; // 앞뒤
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> MainHUDClass;
+
+	UPROPERTY()
+	UUserWidget* MainHUDInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UCrosshairBowWidget> CrosshairWidgetClass;
+
+	UPROPERTY()
+	UCrosshairBowWidget* CrosshairWidgetInstance;
+
 #pragma region Equip Var
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 무기 장착 소켓
 	FName WeaponSocketName = TEXT("RightHandSocket");
@@ -123,6 +139,7 @@ protected:
 
 #pragma endregion Combat Var
 
+#pragma region Bow Var
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
 	bool bIsBowCharging = false;
 
@@ -149,6 +166,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
 	float CachedBowChargeAlpha = 0.0f;	// 차징값
+#pragma endregion Bow Var
+
 #pragma region Montage & Interaction Var
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* PunchMontage;
@@ -206,6 +225,7 @@ protected:
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
 
+#pragma region Bow Attack Func
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void OnAttackPressed();
 
@@ -218,6 +238,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void FireChargedArrow();
+#pragma endregion Bow Attack Func
 
 #pragma region Anim Montage Func
 	UFUNCTION(BlueprintCallable)
@@ -238,6 +259,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void FireArrow(); // 활
 #pragma endregion Anim Montage 
+
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void ResetBowCrosshairUI();
 
 public:
 #pragma region Interaction Function
