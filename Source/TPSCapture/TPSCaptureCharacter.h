@@ -144,6 +144,9 @@ protected:
 	bool bIsBowCharging = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	bool bIsBowAiming = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
 	float BowChargeStartTime = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow")
@@ -166,6 +169,24 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
 	float CachedBowChargeAlpha = 0.0f;	// Â÷Â¡°ª
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float DefaultFOV = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float BowZoomFOV = 70.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float BowZoomInterpSpeed = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float DefaultArmLength = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float BowZoomArmLength = 220.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
+	float BowArmInterpSpeed = 10.0f;
 #pragma endregion Bow Var
 
 #pragma region Montage & Interaction Var
@@ -238,6 +259,12 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void FireChargedArrow();
+
+	void UpdateBowZoom(float DeltaTime);
+	void UpdateBowCameraArm(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable, Category = "Bow")
+	void EndBowAim();
 #pragma endregion Bow Attack Func
 
 #pragma region Anim Montage Func

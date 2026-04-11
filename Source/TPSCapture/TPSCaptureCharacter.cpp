@@ -126,6 +126,12 @@ void ATPSCaptureCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (CameraBoom)
+		DefaultArmLength = CameraBoom->TargetArmLength;
+
+	if (FollowCamera)
+		DefaultFOV = FollowCamera->FieldOfView;
+
 	if (StarterWeaponClass)
 	{
 		AWeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(StarterWeaponClass);
@@ -133,7 +139,7 @@ void ATPSCaptureCharacter::BeginPlay()
 			EquipWeapon(SpawnedWeapon);
 	}
 
-	//if (MainHUDClass) // MainHUDClass가 설정되어 있다면, MainHUDInstance를 생성하여 뷰포트에 추가
+	//if (MainHUDClass) // MainHUDInstance를 생성하여 뷰포트에 추가
 	//{
 	//	APlayerController* PC = Cast<APlayerController>(GetController());
 	//	if (PC)
@@ -186,6 +192,9 @@ void ATPSCaptureCharacter::Tick(float DeltaTime)
 				CrosshairWidgetInstance->PlayFullChargeEffect();
 		}
 	}
+
+	UpdateBowZoom(DeltaTime);
+	UpdateBowCameraArm(DeltaTime);
 }
 
 #pragma region Base Action Func
@@ -560,7 +569,7 @@ void ATPSCaptureCharacter::StartBowCharge()
 	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
 		return;
 
-	if (bIsAttacking || bIsBowCharging)
+	if (bIsAttacking || bIsBowCharging || bIsBowAiming)
 		return;
 
 	if (!CurrentWeapon->AttackMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
@@ -568,6 +577,7 @@ void ATPSCaptureCharacter::StartBowCharge()
 
 	bIsAttacking = true;
 	bIsBowCharging = true;
+	bIsBowAiming = true;
 	CachedBowChargeAlpha = 0.0f;
 	BowChargeStartTime = GetWorld()->GetTimeSeconds();
 
@@ -754,6 +764,56 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"),
 		CachedBowChargeAlpha,
 		Arrow->Damage);
+}
+
+void ATPSCaptureCharacter::UpdateBowZoom(float DeltaTime)
+{
+	if (!FollowCamera)
+		return;
+
+	const float TargetFOV = bIsBowAiming ? BowZoomFOV : DefaultFOV;
+
+	const float NewFOV = FMath::FInterpTo(
+		FollowCamera->FieldOfView,
+		TargetFOV,
+		DeltaTime,
+		BowZoomInterpSpeed
+	);
+
+	FollowCamera->SetFieldOfView(NewFOV);
+}
+
+void ATPSCaptureCharacter::UpdateBowCameraArm(float DeltaTime)
+{
+	if (!CameraBoom)
+		return;
+
+	const float TargetArm = bIsBowAiming ? BowZoomArmLength : DefaultArmLength;
+
+	const float NewArmLength = FMath::FInterpTo(
+		CameraBoom->TargetArmLength,
+		TargetArm,
+		DeltaTime,
+		BowArmInterpSpeed
+	);
+
+	CameraBoom->TargetArmLength = NewArmLength;
+}
+
+void ATPSCaptureCharacter::EndBowAim()
+{
+	bIsBowCharging = false;
+	bIsBowAiming = false;
+	bIsAttacking = false;
+	CachedBowChargeAlpha = 0.0f;
+
+	if (CrosshairWidgetInstance)
+	{
+		CrosshairWidgetInstance->ResetCrosshair();
+		CrosshairWidgetInstance->SetCrosshairVisible(false);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow Aim End"));
 }
 #pragma	endregion Bow Attack Func
 
