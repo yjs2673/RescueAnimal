@@ -242,6 +242,12 @@ void ATPSCaptureCharacter::Look(const FInputActionValue& Value)
 
 void ATPSCaptureCharacter::Interact()
 {
+	if (NearbyWeapon || CurrentWeapon) // 무가 상호작용을 포탈보다 우선시
+	{
+		HandleWeaponInteract();
+		return;
+	}
+
 	if (CurrentPortal)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Interacting with Portal"));
@@ -271,6 +277,7 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 새로운 무기 장
 	CurrentWeapon = NewWeapon;
 
 	CurrentWeapon->SetOwner(this);
+	CurrentWeapon->SetPickupEnabled(false);
 
 	if (CurrentWeapon->WeaponMesh)
 	{
@@ -281,8 +288,15 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 새로운 무기 장
 	CurrentWeapon->AttachToComponent(
 		GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		WeaponSocketName
+		CurrentWeapon->WeaponType == EWeaponType::Bow? LeftWeaponSocketName : RightWeaponSocketName
 	);
+
+	if (CurrentWeapon->WeaponMesh)
+	{
+		CurrentWeapon->WeaponMesh->SetRelativeLocation(CurrentWeapon->EquipRelativeLocation);
+		CurrentWeapon->WeaponMesh->SetRelativeRotation(CurrentWeapon->EquipRelativeRotation);
+		CurrentWeapon->WeaponMesh->SetRelativeScale3D(CurrentWeapon->EquipRelativeScale);
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s"), *CurrentWeapon->GetName());
 }
@@ -301,9 +315,99 @@ void ATPSCaptureCharacter::UnequipWeapon() // 장착 해제
 		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
 	}
 
+	CurrentWeapon->SetPickupEnabled(true);
+
 	UE_LOG(LogTemp, Warning, TEXT("Unequipped Weapon: %s"), *CurrentWeapon->GetName());
 
 	CurrentWeapon = nullptr;
+}
+
+void ATPSCaptureCharacter::HandleWeaponInteract()
+{
+	if (NearbyWeapon)
+	{
+		if (!CurrentWeapon)
+		{
+			EquipWeapon(NearbyWeapon);
+			NearbyWeapon = nullptr;
+		}
+		else
+		{
+			AWeaponBase* WeaponToPickup = NearbyWeapon;
+			DropCurrentWeapon();
+			EquipWeapon(WeaponToPickup);
+			NearbyWeapon = nullptr;
+		}
+	}
+	else
+	{
+		if (CurrentWeapon)
+			DropCurrentWeapon();
+	}
+}
+
+void ATPSCaptureCharacter::DropCurrentWeapon() // 현재 장착된 무기를 떨어뜨리는 함수, 무기가 바닥에 떨어질 때의 위치와 회전을 계산하여 설정
+{
+	if (!CurrentWeapon)
+		return;
+
+	if (bIsBowCharging || bIsBowAiming)
+	{
+		EndBowAim();
+		GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	}
+
+	AWeaponBase* WeaponToDrop = CurrentWeapon;
+
+	WeaponToDrop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	WeaponToDrop->SetOwner(nullptr);
+
+	const FVector ForwardOffset = GetActorForwardVector() * 80.0f;
+	const FVector TraceStart = GetActorLocation() + ForwardOffset + FVector(0.0f, 0.0f, 100.0f);
+	const FVector TraceEnd = TraceStart - FVector(0.0f, 0.0f, 500.0f);
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.AddIgnoredActor(WeaponToDrop);
+
+	FVector DropLocation = GetActorLocation() + ForwardOffset + FVector(0.0f, 0.0f, 15.0f);
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		DropLocation = HitResult.ImpactPoint + FVector(0.0f, 0.0f, 15.0f);
+	}
+
+	WeaponToDrop->SetActorLocation(DropLocation);
+	WeaponToDrop->SetActorRotation(FRotator(0.0f, GetActorRotation().Yaw + 25.0f, 0.0f));
+
+	if (WeaponToDrop->WeaponMesh)
+	{
+		WeaponToDrop->WeaponMesh->SetSimulatePhysics(false);
+		WeaponToDrop->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	WeaponToDrop->SetPickupEnabled(true);
+	WeaponToDrop->EnablePickupAfterDrop();
+
+	CurrentWeapon = nullptr;
+
+	UE_LOG(LogTemp, Warning, TEXT("Dropped Weapon: %s"), *WeaponToDrop->GetName());
+}
+
+void ATPSCaptureCharacter::SetNearbyWeapon(AWeaponBase* NewWeapon)
+{
+	NearbyWeapon = NewWeapon;
+	UE_LOG(LogTemp, Warning, TEXT("Nearby Weapon Set: %s"), *GetNameSafe(NewWeapon));
+}
+
+void ATPSCaptureCharacter::ClearNearbyWeapon(AWeaponBase* WeaponToClear)
+{
+	if (NearbyWeapon == WeaponToClear)
+	{
+		NearbyWeapon = nullptr;
+		UE_LOG(LogTemp, Warning, TEXT("Nearby Weapon Cleared"));
+	}
 }
 #pragma endregion Equip Func
 
@@ -713,7 +817,7 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	const FVector AimTargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
 
 	// 5) 화살은 손/활 소켓에서 생성
-	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("ArrowSpawnSocket"));
+	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandSocket"));
 
 	// 6) 스폰 위치에서 조준 목표를 향하도록 회전 계산
 	const FVector ShootDirection = (AimTargetLocation - SpawnLocation).GetSafeNormal();

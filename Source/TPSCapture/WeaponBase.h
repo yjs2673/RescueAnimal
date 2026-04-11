@@ -5,11 +5,11 @@
 #include "WeaponTypes.h"
 #include "WeaponBase.generated.h"
 
-class USkeletalMeshComponent;
 class UStaticMeshComponent;
 class UAnimMontage;
-
 class AArrowProjectile;
+class USphereComponent;
+class USceneComponent;
 
 UCLASS()
 class TPSCAPTURE_API AWeaponBase : public AActor
@@ -22,9 +22,33 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+	void OnPickupSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnPickupSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
+
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	USceneComponent* DefaultRoot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	UStaticMeshComponent* WeaponMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	USphereComponent* PickupSphere;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	EWeaponType WeaponType = EWeaponType::None;
@@ -58,4 +82,23 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Ranged")
 	float ProjectileSpeed = 2000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup")
+	bool bCanBePickedUp = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup")
+	float PickupEnableDelay = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Attach")
+	FVector EquipRelativeLocation = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Attach")
+	FRotator EquipRelativeRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Attach")
+	FVector EquipRelativeScale = FVector(1.0f);
+
+public:
+	void SetPickupEnabled(bool bEnabled);
+	void EnablePickupAfterDrop();
 };

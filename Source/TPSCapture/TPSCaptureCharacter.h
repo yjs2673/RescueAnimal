@@ -96,14 +96,20 @@ public:
 	UCrosshairBowWidget* CrosshairWidgetInstance;
 
 #pragma region Equip Var
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 무기 장착 소켓
-	FName WeaponSocketName = TEXT("RightHandSocket");
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 오른손 무기 장착 소켓
+	FName RightWeaponSocketName = TEXT("RightHandSocket");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 왼손 무기 장착 소켓
+	FName LeftWeaponSocketName = TEXT("LeftHandSocket");
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")	// 현재 장착 무기
 	AWeaponBase* CurrentWeapon;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon") // 시작할 때 지급할 무기 클래스 (테스트용)
 	TSubclassOf<AWeaponBase> StarterWeaponClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon") // 주변 무기 참조
+	AWeaponBase* NearbyWeapon = nullptr;
 #pragma endregion Equip Var
 	
 protected:
@@ -227,6 +233,17 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon") // 장착 해제
 	void UnequipWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void HandleWeaponInteract();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void DropCurrentWeapon();
+public:
+	void SetNearbyWeapon(AWeaponBase* NewWeapon);
+	void ClearNearbyWeapon(AWeaponBase* WeaponToClear);
+
+protected:
 #pragma endregion Equip Func
 
 #pragma region Base Combat Func
