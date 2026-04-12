@@ -6,6 +6,7 @@
 #include "WeaponBase.generated.h"
 
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 class UAnimMontage;
 class AArrowProjectile;
 class USphereComponent;
@@ -46,6 +47,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	UStaticMeshComponent* WeaponMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	USkeletalMeshComponent* WeaponSkeletalMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USphereComponent* PickupSphere;
@@ -101,4 +105,13 @@ public:
 public:
 	void SetPickupEnabled(bool bEnabled);
 	void EnablePickupAfterDrop();
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	bool UsesSkeletalMesh() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void UpdateWeaponVisualState();
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	USceneComponent* GetActiveVisualComponent() const;
 };

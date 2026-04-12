@@ -2,6 +2,7 @@
 #include "TPSCaptureCharacter.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SceneComponent.h"
 #include "TimerManager.h"
@@ -19,6 +20,12 @@ AWeaponBase::AWeaponBase()
 	WeaponMesh->SetGenerateOverlapEvents(false);
 	WeaponMesh->SetSimulatePhysics(false);
 
+	WeaponSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponSkeletalMesh"));
+	WeaponSkeletalMesh->SetupAttachment(DefaultRoot);
+	WeaponSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponSkeletalMesh->SetGenerateOverlapEvents(false);
+	WeaponSkeletalMesh->SetSimulatePhysics(false);
+
 	PickupSphere = CreateDefaultSubobject<USphereComponent>(TEXT("PickupSphere"));
 	PickupSphere->SetupAttachment(DefaultRoot);
 	PickupSphere->SetSphereRadius(100.0f);
@@ -32,11 +39,49 @@ void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	UpdateWeaponVisualState();
+
 	if (PickupSphere)
 	{
 		PickupSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeaponBase::OnPickupSphereBeginOverlap);
 		PickupSphere->OnComponentEndOverlap.AddDynamic(this, &AWeaponBase::OnPickupSphereEndOverlap);
 	}
+}
+
+bool AWeaponBase::UsesSkeletalMesh() const
+{
+	return WeaponSkeletalMesh && WeaponSkeletalMesh->GetSkeletalMeshAsset() != nullptr;
+}
+
+void AWeaponBase::UpdateWeaponVisualState()
+{
+	const bool bUseSkeletal = UsesSkeletalMesh();
+
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetVisibility(!bUseSkeletal);
+		WeaponMesh->SetHiddenInGame(bUseSkeletal);
+		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		WeaponMesh->SetSimulatePhysics(false);
+	}
+
+	if (WeaponSkeletalMesh)
+	{
+		WeaponSkeletalMesh->SetVisibility(bUseSkeletal);
+		WeaponSkeletalMesh->SetHiddenInGame(!bUseSkeletal);
+		WeaponSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		WeaponSkeletalMesh->SetSimulatePhysics(false);
+	}
+}
+
+USceneComponent* AWeaponBase::GetActiveVisualComponent() const
+{
+	if (UsesSkeletalMesh())
+	{
+		return WeaponSkeletalMesh;
+	}
+
+	return WeaponMesh;
 }
 
 void AWeaponBase::OnPickupSphereBeginOverlap(

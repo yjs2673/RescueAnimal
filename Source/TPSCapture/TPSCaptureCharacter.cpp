@@ -306,7 +306,7 @@ void ATPSCaptureCharacter::HandleWeaponInteract()
 	}
 }
 
-void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 새로운 무기 장착, 이미 장착되어 있다면 교체
+void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 무기 장착, 이미 장착 중이면 교체
 {
 	if (!NewWeapon)
 	{
@@ -321,33 +321,47 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 새로운 무기 장
 	}
 
 	if (CurrentWeapon)
+	{
 		UnequipWeapon();
+	}
 
 	CurrentWeapon = NewWeapon;
-
 	CurrentWeapon->SetOwner(this);
 	CurrentWeapon->SetPickupEnabled(false);
+	CurrentWeapon->UpdateWeaponVisualState();
 
 	if (CurrentWeapon->WeaponMesh)
 	{
-		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
 		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
 	}
+
+	if (CurrentWeapon->WeaponSkeletalMesh)
+	{
+		CurrentWeapon->WeaponSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CurrentWeapon->WeaponSkeletalMesh->SetSimulatePhysics(false);
+	}
+
+	const FName AttachSocketName =
+		(CurrentWeapon->WeaponType == EWeaponType::Bow)
+		? LeftHandWeaponSocketName : RightHandWeaponSocketName;
 
 	CurrentWeapon->AttachToComponent(
 		GetMesh(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		CurrentWeapon->WeaponType == EWeaponType::Bow? LeftWeaponSocketName : RightWeaponSocketName
+		AttachSocketName
 	);
 
-	if (CurrentWeapon->WeaponMesh)
+	if (USceneComponent* ActiveVisual = CurrentWeapon->GetActiveVisualComponent())
 	{
-		CurrentWeapon->WeaponMesh->SetRelativeLocation(CurrentWeapon->EquipRelativeLocation);
-		CurrentWeapon->WeaponMesh->SetRelativeRotation(CurrentWeapon->EquipRelativeRotation);
-		CurrentWeapon->WeaponMesh->SetRelativeScale3D(CurrentWeapon->EquipRelativeScale);
+		ActiveVisual->SetRelativeLocation(CurrentWeapon->EquipRelativeLocation);
+		ActiveVisual->SetRelativeRotation(CurrentWeapon->EquipRelativeRotation);
+		ActiveVisual->SetRelativeScale3D(CurrentWeapon->EquipRelativeScale);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s"), *CurrentWeapon->GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s | Socket: %s"),
+		*CurrentWeapon->GetName(),
+		*AttachSocketName.ToString());
 }
 
 void ATPSCaptureCharacter::UnequipWeapon() // 장착 해제
@@ -357,11 +371,18 @@ void ATPSCaptureCharacter::UnequipWeapon() // 장착 해제
 
 	CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	CurrentWeapon->SetOwner(nullptr);
+	CurrentWeapon->UpdateWeaponVisualState();
 
 	if (CurrentWeapon->WeaponMesh)
 	{
-		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
+	}
+
+	if (CurrentWeapon->WeaponSkeletalMesh)
+	{
+		CurrentWeapon->WeaponSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CurrentWeapon->WeaponSkeletalMesh->SetSimulatePhysics(false);
 	}
 
 	CurrentWeapon->SetPickupEnabled(true);
@@ -386,6 +407,7 @@ void ATPSCaptureCharacter::DropCurrentWeapon() // 현재 장착된 무기를 떨어뜨리는 
 
 	WeaponToDrop->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	WeaponToDrop->SetOwner(nullptr);
+	WeaponToDrop->UpdateWeaponVisualState();
 
 	const FVector ForwardOffset = GetActorForwardVector() * 80.0f;
 	const FVector TraceStart = GetActorLocation() + ForwardOffset + FVector(0.0f, 0.0f, 100.0f);
@@ -881,7 +903,6 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	if (!GetMesh())
 		return;
 
-	// 1) 화면 중앙 좌표 구하기
 	int32 ViewportSizeX = 0;
 	int32 ViewportSizeY = 0;
 	PC->GetViewportSize(ViewportSizeX, ViewportSizeY);
@@ -891,7 +912,6 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		ViewportSizeY * 0.5f
 	);
 
-	// 2) 화면 중앙을 월드 방향으로 변환
 	FVector WorldLocation;
 	FVector WorldDirection;
 	const bool bDeprojected = PC->DeprojectScreenPositionToWorld(
@@ -907,7 +927,6 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		return;
 	}
 
-	// 3) 조준선 방향으로 라인트레이스
 	const FVector TraceStart = WorldLocation;
 	const FVector TraceEnd = TraceStart + (WorldDirection * 10000.0f);
 
@@ -915,7 +934,9 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 	if (CurrentWeapon)
+	{
 		QueryParams.AddIgnoredActor(CurrentWeapon);
+	}
 
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
@@ -925,13 +946,35 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		QueryParams
 	);
 
-	// 4) 실제 조준 목표 지점
 	const FVector AimTargetLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
 
-	// 5) 화살은 손/활 소켓에서 생성
-	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandSocket"));
+	FVector SpawnLocation = FVector::ZeroVector;
 
-	// 6) 스폰 위치에서 조준 목표를 향하도록 회전 계산
+	// 활 Skeletal Mesh의 ArrowSpawnSocket
+	if (CurrentWeapon->UsesSkeletalMesh() &&
+		CurrentWeapon->WeaponSkeletalMesh &&
+		CurrentWeapon->WeaponSkeletalMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
+	{
+		SpawnLocation = CurrentWeapon->WeaponSkeletalMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
+	}
+	// 활 Static Mesh의 ArrowSpawnSocket
+	else if (CurrentWeapon->WeaponMesh &&
+		CurrentWeapon->WeaponMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
+	{
+		SpawnLocation = CurrentWeapon->WeaponMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
+	}
+	// 캐릭터 왼손 소켓
+	else if (GetMesh()->DoesSocketExist(TEXT("LeftHandSocket")))
+	{
+		SpawnLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandSocket"));
+	}
+	// fallback
+	else
+	{
+		SpawnLocation = GetActorLocation() + GetActorForwardVector() * 50.0f + FVector(0.0f, 0.0f, 50.0f);
+		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow: LeftHandSocket not found, using fallback location"));
+	}
+
 	const FVector ShootDirection = (AimTargetLocation - SpawnLocation).GetSafeNormal();
 	const FRotator SpawnRotation = ShootDirection.Rotation();
 
@@ -977,9 +1020,10 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	DrawDebugLine(GetWorld(), SpawnLocation, AimTargetLocation, FColor::Yellow, false, 1.5f, 0, 1.5f);
 #endif
 
-	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f"),
+	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f Spawn=%s"),
 		CachedBowChargeAlpha,
-		Arrow->Damage);
+		Arrow->Damage,
+		*SpawnLocation.ToString());
 }
 
 void ATPSCaptureCharacter::UpdateBowZoom(float DeltaTime)

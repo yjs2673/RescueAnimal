@@ -219,6 +219,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
 	USoundBase* BowDrawSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	FName RightHandWeaponSocketName = TEXT("RightHandSocket");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
 /* Functions */
 protected:
 #pragma region Input Binding Func
