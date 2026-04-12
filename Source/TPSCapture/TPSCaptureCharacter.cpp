@@ -259,6 +259,53 @@ void ATPSCaptureCharacter::Interact()
 #pragma endregion Base Action Func
 
 #pragma region Equip Func
+void ATPSCaptureCharacter::HandleWeaponInteract()
+{
+	if (bIsAttacking)
+		return;
+
+	if (NearbyWeapon)
+	{
+		if (!CurrentWeapon)
+		{
+			EquipWeapon(NearbyWeapon);
+			NearbyWeapon = nullptr;
+		}
+		else
+		{
+			AWeaponBase* WeaponToPickup = NearbyWeapon;
+			DropCurrentWeapon();
+			EquipWeapon(WeaponToPickup);
+			NearbyWeapon = nullptr;
+		}
+
+		if (EquipmentSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				EquipmentSound,
+				GetActorLocation()
+			);
+		}
+	}
+	else
+	{
+		if (CurrentWeapon)
+		{
+			DropCurrentWeapon();
+
+			if (EquipmentSound)
+			{
+				UGameplayStatics::PlaySoundAtLocation(
+					this,
+					EquipmentSound,
+					GetActorLocation()
+				);
+			}
+		}
+	}
+}
+
 void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 새로운 무기 장착, 이미 장착되어 있다면 교체
 {
 	if (!NewWeapon)
@@ -322,30 +369,6 @@ void ATPSCaptureCharacter::UnequipWeapon() // 장착 해제
 	UE_LOG(LogTemp, Warning, TEXT("Unequipped Weapon: %s"), *CurrentWeapon->GetName());
 
 	CurrentWeapon = nullptr;
-}
-
-void ATPSCaptureCharacter::HandleWeaponInteract()
-{
-	if (NearbyWeapon)
-	{
-		if (!CurrentWeapon)
-		{
-			EquipWeapon(NearbyWeapon);
-			NearbyWeapon = nullptr;
-		}
-		else
-		{
-			AWeaponBase* WeaponToPickup = NearbyWeapon;
-			DropCurrentWeapon();
-			EquipWeapon(WeaponToPickup);
-			NearbyWeapon = nullptr;
-		}
-	}
-	else
-	{
-		if (CurrentWeapon)
-			DropCurrentWeapon();
-	}
 }
 
 void ATPSCaptureCharacter::DropCurrentWeapon() // 현재 장착된 무기를 떨어뜨리는 함수, 무기가 바닥에 떨어질 때의 위치와 회전을 계산하여 설정

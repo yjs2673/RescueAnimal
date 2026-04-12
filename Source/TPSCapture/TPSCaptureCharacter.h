@@ -208,6 +208,9 @@ protected:
 	APortalActor* CurrentPortal = nullptr;
 #pragma endregion Montage & Interaction Var
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Equipment")
+	USoundBase* EquipmentSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Punch")
 	TArray<USoundBase*> PunchHitSounds;
 
