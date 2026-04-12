@@ -8,6 +8,8 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UProjectileMovementComponent;
 
+class USoundBase;
+
 UCLASS()
 class TPSCAPTURE_API AArrowProjectile : public AActor
 {
@@ -44,4 +46,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
 	float LifeSeconds = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Arrow")
+	USoundBase* ArrowHitSound;
 };

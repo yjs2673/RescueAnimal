@@ -18,6 +18,8 @@ class UUserWidget;
 class UMainHUDWidget;
 class UCrosshairBowWidget;
 
+class USoundBase;
+
 class AWeaponBase;
 
 #pragma region Interactive Object
@@ -206,6 +208,14 @@ protected:
 	APortalActor* CurrentPortal = nullptr;
 #pragma endregion Montage & Interaction Var
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Punch")
+	TArray<USoundBase*> PunchHitSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Sword")
+	USoundBase* SwordHitSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
+	USoundBase* BowDrawSound;
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -262,6 +272,8 @@ protected:
 	void StartComboAttack();
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
+
+	void PerformSwordHit(float damage, float range, float radius);
 
 #pragma region Bow Attack Func
 	UFUNCTION(BlueprintCallable, Category = "Combat")

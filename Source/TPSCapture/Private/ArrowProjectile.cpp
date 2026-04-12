@@ -4,6 +4,8 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
+#include "Sound/SoundBase.h"
+
 AArrowProjectile::AArrowProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -63,6 +65,20 @@ void AArrowProjectile::OnArrowOverlap(
 			this,
 			UDamageType::StaticClass()
 		);
+
+		if (ArrowHitSound)
+		{
+			FVector SoundLocation = OtherActor->GetActorLocation();
+
+			if (bFromSweep)
+				SoundLocation = SweepResult.ImpactPoint;
+
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				ArrowHitSound,
+				SoundLocation
+			);
+		}
 
 		Destroy();
 	}

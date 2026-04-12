@@ -23,6 +23,8 @@
 #include "Blueprint/UserWidget.h"
 #include "CrosshairBowWidget.h"
 
+#include "Sound/SoundBase.h"
+
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
@@ -550,7 +552,8 @@ void ATPSCaptureCharacter::TriggerMeleeHit()
 		Radius = CurrentWeapon->AttackRadius;
 	}
 
-	PerformPunchHit(Damage, Range, Radius);
+	(CurrentWeapon && CurrentWeapon->WeaponType == EWeaponType::Sword)
+		? PerformSwordHit(Damage, Range, Radius) : PerformPunchHit(Damage, Range, Radius);
 }
 
 #pragma region Punch Attack Func
@@ -593,6 +596,21 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 	if (bHit && HitResult.GetActor())
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
+
+		USoundBase* SelectedHitSound = nullptr;
+		const int32 SoundIndex = CurrentComboIndex - 1;
+
+		if (PunchHitSounds.IsValidIndex(SoundIndex))
+			SelectedHitSound = PunchHitSounds[SoundIndex];
+
+		if (SelectedHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				SelectedHitSound,
+				HitResult.ImpactPoint
+			);
+		}
 
 		UGameplayStatics::ApplyDamage(
 			HitResult.GetActor(),
@@ -650,6 +668,68 @@ void ATPSCaptureCharacter::QueueComboInput()
 }
 #pragma endregion Punch Attack Func
 
+void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radius)
+{
+	if (!GetWorld())
+		return;
+
+	const FVector Start = GetActorLocation() + FVector(0.f, 0.f, 50.f);
+	const FVector End = Start + (GetActorForwardVector() * range);
+
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(radius);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	const bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Pawn,
+		Sphere,
+		QueryParams
+	);
+
+	const FColor DebugColor = bHit ? FColor::Red : FColor::Green;
+	DrawDebugCapsule(
+		GetWorld(),
+		(Start + End) * 0.5f,
+		range * 0.5f,
+		radius,
+		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
+		DebugColor,
+		false,
+		1.5f
+	);
+
+	if (bHit && HitResult.GetActor())
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
+
+		// USoundBase* SelectedHitSound = nullptr;
+		// SelectedHitSound = SwordHitSound;
+
+		if (SwordHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				SwordHitSound,
+				HitResult.ImpactPoint
+			);
+		}
+
+		UGameplayStatics::ApplyDamage(
+			HitResult.GetActor(),
+			damage,
+			GetController(),
+			this,
+			UDamageType::StaticClass()
+		);
+	}
+}
+
 #pragma region Bow Attack Func
 void ATPSCaptureCharacter::OnAttackPressed()
 {
@@ -696,6 +776,15 @@ void ATPSCaptureCharacter::StartBowCharge()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
 	AnimInstance->Montage_JumpToSection(FName("Drawing"), CurrentWeapon->AttackMontage);
+
+	if (BowDrawSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			BowDrawSound,
+			GetActorLocation()
+		);
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Start"));
 }
