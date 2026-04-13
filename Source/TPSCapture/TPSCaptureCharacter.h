@@ -323,6 +323,8 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FireArrow(); // Ȱ
+
+	void PlayBowWeaponMontageSection(FName SectionName);
 #pragma endregion Anim Montage 
 
 	UFUNCTION(BlueprintCallable, Category = "UI")

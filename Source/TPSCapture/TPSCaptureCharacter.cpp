@@ -822,6 +822,8 @@ void ATPSCaptureCharacter::StartBowCharge()
 	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
 	AnimInstance->Montage_JumpToSection(FName("Drawing"), CurrentWeapon->AttackMontage);
 
+	PlayBowWeaponMontageSection(FName("Default"));
+
 	if (BowDrawSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(
@@ -871,6 +873,8 @@ void ATPSCaptureCharacter::ReleaseBowCharge()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(CurrentWeapon->AttackMontage);
 	AnimInstance->Montage_JumpToSection(FName("Releasing"), CurrentWeapon->AttackMontage);
+
+	PlayBowWeaponMontageSection(FName("Release"));
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Released | Alpha=%.2f"), CachedBowChargeAlpha);
 }
@@ -1123,6 +1127,33 @@ void ATPSCaptureCharacter::OnPunchMontageEnded(UAnimMontage* Montage, bool bInte
 	CurrentComboIndex = 0;
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch Montage Ended"));
+}
+
+void ATPSCaptureCharacter::PlayBowWeaponMontageSection(FName SectionName)
+{
+	if (!CurrentWeapon)
+		return;
+
+	if (!CurrentWeapon->UsesSkeletalMesh())
+		return;
+
+	if (!CurrentWeapon->WeaponSkeletalMesh)
+		return;
+
+	if (!CurrentWeapon->WeaponAnimMontage)
+		return;
+
+	UAnimInstance* WeaponAnimInstance = CurrentWeapon->WeaponSkeletalMesh->GetAnimInstance();
+	if (!WeaponAnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayBowWeaponMontageSection: WeaponAnimInstance is null"));
+		return;
+	}
+
+	WeaponAnimInstance->Montage_Play(CurrentWeapon->WeaponAnimMontage);
+	WeaponAnimInstance->Montage_JumpToSection(SectionName, CurrentWeapon->WeaponAnimMontage);
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow Weapon Montage Section: %s"), *SectionName.ToString());
 }
 #pragma endregion Anim Montage Func
 
