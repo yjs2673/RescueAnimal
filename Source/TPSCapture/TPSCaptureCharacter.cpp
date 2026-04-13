@@ -75,6 +75,14 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 
 	PrimaryActorTick.bCanEverTick = true; // Tick() 함수를 사용하기 위해 true로 설정
 	CurrentWeapon = nullptr; // 처음에는 무기를 들고 있지 않으므로 nullptr로 초기화
+
+	// 차징 시 나오는 화살: 미리보기용 StaticMeshComponent 생성 및 설정
+	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
+	PreviewArrowMesh->SetupAttachment(GetMesh());
+	PreviewArrowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PreviewArrowMesh->SetGenerateOverlapEvents(false);
+	PreviewArrowMesh->SetSimulatePhysics(false);
+	PreviewArrowMesh->SetHiddenInGame(true);
 }
 
 #pragma region Input Binding Func
@@ -833,6 +841,8 @@ void ATPSCaptureCharacter::StartBowCharge()
 		);
 	}
 
+	ShowPreviewArrow();
+
 	UE_LOG(LogTemp, Warning, TEXT("Bow Charge Start"));
 }
 
@@ -906,6 +916,8 @@ void ATPSCaptureCharacter::FireChargedArrow()
 
 	if (!GetMesh())
 		return;
+
+	HidePreviewArrow();
 
 	int32 ViewportSizeX = 0;
 	int32 ViewportSizeY = 0;
@@ -1077,6 +1089,8 @@ void ATPSCaptureCharacter::EndBowAim()
 		CrosshairWidgetInstance->SetCrosshairVisible(false);
 	}
 
+	HidePreviewArrow();
+
 	UE_LOG(LogTemp, Warning, TEXT("Bow Aim End"));
 }
 #pragma	endregion Bow Attack Func
@@ -1164,6 +1178,54 @@ void ATPSCaptureCharacter::ResetBowCrosshairUI()
 		CrosshairWidgetInstance->ResetCrosshair();
 		CrosshairWidgetInstance->SetCrosshairVisible(false);
 	}
+}
+
+void ATPSCaptureCharacter::ShowPreviewArrow()
+{
+	if (!PreviewArrowMesh || !PreviewArrowStaticMesh || !CurrentWeapon)
+		return;
+
+	PreviewArrowMesh->SetStaticMesh(PreviewArrowStaticMesh);
+
+	if (CurrentWeapon->UsesSkeletalMesh() &&
+		CurrentWeapon->WeaponSkeletalMesh &&
+		CurrentWeapon->WeaponSkeletalMesh->DoesSocketExist(TEXT("ArrowSocket")))
+	{
+		PreviewArrowMesh->AttachToComponent(
+			CurrentWeapon->WeaponSkeletalMesh,
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("ArrowSocket")
+		);
+	}
+	else if (GetMesh()->DoesSocketExist(TEXT("LeftHandSocket")))
+	{
+		PreviewArrowMesh->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+			TEXT("LeftHandSocket")
+		);
+	}
+	else
+	{
+		PreviewArrowMesh->AttachToComponent(
+			GetMesh(),
+			FAttachmentTransformRules::SnapToTargetNotIncludingScale
+		);
+	}
+
+	PreviewArrowMesh->SetRelativeLocation(FVector::ZeroVector);
+	PreviewArrowMesh->SetRelativeRotation(FRotator::ZeroRotator);
+	PreviewArrowMesh->SetRelativeScale3D(FVector(1.0f));
+	PreviewArrowMesh->SetHiddenInGame(false);
+}
+
+void ATPSCaptureCharacter::HidePreviewArrow()
+{
+	if (!PreviewArrowMesh)
+		return;
+
+	PreviewArrowMesh->SetHiddenInGame(true);
+	PreviewArrowMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
 #pragma region Interaction Function

@@ -18,6 +18,11 @@ class UUserWidget;
 class UMainHUDWidget;
 class UCrosshairBowWidget;
 
+class UStaticMeshComponent;
+class UArrowComponent;
+class AArrowProjectile;
+class UStaticMesh;
+
 class USoundBase;
 
 class AWeaponBase;
@@ -195,6 +200,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
 	float BowArmInterpSpeed = 10.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	UStaticMeshComponent* PreviewArrowMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bow")
+	UStaticMesh* PreviewArrowStaticMesh;
 #pragma endregion Bow Var
 
 #pragma region Montage & Interaction Var
@@ -329,6 +340,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ResetBowCrosshairUI();
+
+	void ShowPreviewArrow();
+	void HidePreviewArrow();
 
 public:
 #pragma region Interaction Function
