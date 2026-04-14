@@ -10,6 +10,8 @@ class UProjectileMovementComponent;
 
 class USoundBase;
 
+class UNiagaraSystem;
+
 UCLASS()
 class TPSCAPTURE_API AArrowProjectile : public AActor
 {
@@ -49,4 +51,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Arrow")
 	USoundBase* ArrowHitSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	UNiagaraSystem* ArrowHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	FLinearColor ArrowHitColor = FLinearColor(1.f, 0.8f, 0.2f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	float ArrowHitScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	float ArrowHitLifetime = 0.4f;
 };

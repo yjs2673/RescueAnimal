@@ -6,6 +6,9 @@
 
 #include "Sound/SoundBase.h"
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+
 AArrowProjectile::AArrowProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -65,6 +68,35 @@ void AArrowProjectile::OnArrowOverlap(
 			this,
 			UDamageType::StaticClass()
 		);
+
+		if (ArrowHitVFX)
+		{
+			FVector VFXLocation = OtherActor->GetActorLocation();
+
+			if (bFromSweep && !SweepResult.ImpactPoint.IsNearlyZero())
+				VFXLocation = SweepResult.ImpactPoint;
+			else if (OtherComp)
+				VFXLocation = OtherComp->GetComponentLocation();
+
+			UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				ArrowHitVFX,
+				VFXLocation,
+				GetActorRotation(),
+				FVector(1.0f),
+				true,
+				true,
+				ENCPoolMethod::None,
+				true
+			);
+
+			if (NiagaraComp)
+			{
+				NiagaraComp->SetVariableLinearColor(TEXT("Color"), ArrowHitColor);
+				NiagaraComp->SetVariableFloat(TEXT("Scale"), ArrowHitScale);
+				NiagaraComp->SetVariableFloat(TEXT("Lifetime"), ArrowHitLifetime);
+			}
+		}
 
 		if (ArrowHitSound)
 		{

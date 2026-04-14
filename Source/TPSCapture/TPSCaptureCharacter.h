@@ -25,6 +25,9 @@ class UStaticMesh;
 
 class USoundBase;
 
+class UNiagaraSystem;
+class UNiagaraComponent;
+
 class AWeaponBase;
 
 #pragma region Interactive Object
@@ -84,6 +87,7 @@ protected:
 
 /* Variations */
 public:
+#pragma region Anim Var
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
 	float MoveInputX = 0.0f; // 좌우
 
@@ -101,6 +105,7 @@ public:
 
 	UPROPERTY()
 	UCrosshairBowWidget* CrosshairWidgetInstance;
+#pragma endregion Anim Var
 
 #pragma region Equip Var
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // 오른손 무기 장착 소켓
@@ -219,6 +224,7 @@ protected:
 	APortalActor* CurrentPortal = nullptr;
 #pragma endregion Montage & Interaction Var
 
+#pragma region SFX Var
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Equipment")
 	USoundBase* EquipmentSound;
 
@@ -230,12 +236,42 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
 	USoundBase* BowDrawSound;
+#pragma endregion SFX Var
 
+#pragma region VFX Var
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Punch")
+	UNiagaraSystem* PunchHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Punch")
+	FLinearColor PunchHitColor = FLinearColor(1.f, 1.f, 1.f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Punch")
+	float PunchHitScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Punch")
+	float PunchHitLifetime = 0.35f;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Sword")
+	UNiagaraSystem* SwordHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Sword")
+	FLinearColor SwordHitColor = FLinearColor(1.f, 0.2f, 0.2f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Sword")
+	float SwordHitScale = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|Sword")
+	float SwordHitLifetime = 0.45f;
+#pragma endregion VFX Var
+
+#pragma region Weapon Socket Name Var
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName RightHandWeaponSocketName = TEXT("RightHandSocket");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
+#pragma endregion Weapon Socket Name Var
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -293,7 +329,9 @@ protected:
 	void QueueComboInput();
 #pragma endregion Punch Attack Func
 
+#pragma region Sword Attack Func
 	void PerformSwordHit(float damage, float range, float radius);
+#pragma endregion Sword Attack Func
 
 #pragma region Bow Attack Func
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -338,11 +376,26 @@ protected:
 	void PlayBowWeaponMontageSection(FName SectionName);
 #pragma endregion Anim Montage 
 
+#pragma region VFX Func
+	void SpawnHitVFX(
+		UNiagaraSystem* NiagaraSystem,
+		const FVector& SpawnLocation,
+		const FRotator& SpawnRotation,
+		const FLinearColor& Color,
+		float Scale,
+		float Lifetime
+	);
+#pragma endregion VFX Func
+
+#pragma region UI Func
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ResetBowCrosshairUI();
+#pragma endregion UI Func
 
+#pragma region Show & Hide Func
 	void ShowPreviewArrow();
 	void HidePreviewArrow();
+#pragma endregion Show & Hide Func
 
 public:
 #pragma region Interaction Function

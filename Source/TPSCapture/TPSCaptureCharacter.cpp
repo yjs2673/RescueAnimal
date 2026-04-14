@@ -25,6 +25,9 @@
 
 #include "Sound/SoundBase.h"
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
+
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
@@ -591,24 +594,6 @@ void ATPSCaptureCharacter::FireArrow()
 }
 #pragma endregion Base Combat Func
 
-void ATPSCaptureCharacter::TriggerMeleeHit()
-{
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("TriggerMeleeHit"));
-	float Damage = 20.0f;
-	float Range = 150.0f;
-	float Radius = 50.0f;
-
-	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Melee)
-	{
-		Damage = CurrentWeapon->AttackDamage;
-		Range = CurrentWeapon->AttackRange;
-		Radius = CurrentWeapon->AttackRadius;
-	}
-
-	(CurrentWeapon && CurrentWeapon->WeaponType == EWeaponType::Sword)
-		? PerformSwordHit(Damage, Range, Radius) : PerformPunchHit(Damage, Range, Radius);
-}
-
 #pragma region Punch Attack Func
 void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radius)
 {
@@ -649,6 +634,15 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 	if (bHit && HitResult.GetActor())
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
+
+		SpawnHitVFX(
+			PunchHitVFX,
+			HitResult.ImpactPoint,
+			GetActorRotation(),
+			PunchHitColor,
+			PunchHitScale,
+			PunchHitLifetime
+		);
 
 		USoundBase* SelectedHitSound = nullptr;
 		const int32 SoundIndex = CurrentComboIndex - 1;
@@ -721,6 +715,7 @@ void ATPSCaptureCharacter::QueueComboInput()
 }
 #pragma endregion Punch Attack Func
 
+#pragma region Sword Attack Func
 void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radius)
 {
 	if (!GetWorld())
@@ -761,8 +756,14 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
 
-		// USoundBase* SelectedHitSound = nullptr;
-		// SelectedHitSound = SwordHitSound;
+		SpawnHitVFX(
+			SwordHitVFX,
+			HitResult.ImpactPoint,
+			GetActorRotation(),
+			SwordHitColor,
+			SwordHitScale,
+			SwordHitLifetime
+		);
 
 		if (SwordHitSound)
 		{
@@ -782,6 +783,7 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 		);
 	}
 }
+#pragma endregion Sword Attack Func
 
 #pragma region Bow Attack Func
 void ATPSCaptureCharacter::OnAttackPressed()
@@ -1031,7 +1033,7 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	}
 
 #if WITH_EDITOR
-	DrawDebugLine(GetWorld(), TraceStart, AimTargetLocation, FColor::Green, false, 1.5f, 0, 1.5f);
+	// DrawDebugLine(GetWorld(), TraceStart, AimTargetLocation, FColor::Green, false, 1.5f, 0, 1.5f);
 	DrawDebugSphere(GetWorld(), AimTargetLocation, 12.0f, 12, FColor::Red, false, 1.5f);
 	DrawDebugLine(GetWorld(), SpawnLocation, AimTargetLocation, FColor::Yellow, false, 1.5f, 0, 1.5f);
 #endif
@@ -1096,6 +1098,24 @@ void ATPSCaptureCharacter::EndBowAim()
 #pragma	endregion Bow Attack Func
 
 #pragma region Anim Montage Func
+void ATPSCaptureCharacter::TriggerMeleeHit()
+{
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("TriggerMeleeHit"));
+	float Damage = 20.0f;
+	float Range = 150.0f;
+	float Radius = 50.0f;
+
+	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Melee)
+	{
+		Damage = CurrentWeapon->AttackDamage;
+		Range = CurrentWeapon->AttackRange;
+		Radius = CurrentWeapon->AttackRadius;
+	}
+
+	(CurrentWeapon && CurrentWeapon->WeaponType == EWeaponType::Sword)
+		? PerformSwordHit(Damage, Range, Radius) : PerformPunchHit(Damage, Range, Radius);
+}
+
 void ATPSCaptureCharacter::ProceedCombo()
 {
 	if (!PunchMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
@@ -1171,6 +1191,40 @@ void ATPSCaptureCharacter::PlayBowWeaponMontageSection(FName SectionName)
 }
 #pragma endregion Anim Montage Func
 
+#pragma region VFX Func
+void ATPSCaptureCharacter::SpawnHitVFX(
+	UNiagaraSystem* NiagaraSystem,
+	const FVector& SpawnLocation,
+	const FRotator& SpawnRotation,
+	const FLinearColor& Color,
+	float Scale,
+	float Lifetime)
+{
+	if (!NiagaraSystem)
+		return;
+
+	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		NiagaraSystem,
+		SpawnLocation,
+		SpawnRotation,
+		FVector(1.0f),
+		true,
+		true,
+		ENCPoolMethod::None,
+		true
+	);
+
+	if (!NiagaraComp)
+		return;
+
+	NiagaraComp->SetVariableLinearColor(TEXT("Color"), Color);
+	NiagaraComp->SetVariableFloat(TEXT("Scale"), Scale);
+	NiagaraComp->SetVariableFloat(TEXT("Lifetime"), Lifetime);
+}
+#pragma endregion VFX Func
+
+#pragma region UI Func
 void ATPSCaptureCharacter::ResetBowCrosshairUI()
 {
 	if (CrosshairWidgetInstance)
@@ -1179,7 +1233,9 @@ void ATPSCaptureCharacter::ResetBowCrosshairUI()
 		CrosshairWidgetInstance->SetCrosshairVisible(false);
 	}
 }
+#pragma endregion UI Func
 
+#pragma region Show & Hide Func
 void ATPSCaptureCharacter::ShowPreviewArrow()
 {
 	if (!PreviewArrowMesh || !PreviewArrowStaticMesh || !CurrentWeapon)
@@ -1227,6 +1283,7 @@ void ATPSCaptureCharacter::HidePreviewArrow()
 	PreviewArrowMesh->SetHiddenInGame(true);
 	PreviewArrowMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
+#pragma endregion Show & Hide Func
 
 #pragma region Interaction Function
 void ATPSCaptureCharacter::SetCurrentPortal(APortalActor* NewPortal)
