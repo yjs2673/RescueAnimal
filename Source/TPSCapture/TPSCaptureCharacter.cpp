@@ -243,6 +243,9 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 #pragma region Base Action Func
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
 	if (bIsAttacking && !bIsBowCharging)
 		return;
 
@@ -285,6 +288,9 @@ void ATPSCaptureCharacter::Look(const FInputActionValue& Value)
 
 void ATPSCaptureCharacter::Interact()
 {
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
 	if (NearbyWeapon || CurrentWeapon) // 무가 상호작용을 포탈보다 우선시
 	{
 		HandleWeaponInteract();
@@ -502,6 +508,9 @@ void ATPSCaptureCharacter::ClearNearbyWeapon(AWeaponBase* WeaponToClear)
 #pragma region Base Combat Func
 void ATPSCaptureCharacter::Attack()
 {
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
 	if (bIsAttacking && !bIsPunching)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Already Attacking"));
@@ -818,6 +827,9 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 #pragma region Bow Attack Func
 void ATPSCaptureCharacter::OnAttackPressed()
 {
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
 	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Ranged)
 	{
 		StartBowCharge();
@@ -829,6 +841,9 @@ void ATPSCaptureCharacter::OnAttackPressed()
 
 void ATPSCaptureCharacter::OnAttackReleased()
 {
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
 	if (bIsBowCharging)
 		ReleaseBowCharge();
 }
