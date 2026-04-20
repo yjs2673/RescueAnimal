@@ -707,7 +707,7 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	TestAddEXP(10);
+	// TestAddEXP(20);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -823,6 +823,8 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 			UDamageType::StaticClass()
 		);
 	}
+
+	// TestTakeDamage(20);
 }
 #pragma endregion Sword Attack Func
 

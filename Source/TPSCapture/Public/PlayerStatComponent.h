@@ -21,6 +21,22 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+#pragma region Bonus Stats
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float BonusAttack = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float BonusMaxHP = 0.f;
+
+public:
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetBonusAttack() const { return BonusAttack; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetBonusMaxHP() const { return BonusMaxHP; }
+#pragma endregion Bonus Stats
+
 #pragma region Health Stats
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")

@@ -15,16 +15,19 @@ void UPlayerStatComponent::BeginPlay()
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 
 	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
+
 	OnLevelChanged.Broadcast(Level);
 }
 
-#pragma region Health Stats
+#pragma region Bonus Stats
 void UPlayerStatComponent::RecalculateStats()
 {
-	MaxHP = BaseMaxHP;
+	MaxHP = BaseMaxHP + BonusMaxHP;
 	CurrentHP = FMath::Clamp(CurrentHP, 0.f, MaxHP);
 }
+#pragma region Bonus Stats
 
+#pragma region Health Stats
 float UPlayerStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead || Amount <= 0.f)
@@ -125,6 +128,13 @@ void UPlayerStatComponent::LevelUp()
 
 	Level++;
 
+	BonusMaxHP += 10.f;
+	BonusAttack += 2.f;
+
+	RecalculateStats();
+	CurrentHP = MaxHP;
+
+	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 	OnLevelChanged.Broadcast(Level);
 	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
 }
