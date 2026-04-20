@@ -16,6 +16,8 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
+#include "PlayerStatComponent.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -79,6 +81,8 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	PrimaryActorTick.bCanEverTick = true; // Tick() 함수를 사용하기 위해 true로 설정
 	CurrentWeapon = nullptr; // 처음에는 무기를 들고 있지 않으므로 nullptr로 초기화
 
+	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
+
 	// 차징 시 나오는 화살: 미리보기용 StaticMeshComponent 생성 및 설정
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
 	PreviewArrowMesh->SetupAttachment(GetMesh());
@@ -134,10 +138,47 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 }
 #pragma endregion Input Binding Func
 
+/* Tick */
+void ATPSCaptureCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bIsBowCharging) // 활을 당기는 중이라면, 활의 방향과 충전 상태를 업데이트
+	{
+		UpdateBowFacing(DeltaTime);
+
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		const float ChargeDuration = CurrentTime - BowChargeStartTime;
+
+		const float ClampedCharge = FMath::Clamp(ChargeDuration, MinBowChargeTime, MaxBowChargeTime);
+		const float ChargeAlpha =
+			(MaxBowChargeTime > MinBowChargeTime)
+			? (ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime)
+			: 1.0f;
+
+		CachedBowChargeAlpha = FMath::Clamp(ChargeAlpha, 0.0f, 1.0f);
+
+		if (CrosshairWidgetInstance)
+		{
+			CrosshairWidgetInstance->SetChargeAlpha(CachedBowChargeAlpha);
+
+			if (CachedBowChargeAlpha >= 1.0f)
+				CrosshairWidgetInstance->PlayFullChargeEffect();
+		}
+	}
+
+	UpdateBowZoom(DeltaTime);
+	UpdateBowCameraArm(DeltaTime);
+}
+
 /* Begin */
 void ATPSCaptureCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (StatComponent)
+		StatComponent->OnDeath.AddDynamic(this, &ATPSCaptureCharacter::HandleCharacterDeath);
+
 
 	if (CameraBoom)
 		DefaultArmLength = CameraBoom->TargetArmLength;
@@ -177,37 +218,26 @@ void ATPSCaptureCharacter::BeginPlay()
 	}
 }
 
-/* Tick */
-void ATPSCaptureCharacter::Tick(float DeltaTime)
+void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상태 초기화, 이동 불가, 입력 비활성화
 {
-	Super::Tick(DeltaTime);
+	bIsAttacking = false;
+	bIsPunching = false;
+	bIsBowCharging = false;
+	bIsBowAiming = false;
+	bComboInputBuffered = false;
+	bCanAcceptComboInput = false;
 
-	if (bIsBowCharging) // 활을 당기는 중이라면, 활의 방향과 충전 상태를 업데이트
+	ResetBowCrosshairUI();
+	HidePreviewArrow();
+
+	GetCharacterMovement()->DisableMovement();
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
-		UpdateBowFacing(DeltaTime);
-
-		const float CurrentTime = GetWorld()->GetTimeSeconds();
-		const float ChargeDuration = CurrentTime - BowChargeStartTime;
-
-		const float ClampedCharge = FMath::Clamp(ChargeDuration, MinBowChargeTime, MaxBowChargeTime);
-		const float ChargeAlpha =
-			(MaxBowChargeTime > MinBowChargeTime)
-			? (ClampedCharge - MinBowChargeTime) / (MaxBowChargeTime - MinBowChargeTime)
-			: 1.0f;
-
-		CachedBowChargeAlpha = FMath::Clamp(ChargeAlpha, 0.0f, 1.0f);
-
-		if (CrosshairWidgetInstance)
-		{
-			CrosshairWidgetInstance->SetChargeAlpha(CachedBowChargeAlpha);
-
-			if (CachedBowChargeAlpha >= 1.0f)
-				CrosshairWidgetInstance->PlayFullChargeEffect();
-		}
+		DisableInput(PC);
 	}
 
-	UpdateBowZoom(DeltaTime);
-	UpdateBowCameraArm(DeltaTime);
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Character Died"));
 }
 
 #pragma region Base Action Func
@@ -1301,3 +1331,23 @@ void ATPSCaptureCharacter::ClearCurrentPortal(APortalActor* PortalToClear)
 	}
 }
 #pragma endregion Interaction Function
+
+float ATPSCaptureCharacter::TakeDamage(
+	float DamageAmount,
+	FDamageEvent const& DamageEvent,
+	AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	if (!StatComponent || StatComponent->IsDead())
+	{
+		return 0.f;
+	}
+
+	const float OldHP = StatComponent->GetCurrentHP();
+	StatComponent->ApplyDamage(DamageAmount);
+	const float ActualDamage = OldHP - StatComponent->GetCurrentHP();
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Player Took Damage: %.1f"), ActualDamage);
+
+	return ActualDamage;
+}

@@ -29,10 +29,9 @@ class UNiagaraSystem;
 class UNiagaraComponent;
 
 class AWeaponBase;
+class UPlayerStatComponent;
 
-#pragma region Interactive Object
 class APortalActor;
-#pragma endregion Interactive Object
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -77,13 +76,16 @@ class ATPSCaptureCharacter : public ACharacter
 	UInputAction* AttackAction;
 #pragma endregion Input Action
 
-#pragma region Constructor & Tick & Begin
+#pragma region Constructor & Tick & Begin & Death
 public:
 	ATPSCaptureCharacter();
 	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
-#pragma endregion Constructor & Tick & Begin
+
+	UFUNCTION()
+	void HandleCharacterDeath();
+#pragma endregion Constructor & Tick & Begin & Death
 
 /* Variations */
 public:
@@ -272,6 +274,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
 #pragma endregion Weapon Socket Name Var
+
+/* Components */
+protected:
+#pragma region Player Stat Component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerStatComponent* StatComponent;
+#pragma endregion Player Stat Component
+
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -402,5 +412,11 @@ public:
 	void SetCurrentPortal(APortalActor* NewPortal);			// 포탈에 들어갈 때 현재 포탈 설정
 	void ClearCurrentPortal(APortalActor* PortalToClear);	// 포탈에서 나올 때 현재 포탈 해제
 #pragma endregion Interaction Func
+
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator,
+		AActor* DamageCauser) override;
 };
 
