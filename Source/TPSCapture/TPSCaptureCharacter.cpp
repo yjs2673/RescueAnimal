@@ -706,6 +706,8 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 			UDamageType::StaticClass()
 		);
 	}
+
+	TestAddEXP(10);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -1395,4 +1397,20 @@ void ATPSCaptureCharacter::TestHeal(float HealAmount)
 		HealAmount,
 		StatComponent->GetCurrentHP(),
 		StatComponent->GetMaxHP());
+}
+
+void ATPSCaptureCharacter::TestAddEXP(int32 EXPAmount)
+{
+	if (!StatComponent)
+	{
+		return;
+	}
+
+	StatComponent->AddEXP(EXPAmount);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("TestAddEXP: %d | Level: %d | EXP: %d / %d"),
+		EXPAmount,
+		StatComponent->GetLevel(),
+		StatComponent->GetCurrentEXP(),
+		StatComponent->GetRequiredEXP());
 }

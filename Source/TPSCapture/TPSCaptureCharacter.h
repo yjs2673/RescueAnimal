@@ -424,5 +424,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
 	void TestHeal(float HealAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
+	void TestAddEXP(int32 EXPAmount);
 };
 

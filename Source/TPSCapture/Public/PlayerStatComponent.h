@@ -7,6 +7,9 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHPChangedSignature, float, CurrentHP, float, MaxHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEXPChangedSignature, int32, CurrentEXP, int32, RequiredEXP);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelChangedSignature, int32, NewLevel);
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TPSCAPTURE_API UPlayerStatComponent : public UActorComponent
 {
@@ -18,6 +21,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+#pragma region Health Stats
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float BaseMaxHP = 100.f;
@@ -62,4 +66,46 @@ public:
 
 protected:
 	void Die();
+#pragma endregion Health Stats
+
+#pragma region Experience Stats
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	int32 Level = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	int32 CurrentEXP = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	int32 MaxLevel = 50;
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnEXPChangedSignature OnEXPChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnLevelChangedSignature OnLevelChanged;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	void AddEXP(int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+	void LevelUp();
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetLevel() const { return Level; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetCurrentEXP() const { return CurrentEXP; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetMaxLevel() const { return MaxLevel; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetRequiredEXP() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetEXPPercent() const;
+#pragma endregion Experience Stats
 };
