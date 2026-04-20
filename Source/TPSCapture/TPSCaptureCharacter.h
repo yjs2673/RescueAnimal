@@ -267,13 +267,13 @@ protected:
 	float SwordHitLifetime = 0.45f;
 #pragma endregion VFX Var
 
-#pragma region Weapon Socket Name Var
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	FName RightHandWeaponSocketName = TEXT("RightHandSocket");
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
-#pragma endregion Weapon Socket Name Var
+//#pragma region Weapon Socket Name Var
+//	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+//	FName RightHandWeaponSocketName = TEXT("RightHandSocket");
+//
+//	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+//	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
+//#pragma endregion Weapon Socket Name Var
 
 /* Components */
 protected:
@@ -418,5 +418,11 @@ public:
 		struct FDamageEvent const& DamageEvent,
 		class AController* EventInstigator,
 		AActor* DamageCauser) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
+	void TestTakeDamage(float DamageAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
+	void TestHeal(float HealAmount);
 };
 

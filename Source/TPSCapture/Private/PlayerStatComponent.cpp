@@ -24,17 +24,13 @@ void UPlayerStatComponent::RecalculateStats()
 float UPlayerStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead || Amount <= 0.f)
-	{
 		return CurrentHP;
-	}
 
 	CurrentHP = FMath::Clamp(CurrentHP - Amount, 0.f, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 
 	if (CurrentHP <= 0.f)
-	{
 		Die();
-	}
 
 	return CurrentHP;
 }
@@ -42,9 +38,7 @@ float UPlayerStatComponent::ApplyDamage(float Amount)
 void UPlayerStatComponent::Heal(float Amount)
 {
 	if (bIsDead || Amount <= 0.f)
-	{
 		return;
-	}
 
 	CurrentHP = FMath::Clamp(CurrentHP + Amount, 0.f, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
@@ -53,9 +47,7 @@ void UPlayerStatComponent::Heal(float Amount)
 float UPlayerStatComponent::GetHPPercent() const
 {
 	if (MaxHP <= 0.f)
-	{
 		return 0.f;
-	}
 
 	return CurrentHP / MaxHP;
 }
@@ -63,9 +55,7 @@ float UPlayerStatComponent::GetHPPercent() const
 void UPlayerStatComponent::Die()
 {
 	if (bIsDead)
-	{
 		return;
-	}
 
 	bIsDead = true;
 	OnDeath.Broadcast();

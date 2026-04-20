@@ -391,7 +391,7 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ¹«±â ÀåÂø, ÀÌ¹
 
 	const FName AttachSocketName =
 		(CurrentWeapon->WeaponType == EWeaponType::Bow)
-		? LeftHandWeaponSocketName : RightHandWeaponSocketName;
+		? LeftWeaponSocketName : RightWeaponSocketName;
 
 	CurrentWeapon->AttachToComponent(
 		GetMesh(),
@@ -1365,4 +1365,34 @@ float ATPSCaptureCharacter::TakeDamage(
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Player Took Damage: %.1f"), ActualDamage);
 
 	return ActualDamage;
+}
+
+void ATPSCaptureCharacter::TestTakeDamage(float DamageAmount)
+{
+	if (!StatComponent)
+	{
+		return;
+	}
+
+	StatComponent->ApplyDamage(DamageAmount);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("TestTakeDamage: %.1f | Current HP: %.1f / %.1f"),
+		DamageAmount,
+		StatComponent->GetCurrentHP(),
+		StatComponent->GetMaxHP());
+}
+
+void ATPSCaptureCharacter::TestHeal(float HealAmount)
+{
+	if (!StatComponent)
+	{
+		return;
+	}
+
+	StatComponent->Heal(HealAmount);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("TestHeal: %.1f | Current HP: %.1f / %.1f"),
+		HealAmount,
+		StatComponent->GetCurrentHP(),
+		StatComponent->GetMaxHP());
 }
