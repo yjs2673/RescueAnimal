@@ -27,6 +27,11 @@ void UPlayerStatComponent::RecalculateStats()
 }
 #pragma region Bonus Stats
 
+float UPlayerStatComponent::GetFinalAttackPower(float BaseAttack) const
+{
+	return BaseAttack + BonusAttack;
+}
+
 #pragma region Health Stats
 float UPlayerStatComponent::ApplyDamage(float Amount)
 {

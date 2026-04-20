@@ -37,6 +37,10 @@ public:
 	float GetBonusMaxHP() const { return BonusMaxHP; }
 #pragma endregion Bonus Stats
 
+public:
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalAttackPower(float BaseAttack) const;
+
 #pragma region Health Stats
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")

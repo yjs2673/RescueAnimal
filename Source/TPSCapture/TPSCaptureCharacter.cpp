@@ -707,7 +707,7 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	// TestAddEXP(20);
+	TestAddEXP(20);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -1071,7 +1071,14 @@ void ATPSCaptureCharacter::FireChargedArrow()
 		CachedBowChargeAlpha
 	);
 
-	Arrow->Damage = CurrentWeapon->AttackDamage * DamageMultiplier;
+	float FinalBaseDamage = CurrentWeapon->AttackDamage;
+
+	if (StatComponent)
+	{
+		FinalBaseDamage = StatComponent->GetFinalAttackPower(FinalBaseDamage);
+	}
+
+	Arrow->Damage = FinalBaseDamage * DamageMultiplier;
 
 	if (Arrow->ProjectileMovement)
 	{
@@ -1150,15 +1157,20 @@ void ATPSCaptureCharacter::EndBowAim()
 void ATPSCaptureCharacter::TriggerMeleeHit()
 {
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("TriggerMeleeHit"));
-	float Damage = 20.0f;
-	float Range = 150.0f;
-	float Radius = 50.0f;
+	float Damage = PunchDamage;
+	float Range = PunchRange;
+	float Radius = PunchRadius;
 
 	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Melee)
 	{
 		Damage = CurrentWeapon->AttackDamage;
 		Range = CurrentWeapon->AttackRange;
 		Radius = CurrentWeapon->AttackRadius;
+	}
+
+	if (StatComponent)
+	{
+		Damage = StatComponent->GetFinalAttackPower(Damage);
 	}
 
 	(CurrentWeapon && CurrentWeapon->WeaponType == EWeaponType::Sword)
