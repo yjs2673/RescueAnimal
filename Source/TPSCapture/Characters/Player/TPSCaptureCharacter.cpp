@@ -712,7 +712,8 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	TestTakeDamage(50);
+	TestAddItem("Potion", 2);
+	TestTakeDamage(20);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -829,7 +830,7 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 		);
 	}
 
-	TestUseItem("Wood", 1);
+	TestUsePotion();
 }
 #pragma endregion Sword Attack Func
 
@@ -1464,4 +1465,26 @@ bool ATPSCaptureCharacter::TestUseItem(FName ItemID, int32 Count)
 		InventoryComponent->GetItemCount(ItemID));
 
 	return bResult;
+}
+
+bool ATPSCaptureCharacter::TestUsePotion()
+{
+	if (!InventoryComponent || !StatComponent)
+	{
+		return false;
+	}
+
+	if (!InventoryComponent->RemoveItem(TEXT("Potion"), 1))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Failed: No Potion"));
+		return false;
+	}
+
+	StatComponent->Heal(30.f);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Success | HP: %.1f / %.1f"),
+		StatComponent->GetCurrentHP(),
+		StatComponent->GetMaxHP());
+
+	return true;
 }
