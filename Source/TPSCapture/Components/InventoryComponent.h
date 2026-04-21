@@ -2,19 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "TPSStructTypes.h"
 #include "InventoryComponent.generated.h"
-
-USTRUCT(BlueprintType)
-struct FInventoryEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-	FName ItemID = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-	int32 Count = 0;
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemChangedSignature, FName, ItemID, int32, NewCount);
 
