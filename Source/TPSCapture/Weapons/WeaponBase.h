@@ -42,6 +42,9 @@ protected:
 	);
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FName WeaponID = NAME_None;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USceneComponent* DefaultRoot;
 
