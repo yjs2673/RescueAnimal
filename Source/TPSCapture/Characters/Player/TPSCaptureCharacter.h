@@ -224,6 +224,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* AttackMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* DeathMontage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	APortalActor* CurrentPortal = nullptr;
 #pragma endregion Montage & Interaction Var

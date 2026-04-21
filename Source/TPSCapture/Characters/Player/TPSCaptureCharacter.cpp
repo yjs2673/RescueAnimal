@@ -229,6 +229,9 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 	bComboInputBuffered = false;
 	bCanAcceptComboInput = false;
 
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(DeathMontage);
+
 	ResetBowCrosshairUI();
 	HidePreviewArrow();
 
@@ -709,7 +712,7 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	TestAddItem("Wood", 1);
+	TestTakeDamage(50);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
