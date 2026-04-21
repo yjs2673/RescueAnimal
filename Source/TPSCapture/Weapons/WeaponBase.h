@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "WeaponTypes.h"
+#include "TPSGameEnums.h"
 #include "WeaponBase.generated.h"
 
 class UStaticMeshComponent;

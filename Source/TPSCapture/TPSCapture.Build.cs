@@ -29,6 +29,7 @@ public class TPSCapture : ModuleRules
             "TPSCapture/Characters/Enemies",
             "TPSCapture/Components",
             "TPSCapture/Cores",
+            "TPSCapture/Data",
             "TPSCapture/Interactables",
             "TPSCapture/UI",
             "TPSCapture/Weapons"
