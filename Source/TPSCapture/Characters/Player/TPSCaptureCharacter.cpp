@@ -19,6 +19,9 @@
 #include "PlayerStatComponent.h"
 #include "InventoryComponent.h"
 
+#include "TPSGameInstance.h"
+#include "TPSStructTypes.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -1474,15 +1477,30 @@ bool ATPSCaptureCharacter::TestUsePotion()
 		return false;
 	}
 
-	if (!InventoryComponent->RemoveItem(TEXT("Potion"), 1))
+	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Failed: No Potion"));
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Failed: TPSGameInstance is null"));
 		return false;
 	}
 
-	StatComponent->Heal(30.f);
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(TEXT("Potion"), ItemData))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Failed: ItemData not found for Potion"));
+		return false;
+	}
 
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Success | HP: %.1f / %.1f"),
+	if (!InventoryComponent->RemoveItem(TEXT("Potion"), 1))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Failed: No Potion in inventory"));
+		return false;
+	}
+
+	StatComponent->Heal(ItemData.HealAmount);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("UsePotion Success | HealAmount: %.1f | HP: %.1f / %.1f"),
+		ItemData.HealAmount,
 		StatComponent->GetCurrentHP(),
 		StatComponent->GetMaxHP());
 

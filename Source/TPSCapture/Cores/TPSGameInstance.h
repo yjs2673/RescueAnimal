@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "TPSStructTypes.h"
 #include "TPSGameInstance.generated.h"
 
 class UDataTable;
@@ -12,7 +13,8 @@ class TPSCAPTURE_API UTPSGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-	//UTPSGameInstance();
+	UFUNCTION(BlueprintCallable, Category = "Data")
+	bool GetItemDataByID(FName ItemID, FItemData& OutItemData) const;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
