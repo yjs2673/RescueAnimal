@@ -22,5 +22,16 @@ public class TPSCapture : ModuleRules
             "Slate",
             "SlateCore",
         });
+
+        PublicIncludePaths.AddRange(new string[] {
+            "TPSCapture/Characters",
+            "TPSCapture/Characters/Player",
+            "TPSCapture/Characters/Enemies",
+            "TPSCapture/Components",
+            "TPSCapture/Cores",
+            "TPSCapture/Interactables",
+            "TPSCapture/UI",
+            "TPSCapture/Weapons"
+        });
     }
 }

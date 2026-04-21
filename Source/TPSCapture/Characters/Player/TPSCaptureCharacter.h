@@ -29,7 +29,9 @@ class UNiagaraSystem;
 class UNiagaraComponent;
 
 class AWeaponBase;
+
 class UPlayerStatComponent;
+class UInventoryComponent;
 
 class APortalActor;
 
@@ -267,20 +269,17 @@ protected:
 	float SwordHitLifetime = 0.45f;
 #pragma endregion VFX Var
 
-//#pragma region Weapon Socket Name Var
-//	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-//	FName RightHandWeaponSocketName = TEXT("RightHandSocket");
-//
-//	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-//	FName LeftHandWeaponSocketName = TEXT("LeftHandSocket");
-//#pragma endregion Weapon Socket Name Var
-
 /* Components */
 protected:
 #pragma region Player Stat Component
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UPlayerStatComponent* StatComponent;
 #pragma endregion Player Stat Component
+
+#pragma region Inventory Component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UInventoryComponent* InventoryComponent;
+#pragma endregion Inventory Component
 
 /* Functions */
 protected:
@@ -427,5 +426,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
 	void TestAddEXP(int32 EXPAmount);
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
 };
 
