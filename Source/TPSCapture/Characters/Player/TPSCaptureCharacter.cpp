@@ -709,7 +709,7 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	TestAddEXP(20);
+	TestAddItem("Wood", 1);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -826,7 +826,7 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 		);
 	}
 
-	// TestTakeDamage(20);
+	TestUseItem("Wood", 1);
 }
 #pragma endregion Sword Attack Func
 
@@ -1429,4 +1429,36 @@ void ATPSCaptureCharacter::TestAddEXP(int32 EXPAmount)
 		StatComponent->GetLevel(),
 		StatComponent->GetCurrentEXP(),
 		StatComponent->GetRequiredEXP());
+}
+
+void ATPSCaptureCharacter::TestAddItem(FName ItemID, int32 Count)
+{
+	if (!InventoryComponent)
+	{
+		return;
+	}
+
+	InventoryComponent->AddItem(ItemID, Count);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("AddTestItem: %s x%d"),
+		*ItemID.ToString(),
+		Count);
+}
+
+bool ATPSCaptureCharacter::TestUseItem(FName ItemID, int32 Count)
+{
+	if (!InventoryComponent)
+	{
+		return false;
+	}
+
+	const bool bResult = InventoryComponent->RemoveItem(ItemID, Count);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("UseTestItem: %s x%d | Result: %s | Remaining: %d"),
+		*ItemID.ToString(),
+		Count,
+		bResult ? TEXT("True") : TEXT("False"),
+		InventoryComponent->GetItemCount(ItemID));
+
+	return bResult;
 }
