@@ -4,6 +4,8 @@
 #include "GameFramework/Character.h"
 #include "TPSCreatureBase.generated.h"
 
+class UAnimMontage;
+
 UCLASS()
 class TPSCAPTURE_API ATPSCreatureBase : public ACharacter
 {
@@ -15,26 +17,35 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+public:
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator,
+		AActor* DamageCauser
+	) override;
+
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|Stat")
 	float MaxHP = 100.f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Creature|Stat")
 	float CurrentHP = 100.f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Creature|State")
 	bool bIsDead = false;
 
-public:
-	UFUNCTION(BlueprintCallable, Category = "Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|State")
+	float DestroyDelay = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|Animation")
+	UAnimMontage* HitMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|Animation")
+	UAnimMontage* DeadMontage;
+
+protected:
 	virtual void InitializeStats();
-
-	UFUNCTION(BlueprintCallable, Category = "Stats")
-	virtual void ApplyDamage(float DamageAmount);
-
-	UFUNCTION(BlueprintCallable, Category = "Stats")
+	virtual void HandleHitReaction();
 	virtual void Die();
-
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	bool IsDead() const { return bIsDead; }
 };
