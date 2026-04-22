@@ -45,14 +45,14 @@ float ATPSCreatureBase::TakeDamage(
 		Die();
 	}
 	else
-		Hit();
+		PlayHitMontage();
 
 	return ActualDamage;
 }
 
-void ATPSCreatureBase::Hit()
+void ATPSCreatureBase::PlayHitMontage()
 {
-	if (bIsDead)
+	if (bIsDead || bIsAttacking)
 		return;
 
 	if (!GetMesh() || !GetMesh()->GetAnimInstance())

@@ -86,9 +86,6 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
-	bool bIsAttacking = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float LastAttackTime = -1000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")

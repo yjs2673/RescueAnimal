@@ -1269,7 +1269,7 @@ void ATPSCaptureCharacter::PlayHitMontage()
 	if (StatComponent->IsDead())
 		return;
 
-	if (HitMontages.Num() == 0)
+	if (bIsAttacking || bIsBowCharging || bIsBowAiming)
 		return;
 
 	if (!GetMesh())
