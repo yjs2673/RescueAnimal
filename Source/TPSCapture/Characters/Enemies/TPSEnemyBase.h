@@ -6,6 +6,8 @@
 
 class USphereComponent;
 
+class UAnimMontage;
+
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
 {
@@ -81,4 +83,25 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
 	virtual bool CanAttack() const;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	bool bIsAttacking = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float LastAttackTime = -1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	UAnimMontage* AttackMontage = nullptr;
+
+protected:
+	virtual void UpdateAttack();
+	virtual void PerformPunchAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	virtual void EndAttack();
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	virtual void ApplyDamageToTarget();
 };

@@ -1,7 +1,10 @@
 #include "TPSEnemyBase.h"
-#include "AIController.h"
 #include "Components/SphereComponent.h"
 #include "TPSCaptureCharacter.h"
+
+#include "AIController.h"
+#include "Animation/AnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 ATPSEnemyBase::ATPSEnemyBase()
 {
@@ -33,6 +36,7 @@ void ATPSEnemyBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	UpdateChase();
+	UpdateAttack();
 }
 
 void ATPSEnemyBase::OnDetectionSphereBeginOverlap(
@@ -110,9 +114,74 @@ bool ATPSEnemyBase::CanAttack() const
 	if (bIsDead)
 		return false;
 
+	if (bIsAttacking)
+		return false;
+
 	if (!HasValidTarget())
 		return false;
 
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-	return DistanceToTarget <= AttackRange;
+	if (DistanceToTarget > AttackRange)
+		return false;
+
+	return true;
+}
+
+void ATPSEnemyBase::UpdateAttack()
+{
+	if (!CanAttack())
+		return;
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastAttackTime < AttackCooldown)
+		return;
+
+	bIsAttacking = true;
+	LastAttackTime = CurrentTime;
+
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+		AIController->StopMovement();
+
+	PerformPunchAttack();
+}
+
+void ATPSEnemyBase::PerformPunchAttack()
+{
+	if (!AttackMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] AttackMontage is missing"), *GetName());
+		EndAttack();
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(AttackMontage);
+}
+
+void ATPSEnemyBase::EndAttack()
+{
+	bIsAttacking = false;
+}
+
+void ATPSEnemyBase::ApplyDamageToTarget()
+{
+	if (bIsDead || !HasValidTarget())
+		return;
+
+	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
+	if (DistanceToTarget > AttackRange)
+		return;
+
+	UGameplayStatics::ApplyDamage(
+		TargetActor,
+		AttackDamage,
+		GetController(),
+		this,
+		UDamageType::StaticClass()
+	);
+
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Applied %.1f damage to %s"),
+		*GetName(),
+		AttackDamage,
+		*TargetActor->GetName());
 }
