@@ -4,6 +4,8 @@
 #include "TPSCreatureBase.h"
 #include "TPSEnemyBase.generated.h"
 
+class USphereComponent;
+
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
 {
@@ -24,6 +26,9 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Detection")
+	TObjectPtr<USphereComponent> DetectionSphere;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	EEnemyAttackType AttackType = EEnemyAttackType::Punch;
 
@@ -40,7 +45,26 @@ protected:
 	float AttackCooldown = 1.5f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Target")
-	AActor* TargetActor = nullptr;
+	TObjectPtr<AActor> TargetActor = nullptr;
+
+protected:
+	UFUNCTION()
+	virtual void OnDetectionSphereBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	virtual void OnDetectionSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Target")
