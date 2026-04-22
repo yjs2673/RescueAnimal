@@ -4,6 +4,14 @@
 #include "TPSCreatureBase.h"
 #include "TPSEnemyBase.generated.h"
 
+UENUM(BlueprintType)
+enum class EEnemyAttackType : uint8
+{
+	Punch	UMETA(DisplayName = "Punch"),
+	Sword	UMETA(DisplayName = "Sword"),
+	Bow		UMETA(DisplayName = "Bow")
+};
+
 UCLASS()
 class TPSCAPTURE_API ATPSEnemyBase : public ATPSCreatureBase
 {
@@ -17,10 +25,13 @@ protected:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	EEnemyAttackType AttackType = EEnemyAttackType::Punch;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackDamage = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
-	float DetectRange = 600.f;
+	float DetectRange = 800.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackRange = 150.f;
@@ -37,6 +48,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Target")
 	virtual void ClearTargetActor();
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Target")
+	virtual bool HasValidTarget() const;
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
 	virtual bool CanAttack() const;

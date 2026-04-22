@@ -20,12 +20,17 @@ void ATPSEnemyBase::ClearTargetActor()
 	TargetActor = nullptr;
 }
 
+bool ATPSEnemyBase::HasValidTarget() const
+{
+	return TargetActor != nullptr;
+}
+
 bool ATPSEnemyBase::CanAttack() const
 {
 	if (bIsDead)
 		return false;
 
-	if (TargetActor == nullptr)
+	if (!HasValidTarget())
 		return false;
 
 	return true;
