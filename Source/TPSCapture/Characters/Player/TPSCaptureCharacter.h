@@ -225,7 +225,13 @@ protected:
 	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	TArray<UAnimMontage*> HitMontages;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* DeathMontage;
+
+	UPROPERTY(Transient)
+	UAnimMontage* CurrentHitMontage = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	APortalActor* CurrentPortal = nullptr;
@@ -386,6 +392,11 @@ protected:
 	void FireArrow(); // 활
 
 	void PlayBowWeaponMontageSection(FName SectionName);
+
+	void PlayHitMontage();
+
+	UFUNCTION(BlueprintCallable) // 피격 후 바로 다음 액션: 피격 모션 중단
+	void StopHitMontage();
 #pragma endregion Anim Montage 
 
 #pragma region VFX Func

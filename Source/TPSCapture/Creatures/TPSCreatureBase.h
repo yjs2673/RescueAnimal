@@ -39,13 +39,19 @@ protected:
 	float DestroyDelay = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|Animation")
-	UAnimMontage* HitMontage;
+	TArray<UAnimMontage*> HitMontages;
+
+	UPROPERTY(Transient)
+	UAnimMontage* CurrentHitMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Creature|Animation")
 	UAnimMontage* DeadMontage;
 
 protected:
 	virtual void InitializeStats();
-	virtual void HandleHitReaction();
+	virtual void Hit();
 	virtual void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void StopHitMontage();
 };

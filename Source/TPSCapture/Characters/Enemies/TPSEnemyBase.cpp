@@ -86,7 +86,10 @@ void ATPSEnemyBase::UpdateChase()
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
 
 	if (DistanceToTarget > AttackRange)
+	{
+		StopHitMontage();
 		AIController->MoveToActor(TargetActor, AttackRange);
+	}
 	else
 		AIController->StopMovement();
 }
@@ -153,6 +156,8 @@ void ATPSEnemyBase::PerformPunchAttack()
 		EndAttack();
 		return;
 	}
+
+	StopHitMontage();
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(AttackMontage);

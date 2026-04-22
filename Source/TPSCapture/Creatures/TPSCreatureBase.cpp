@@ -45,18 +45,33 @@ float ATPSCreatureBase::TakeDamage(
 		Die();
 	}
 	else
-		HandleHitReaction();
+		Hit();
 
 	return ActualDamage;
 }
 
-void ATPSCreatureBase::HandleHitReaction()
+void ATPSCreatureBase::Hit()
 {
 	if (bIsDead)
 		return;
 
-	if (HitMontage && GetMesh() && GetMesh()->GetAnimInstance())
-		GetMesh()->GetAnimInstance()->Montage_Play(HitMontage);
+	if (!GetMesh() || !GetMesh()->GetAnimInstance())
+		return;
+
+	if (HitMontages.Num() <= 0)
+		return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+		return;
+	if (AnimInstance->IsAnyMontagePlaying()) // 다른 몽타주가 재생 중이면 멈추고 새로 재생
+		AnimInstance->Montage_Stop(0.1f);
+
+	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);
+	UAnimMontage* SelectedMontage = HitMontages[RandomIndex];
+
+	if (SelectedMontage)
+		AnimInstance->Montage_Play(SelectedMontage);
 }
 
 void ATPSCreatureBase::Die()
@@ -70,15 +85,29 @@ void ATPSCreatureBase::Die()
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	/*if (GetCharacterMovement())
-	{
+	if (GetCharacterMovement())
 		GetCharacterMovement()->DisableMovement();
-	}*/
 
 	if (DeadMontage && GetMesh() && GetMesh()->GetAnimInstance())
-	{
 		GetMesh()->GetAnimInstance()->Montage_Play(DeadMontage);
-	}
 
 	SetLifeSpan(DestroyDelay);
+}
+
+void ATPSCreatureBase::StopHitMontage()
+{
+	if (!CurrentHitMontage)
+		return;
+
+	if (!GetMesh())
+		return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+		return;
+
+	if (AnimInstance->Montage_IsPlaying(CurrentHitMontage))
+		AnimInstance->Montage_Stop(0.1f, CurrentHitMontage);
+
+	CurrentHitMontage = nullptr;
 }

@@ -257,6 +257,8 @@ void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 	if (bIsAttacking && !bIsBowCharging)
 		return;
 
+	StopHitMontage();
+
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -524,6 +526,8 @@ void ATPSCaptureCharacter::Attack()
 		UE_LOG(LogTemp, Warning, TEXT("Already Attacking"));
 		return;
 	}
+
+	StopHitMontage();
 
 	if (CurrentWeapon)
 		AttackWithWeapon();
@@ -1259,6 +1263,46 @@ void ATPSCaptureCharacter::PlayBowWeaponMontageSection(FName SectionName)
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow Weapon Montage Section: %s"), *SectionName.ToString());
 }
+
+void ATPSCaptureCharacter::PlayHitMontage()
+{
+	if (StatComponent->IsDead())
+		return;
+
+	if (HitMontages.Num() == 0)
+		return;
+
+	if (!GetMesh())
+		return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+		return;
+
+	//if (AnimInstance->IsAnyMontagePlaying()) // 다른 몽타주가 재생 중이면 멈추고 새로 재생
+	//	AnimInstance->Montage_Stop(0.1f);
+
+	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);
+	CurrentHitMontage = HitMontages[RandomIndex];
+
+	if (CurrentHitMontage)
+		AnimInstance->Montage_Play(CurrentHitMontage);
+}
+
+void ATPSCaptureCharacter::StopHitMontage()
+{
+	if (!CurrentHitMontage || !GetMesh())
+		return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+		return;
+
+	if (AnimInstance->Montage_IsPlaying(CurrentHitMontage))
+		AnimInstance->Montage_Stop(0.1f, CurrentHitMontage);
+
+	CurrentHitMontage = nullptr;
+}
 #pragma endregion Anim Montage Func
 
 #pragma region VFX Func
@@ -1379,15 +1423,21 @@ float ATPSCaptureCharacter::TakeDamage(
 	AActor* DamageCauser)
 {
 	if (!StatComponent || StatComponent->IsDead())
-	{
 		return 0.f;
-	}
 
 	const float OldHP = StatComponent->GetCurrentHP();
 	StatComponent->ApplyDamage(DamageAmount);
 	const float ActualDamage = OldHP - StatComponent->GetCurrentHP();
 
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Player Took Damage: %.1f"), ActualDamage);
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Player Took Damage: %.1f, Left HP: %f"), ActualDamage, StatComponent->GetCurrentHP());
+
+	if (ActualDamage <= 0.f)
+		return 0.f;
+
+	if (StatComponent->IsDead())
+		HandleCharacterDeath();
+	else
+		PlayHitMontage();
 
 	return ActualDamage;
 }
