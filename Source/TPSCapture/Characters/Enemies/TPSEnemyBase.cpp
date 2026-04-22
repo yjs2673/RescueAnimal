@@ -1,10 +1,11 @@
 #include "TPSEnemyBase.h"
+#include "AIController.h"
 #include "Components/SphereComponent.h"
 #include "TPSCaptureCharacter.h"
 
 ATPSEnemyBase::ATPSEnemyBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
 	DetectionSphere->SetupAttachment(RootComponent);
@@ -25,6 +26,13 @@ void ATPSEnemyBase::BeginPlay()
 		DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &ATPSEnemyBase::OnDetectionSphereBeginOverlap);
 		DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &ATPSEnemyBase::OnDetectionSphereEndOverlap);
 	}
+}
+
+void ATPSEnemyBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	UpdateChase();
 }
 
 void ATPSEnemyBase::OnDetectionSphereBeginOverlap(
@@ -59,6 +67,26 @@ void ATPSEnemyBase::OnDetectionSphereEndOverlap(
 	}
 }
 
+void ATPSEnemyBase::UpdateChase()
+{
+	if (bIsDead)
+		return;
+
+	if (!HasValidTarget())
+		return;
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
+		return;
+
+	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
+
+	if (DistanceToTarget > AttackRange)
+		AIController->MoveToActor(TargetActor, AttackRange);
+	else
+		AIController->StopMovement();
+}
+
 void ATPSEnemyBase::SetTargetActor(AActor* NewTarget)
 {
 	TargetActor = NewTarget;
@@ -67,6 +95,9 @@ void ATPSEnemyBase::SetTargetActor(AActor* NewTarget)
 void ATPSEnemyBase::ClearTargetActor()
 {
 	TargetActor = nullptr;
+
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+		AIController->StopMovement();
 }
 
 bool ATPSEnemyBase::HasValidTarget() const
@@ -82,5 +113,6 @@ bool ATPSEnemyBase::CanAttack() const
 	if (!HasValidTarget())
 		return false;
 
-	return true;
+	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
+	return DistanceToTarget <= AttackRange;
 }
