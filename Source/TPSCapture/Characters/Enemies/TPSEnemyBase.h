@@ -10,6 +10,8 @@ class USphereComponent;
 class UAnimMontage;
 class AArrowProjectile;
 class AWeaponBase;
+class UNiagaraSystem;
+class USoundBase;
 
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
@@ -124,6 +126,15 @@ protected:
 	virtual void ReleaseBowChargeAtTarget();
 	virtual void PlayBowWeaponMontageSection(FName SectionName);
 	virtual void FaceTargetActor();
+	virtual void PlayMeleeHitEffects(const FVector& HitLocation);
+	virtual void SpawnHitVFX(
+		UNiagaraSystem* NiagaraSystem,
+		const FVector& SpawnLocation,
+		const FRotator& SpawnRotation,
+		const FLinearColor& Color,
+		float Scale,
+		float Lifetime
+	);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void EndAttack();
@@ -131,6 +142,9 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void ApplyDamageToTarget();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	virtual void TriggerMeleeHit();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void FireArrowAtTarget();
@@ -141,6 +155,39 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Animation")
 	UAnimMontage* BowAttackMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|SFX|Punch")
+	TArray<USoundBase*> PunchHitSounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|SFX|Sword")
+	USoundBase* SwordHitSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|SFX|Bow")
+	USoundBase* BowDrawSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Punch")
+	UNiagaraSystem* PunchHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Punch")
+	FLinearColor PunchHitColor = FLinearColor(1.f, 1.f, 1.f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Punch")
+	float PunchHitScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Punch")
+	float PunchHitLifetime = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Sword")
+	UNiagaraSystem* SwordHitVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Sword")
+	FLinearColor SwordHitColor = FLinearColor(1.f, 0.2f, 0.2f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Sword")
+	float SwordHitScale = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|VFX|Sword")
+	float SwordHitLifetime = 0.45f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	TSubclassOf<AArrowProjectile> BowProjectileClass;
@@ -160,15 +207,22 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackEndFallbackDelay = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float SwordHitDelay = 0.35f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	FName ArrowSpawnSocketName = TEXT("ArrowSpawnSocket");
 
 	UPROPERTY(Transient)
 	bool bBowArrowFiredThisAttack = false;
 
+	UPROPERTY(Transient)
+	bool bSwordDamageAppliedThisAttack = false;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	bool bIsBowCharging = false;
 
 	FTimerHandle BowFireTimerHandle;
 	FTimerHandle AttackEndTimerHandle;
+	FTimerHandle SwordHitTimerHandle;
 };

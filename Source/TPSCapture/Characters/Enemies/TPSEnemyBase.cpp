@@ -11,6 +11,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
 ATPSEnemyBase::ATPSEnemyBase()
@@ -64,6 +67,7 @@ void ATPSEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
+	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -325,6 +329,8 @@ void ATPSEnemyBase::PerformPunchAttack()
 
 void ATPSEnemyBase::PerformSwordAttack()
 {
+	bSwordDamageAppliedThisAttack = false;
+
 	UAnimMontage* MontageToPlay = SwordAttackMontage ? SwordAttackMontage : AttackMontage;
 
 	if (!PlayAttackMontage(MontageToPlay))
@@ -333,6 +339,15 @@ void ATPSEnemyBase::PerformSwordAttack()
 		EndAttack();
 		return;
 	}
+
+	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		SwordHitTimerHandle,
+		this,
+		&ATPSEnemyBase::ApplyDamageToTarget,
+		FMath::Max(0.05f, SwordHitDelay),
+		false
+	);
 
 	ScheduleAttackEnd(AttackEndFallbackDelay);
 }
@@ -363,6 +378,15 @@ void ATPSEnemyBase::PerformBowAttack()
 
 	AnimInstance->Montage_JumpToSection(FName("Drawing"), MontageToPlay);
 	PlayBowWeaponMontageSection(FName("Default"));
+
+	if (BowDrawSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			BowDrawSound,
+			GetActorLocation()
+		);
+	}
 
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().SetTimer(
@@ -453,6 +477,88 @@ void ATPSEnemyBase::FaceTargetActor()
 	SetActorRotation(FlatDirection.Rotation());
 }
 
+void ATPSEnemyBase::PlayMeleeHitEffects(const FVector& HitLocation)
+{
+	switch (AttackType)
+	{
+	case EEnemyAttackType::Sword:
+		SpawnHitVFX(
+			SwordHitVFX,
+			HitLocation,
+			GetActorRotation(),
+			SwordHitColor,
+			SwordHitScale,
+			SwordHitLifetime
+		);
+
+		if (SwordHitSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				SwordHitSound,
+				HitLocation
+			);
+		}
+		break;
+	case EEnemyAttackType::Punch:
+	default:
+		SpawnHitVFX(
+			PunchHitVFX,
+			HitLocation,
+			GetActorRotation(),
+			PunchHitColor,
+			PunchHitScale,
+			PunchHitLifetime
+		);
+
+		if (PunchHitSounds.Num() > 0)
+		{
+			const int32 SoundIndex = FMath::RandRange(0, PunchHitSounds.Num() - 1);
+			USoundBase* SelectedHitSound = PunchHitSounds[SoundIndex];
+			if (SelectedHitSound)
+			{
+				UGameplayStatics::PlaySoundAtLocation(
+					this,
+					SelectedHitSound,
+					HitLocation
+				);
+			}
+		}
+		break;
+	}
+}
+
+void ATPSEnemyBase::SpawnHitVFX(
+	UNiagaraSystem* NiagaraSystem,
+	const FVector& SpawnLocation,
+	const FRotator& SpawnRotation,
+	const FLinearColor& Color,
+	float Scale,
+	float Lifetime)
+{
+	if (!NiagaraSystem)
+		return;
+
+	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		NiagaraSystem,
+		SpawnLocation,
+		SpawnRotation,
+		FVector(1.0f),
+		true,
+		true,
+		ENCPoolMethod::None,
+		true
+	);
+
+	if (!NiagaraComp)
+		return;
+
+	NiagaraComp->SetVariableLinearColor(TEXT("Color"), Color);
+	NiagaraComp->SetVariableFloat(TEXT("Scale"), Scale);
+	NiagaraComp->SetVariableFloat(TEXT("Lifetime"), Lifetime);
+}
+
 void ATPSEnemyBase::EndAttack()
 {
 	if (AttackType == EEnemyAttackType::Bow &&
@@ -464,8 +570,10 @@ void ATPSEnemyBase::EndAttack()
 
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
+	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
 	bIsAttacking = false;
 	bIsBowCharging = false;
+	bSwordDamageAppliedThisAttack = false;
 }
 
 void ATPSEnemyBase::ApplyDamageToTarget()
@@ -483,9 +591,21 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		return;
 	}
 
+	if (AttackType == EEnemyAttackType::Sword)
+	{
+		if (bSwordDamageAppliedThisAttack)
+			return;
+
+		bSwordDamageAppliedThisAttack = true;
+		GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
+	}
+
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
 	if (DistanceToTarget > AttackRange)
 		return;
+
+	const FVector HitLocation = TargetActor->GetActorLocation();
+	PlayMeleeHitEffects(HitLocation);
 
 	UGameplayStatics::ApplyDamage(
 		TargetActor,
@@ -499,6 +619,11 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		*GetName(),
 		AttackDamage,
 		*TargetActor->GetName());
+}
+
+void ATPSEnemyBase::TriggerMeleeHit()
+{
+	ApplyDamageToTarget();
 }
 
 void ATPSEnemyBase::FireArrowAtTarget()
