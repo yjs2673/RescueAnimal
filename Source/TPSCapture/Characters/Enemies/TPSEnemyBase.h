@@ -2,11 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "TPSCreatureBase.h"
+#include "TimerManager.h"
 #include "TPSEnemyBase.generated.h"
 
 class USphereComponent;
 
 class UAnimMontage;
+class AArrowProjectile;
+class AWeaponBase;
 
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
@@ -27,6 +30,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Detection")
@@ -49,6 +53,21 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Target")
 	TObjectPtr<AActor> TargetActor = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	TSubclassOf<AWeaponBase> EnemyWeaponClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	TObjectPtr<AWeaponBase> CurrentWeapon = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	FName RightWeaponSocketName = TEXT("RightHandSocket");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	FName LeftWeaponSocketName = TEXT("LeftHandSocket");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
+	bool bUseEquippedWeaponCombatData = true;
 
 protected:
 	UFUNCTION()
@@ -93,7 +112,14 @@ protected:
 
 protected:
 	virtual void UpdateAttack();
+	virtual void EquipDefaultWeapon();
+	virtual void EquipWeapon(AWeaponBase* NewWeapon);
+	virtual void SyncCombatDataFromWeapon();
+	virtual void PerformAttack();
 	virtual void PerformPunchAttack();
+	virtual void PerformSwordAttack();
+	virtual void PerformBowAttack();
+	virtual bool PlayAttackMontage(UAnimMontage* MontageToPlay);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void EndAttack();
@@ -101,4 +127,31 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void ApplyDamageToTarget();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
+	virtual void FireArrowAtTarget();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Animation")
+	UAnimMontage* SwordAttackMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Animation")
+	UAnimMontage* BowAttackMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	TSubclassOf<AArrowProjectile> BowProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowProjectileSpeed = 2000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowFireDelay = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	FName ArrowSpawnSocketName = TEXT("ArrowSpawnSocket");
+
+	UPROPERTY(Transient)
+	bool bBowArrowFiredThisAttack = false;
+
+	FTimerHandle BowFireTimerHandle;
 };
