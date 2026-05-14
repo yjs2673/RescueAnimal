@@ -9,6 +9,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
@@ -38,6 +39,11 @@ void ATPSEnemyBase::BeginPlay()
 		DetectionSphere->SetSphereRadius(DetectRange);
 		DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &ATPSEnemyBase::OnDetectionSphereBeginOverlap);
 		DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &ATPSEnemyBase::OnDetectionSphereEndOverlap);
+	}
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
 	}
 
 	EquipDefaultWeapon();
@@ -112,6 +118,21 @@ void ATPSEnemyBase::UpdateChase()
 	if (!HasValidTarget())
 		return;
 
+	if (bIsAttackMovementLocked)
+	{
+		if (AAIController* AIController = Cast<AAIController>(GetController()))
+		{
+			AIController->StopMovement();
+		}
+		return;
+	}
+
+	if (AttackType == EEnemyAttackType::Bow)
+	{
+		UpdateBowSpacing();
+		return;
+	}
+
 	AAIController* AIController = Cast<AAIController>(GetController());
 	if (!AIController)
 		return;
@@ -125,6 +146,39 @@ void ATPSEnemyBase::UpdateChase()
 	}
 	else
 		AIController->StopMovement();
+}
+
+void ATPSEnemyBase::UpdateBowSpacing()
+{
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
+		return;
+
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+	const float DistanceToTarget = FVector::Dist(CurrentLocation, TargetLocation);
+
+	const float TooFarDistance = BowPreferredDistance + BowDistanceTolerance;
+	const float TooCloseDistance = FMath::Max(0.f, BowPreferredDistance - BowDistanceTolerance);
+
+	if (DistanceToTarget > TooFarDistance)
+	{
+		AIController->MoveToActor(TargetActor, BowPreferredDistance);
+		return;
+	}
+
+	if (DistanceToTarget < TooCloseDistance)
+	{
+		const FVector AwayDirection = (CurrentLocation - TargetLocation).GetSafeNormal();
+		if (!AwayDirection.IsNearlyZero())
+		{
+			const FVector RetreatLocation = CurrentLocation + AwayDirection * BowRetreatStepDistance;
+			AIController->MoveToLocation(RetreatLocation, BowMoveAcceptanceRadius);
+			return;
+		}
+	}
+
+	AIController->StopMovement();
 }
 
 void ATPSEnemyBase::SetTargetActor(AActor* NewTarget)
@@ -159,6 +213,13 @@ bool ATPSEnemyBase::CanAttack() const
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
 	if (DistanceToTarget > AttackRange)
 		return false;
+
+	if (AttackType == EEnemyAttackType::Bow)
+	{
+		const float TooFarDistance = BowPreferredDistance + BowDistanceTolerance;
+		if (DistanceToTarget > TooFarDistance)
+			return false;
+	}
 
 	return true;
 }
@@ -333,12 +394,24 @@ void ATPSEnemyBase::PerformSwordAttack()
 
 	UAnimMontage* MontageToPlay = SwordAttackMontage ? SwordAttackMontage : AttackMontage;
 
-	if (!PlayAttackMontage(MontageToPlay))
+	if (!MontageToPlay || !GetMesh() || !GetMesh()->GetAnimInstance())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Sword AttackMontage is missing"), *GetName());
 		EndAttack();
 		return;
 	}
+
+	StopHitMontage();
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	const float MontageDuration = AnimInstance->Montage_Play(MontageToPlay);
+	if (MontageDuration <= 0.f)
+	{
+		EndAttack();
+		return;
+	}
+
+	SetAttackMovementLocked(true);
 
 	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
 	GetWorldTimerManager().SetTimer(
@@ -349,13 +422,17 @@ void ATPSEnemyBase::PerformSwordAttack()
 		false
 	);
 
-	ScheduleAttackEnd(AttackEndFallbackDelay);
+	ScheduleAttackEnd(MontageDuration);
 }
 
 void ATPSEnemyBase::PerformBowAttack()
 {
 	bBowArrowFiredThisAttack = false;
 	bIsBowCharging = true;
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BowChargingMoveSpeed;
+	}
 	FaceTargetActor();
 
 	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
@@ -430,6 +507,11 @@ void ATPSEnemyBase::ReleaseBowChargeAtTarget()
 	}
 
 	bIsBowCharging = false;
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+	}
+	SetAttackMovementLocked(true);
 	FaceTargetActor();
 
 	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
@@ -475,6 +557,19 @@ void ATPSEnemyBase::FaceTargetActor()
 		return;
 
 	SetActorRotation(FlatDirection.Rotation());
+}
+
+void ATPSEnemyBase::SetAttackMovementLocked(bool bLocked)
+{
+	bIsAttackMovementLocked = bLocked;
+
+	if (bLocked)
+	{
+		if (AAIController* AIController = Cast<AAIController>(GetController()))
+		{
+			AIController->StopMovement();
+		}
+	}
 }
 
 void ATPSEnemyBase::PlayMeleeHitEffects(const FVector& HitLocation)
@@ -573,6 +668,11 @@ void ATPSEnemyBase::EndAttack()
 	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
 	bIsAttacking = false;
 	bIsBowCharging = false;
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+	}
+	SetAttackMovementLocked(false);
 	bSwordDamageAppliedThisAttack = false;
 }
 

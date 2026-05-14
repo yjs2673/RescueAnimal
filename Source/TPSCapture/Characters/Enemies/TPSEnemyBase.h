@@ -53,6 +53,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackCooldown = 1.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
+	float MoveSpeed = 400.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
+	float BowChargingMoveSpeed = 150.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Target")
 	TObjectPtr<AActor> TargetActor = nullptr;
 
@@ -91,6 +97,7 @@ protected:
 	);
 
 	virtual void UpdateChase();
+	virtual void UpdateBowSpacing();
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Target")
@@ -126,6 +133,7 @@ protected:
 	virtual void ReleaseBowChargeAtTarget();
 	virtual void PlayBowWeaponMontageSection(FName SectionName);
 	virtual void FaceTargetActor();
+	virtual void SetAttackMovementLocked(bool bLocked);
 	virtual void PlayMeleeHitEffects(const FVector& HitLocation);
 	virtual void SpawnHitVFX(
 		UNiagaraSystem* NiagaraSystem,
@@ -199,6 +207,18 @@ protected:
 	float BowAttackRange = 800.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowPreferredDistance = 600.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowDistanceTolerance = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowRetreatStepDistance = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowMoveAcceptanceRadius = 50.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	float BowFullChargeTime = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
@@ -221,6 +241,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	bool bIsBowCharging = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	bool bIsAttackMovementLocked = false;
 
 	FTimerHandle BowFireTimerHandle;
 	FTimerHandle AttackEndTimerHandle;
