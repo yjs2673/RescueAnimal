@@ -45,6 +45,12 @@ void ATPSEnemyBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	UpdateChase();
+
+	if (AttackType == EEnemyAttackType::Bow && bIsBowCharging)
+	{
+		FaceTargetActor();
+	}
+
 	UpdateAttack();
 }
 
@@ -55,6 +61,9 @@ void ATPSEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		CurrentWeapon->Destroy();
 		CurrentWeapon = nullptr;
 	}
+
+	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -252,8 +261,6 @@ void ATPSEnemyBase::SyncCombatDataFromWeapon()
 		return;
 
 	AttackDamage = CurrentWeapon->AttackDamage;
-	AttackRange = CurrentWeapon->AttackRange;
-	AttackCooldown = FMath::Max(0.05f, CurrentWeapon->AttackRate);
 
 	if (CurrentWeapon->AttackMontage)
 	{
@@ -271,6 +278,7 @@ void ATPSEnemyBase::SyncCombatDataFromWeapon()
 		break;
 	case EWeaponType::Bow:
 		AttackType = EEnemyAttackType::Bow;
+		AttackRange = BowAttackRange;
 		if (CurrentWeapon->AttackMontage)
 		{
 			BowAttackMontage = CurrentWeapon->AttackMontage;
@@ -309,7 +317,10 @@ void ATPSEnemyBase::PerformPunchAttack()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Punch AttackMontage is missing"), *GetName());
 		EndAttack();
+		return;
 	}
+
+	ScheduleAttackEnd(AttackEndFallbackDelay);
 }
 
 void ATPSEnemyBase::PerformSwordAttack()
@@ -320,28 +331,45 @@ void ATPSEnemyBase::PerformSwordAttack()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Sword AttackMontage is missing"), *GetName());
 		EndAttack();
+		return;
 	}
+
+	ScheduleAttackEnd(AttackEndFallbackDelay);
 }
 
 void ATPSEnemyBase::PerformBowAttack()
 {
 	bBowArrowFiredThisAttack = false;
+	bIsBowCharging = true;
+	FaceTargetActor();
 
 	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
 
-	if (!PlayAttackMontage(MontageToPlay))
+	if (!MontageToPlay || !GetMesh() || !GetMesh()->GetAnimInstance())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow AttackMontage is missing"), *GetName());
 		EndAttack();
 		return;
 	}
 
+	StopHitMontage();
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance->Montage_Play(MontageToPlay) <= 0.f)
+	{
+		EndAttack();
+		return;
+	}
+
+	AnimInstance->Montage_JumpToSection(FName("Drawing"), MontageToPlay);
+	PlayBowWeaponMontageSection(FName("Default"));
+
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().SetTimer(
 		BowFireTimerHandle,
 		this,
-		&ATPSEnemyBase::FireArrowAtTarget,
-		BowFireDelay,
+		&ATPSEnemyBase::ReleaseBowChargeAtTarget,
+		BowFullChargeTime,
 		false
 	);
 }
@@ -357,11 +385,87 @@ bool ATPSEnemyBase::PlayAttackMontage(UAnimMontage* MontageToPlay)
 	return AnimInstance->Montage_Play(MontageToPlay) > 0.f;
 }
 
+void ATPSEnemyBase::ScheduleAttackEnd(float Delay)
+{
+	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		AttackEndTimerHandle,
+		this,
+		&ATPSEnemyBase::EndAttack,
+		FMath::Max(0.05f, Delay),
+		false
+	);
+}
+
+void ATPSEnemyBase::ReleaseBowChargeAtTarget()
+{
+	if (bIsDead || !HasValidTarget())
+	{
+		EndAttack();
+		return;
+	}
+
+	bIsBowCharging = false;
+	FaceTargetActor();
+
+	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
+	if (MontageToPlay && GetMesh() && GetMesh()->GetAnimInstance())
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		AnimInstance->Montage_Play(MontageToPlay);
+		AnimInstance->Montage_JumpToSection(FName("Releasing"), MontageToPlay);
+	}
+
+	PlayBowWeaponMontageSection(FName("Release"));
+	FireArrowAtTarget();
+	ScheduleAttackEnd(BowReleaseEndDelay);
+}
+
+void ATPSEnemyBase::PlayBowWeaponMontageSection(FName SectionName)
+{
+	if (!CurrentWeapon || !CurrentWeapon->UsesSkeletalMesh())
+		return;
+
+	if (!CurrentWeapon->WeaponSkeletalMesh || !CurrentWeapon->WeaponAnimMontage)
+		return;
+
+	UAnimInstance* WeaponAnimInstance = CurrentWeapon->WeaponSkeletalMesh->GetAnimInstance();
+	if (!WeaponAnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow weapon anim instance is missing"), *GetName());
+		return;
+	}
+
+	WeaponAnimInstance->Montage_Play(CurrentWeapon->WeaponAnimMontage);
+	WeaponAnimInstance->Montage_JumpToSection(SectionName, CurrentWeapon->WeaponAnimMontage);
+}
+
+void ATPSEnemyBase::FaceTargetActor()
+{
+	if (!HasValidTarget())
+		return;
+
+	const FVector ToTarget = TargetActor->GetActorLocation() - GetActorLocation();
+	const FVector FlatDirection(ToTarget.X, ToTarget.Y, 0.f);
+	if (FlatDirection.IsNearlyZero())
+		return;
+
+	SetActorRotation(FlatDirection.Rotation());
+}
+
 void ATPSEnemyBase::EndAttack()
 {
+	if (AttackType == EEnemyAttackType::Bow &&
+		!bBowArrowFiredThisAttack &&
+		GetWorldTimerManager().IsTimerActive(BowFireTimerHandle))
+	{
+		return;
+	}
+
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
+	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
 	bIsAttacking = false;
-	bBowArrowFiredThisAttack = false;
+	bIsBowCharging = false;
 }
 
 void ATPSEnemyBase::ApplyDamageToTarget()
@@ -371,7 +475,11 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 
 	if (AttackType == EEnemyAttackType::Bow)
 	{
-		FireArrowAtTarget();
+		const float CurrentTime = GetWorld()->GetTimeSeconds();
+		if (CurrentTime - LastAttackTime >= BowFullChargeTime)
+		{
+			FireArrowAtTarget();
+		}
 		return;
 	}
 
@@ -410,6 +518,7 @@ void ATPSEnemyBase::FireArrowAtTarget()
 	}
 
 	bBowArrowFiredThisAttack = true;
+	FaceTargetActor();
 
 	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 50.f + FVector(0.f, 0.f, 50.f);
 	if (CurrentWeapon &&

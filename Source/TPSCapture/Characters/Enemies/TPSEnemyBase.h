@@ -120,6 +120,10 @@ protected:
 	virtual void PerformSwordAttack();
 	virtual void PerformBowAttack();
 	virtual bool PlayAttackMontage(UAnimMontage* MontageToPlay);
+	virtual void ScheduleAttackEnd(float Delay);
+	virtual void ReleaseBowChargeAtTarget();
+	virtual void PlayBowWeaponMontageSection(FName SectionName);
+	virtual void FaceTargetActor();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void EndAttack();
@@ -145,7 +149,16 @@ protected:
 	float BowProjectileSpeed = 2000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
-	float BowFireDelay = 0.35f;
+	float BowAttackRange = 800.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowFullChargeTime = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	float BowReleaseEndDelay = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float AttackEndFallbackDelay = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	FName ArrowSpawnSocketName = TEXT("ArrowSpawnSocket");
@@ -153,5 +166,9 @@ protected:
 	UPROPERTY(Transient)
 	bool bBowArrowFiredThisAttack = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
+	bool bIsBowCharging = false;
+
 	FTimerHandle BowFireTimerHandle;
+	FTimerHandle AttackEndTimerHandle;
 };

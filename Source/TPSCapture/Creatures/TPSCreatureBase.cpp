@@ -52,7 +52,7 @@ float ATPSCreatureBase::TakeDamage(
 
 void ATPSCreatureBase::PlayHitMontage()
 {
-	if (bIsDead || bIsAttacking)
+	if (bIsDead)
 		return;
 
 	if (!GetMesh() || !GetMesh()->GetAnimInstance())
@@ -68,10 +68,10 @@ void ATPSCreatureBase::PlayHitMontage()
 		AnimInstance->Montage_Stop(0.1f);
 
 	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);
-	UAnimMontage* SelectedMontage = HitMontages[RandomIndex];
+	CurrentHitMontage = HitMontages[RandomIndex];
 
-	if (SelectedMontage)
-		AnimInstance->Montage_Play(SelectedMontage);
+	if (CurrentHitMontage)
+		AnimInstance->Montage_Play(CurrentHitMontage);
 }
 
 void ATPSCreatureBase::Die()
