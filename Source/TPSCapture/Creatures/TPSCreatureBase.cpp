@@ -36,6 +36,7 @@ float ATPSCreatureBase::TakeDamage(
 		return 0.f;
 
 	CurrentHP -= ActualDamage;
+	UpdateHPBar();
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Took Damage: %.1f / HP: %.1f"), *GetName(), ActualDamage, CurrentHP);
 
@@ -110,4 +111,8 @@ void ATPSCreatureBase::StopHitMontage()
 		AnimInstance->Montage_Stop(0.1f, CurrentHitMontage);
 
 	CurrentHitMontage = nullptr;
+}
+
+void ATPSCreatureBase::UpdateHPBar()
+{
 }

@@ -3,12 +3,14 @@
 #include "TPSCaptureCharacter.h"
 #include "ArrowProjectile.h"
 #include "WeaponBase.h"
+#include "EnemyHPBarWidget.h"
 
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -28,6 +30,12 @@ ATPSEnemyBase::ATPSEnemyBase()
 	DetectionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	DetectionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	DetectionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	HPBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidgetComponent"));
+	HPBarWidgetComponent->SetupAttachment(GetRootComponent());
+	HPBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	HPBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HPBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f));
 }
 
 void ATPSEnemyBase::BeginPlay()
@@ -47,6 +55,7 @@ void ATPSEnemyBase::BeginPlay()
 	}
 
 	EquipDefaultWeapon();
+	UpdateHPBar();
 }
 
 void ATPSEnemyBase::Tick(float DeltaTime)
@@ -61,6 +70,7 @@ void ATPSEnemyBase::Tick(float DeltaTime)
 	}
 
 	UpdateAttack();
+	UpdateHPBarVisibility();
 }
 
 void ATPSEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -795,4 +805,46 @@ void ATPSEnemyBase::FireArrowAtTarget()
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Fired arrow at %s"),
 		*GetName(),
 		*TargetActor->GetName());
+}
+
+void ATPSEnemyBase::UpdateHPBar()
+{
+	if (!HPBarWidgetComponent)
+	{
+		return;
+	}
+
+	UUserWidget* UserWidget = HPBarWidgetComponent->GetUserWidgetObject();
+	if (!UserWidget)
+	{
+		return;
+	}
+
+	UEnemyHPBarWidget* HPBarWidget = Cast<UEnemyHPBarWidget>(UserWidget);
+	if (!HPBarWidget)
+	{
+		return;
+	}
+
+	const float HPPercent = (MaxHP > 0.f) ? (CurrentHP / MaxHP) : 0.f;
+	HPBarWidget->SetHPPercent(HPPercent);
+}
+
+void ATPSEnemyBase::UpdateHPBarVisibility()
+{
+	if (!HPBarWidgetComponent)
+	{
+		return;
+	}
+
+	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	const float Distance = FVector::Dist(GetActorLocation(), PlayerCharacter->GetActorLocation());
+	const bool bShouldShow = Distance <= 1200.f;
+
+	HPBarWidgetComponent->SetVisibility(bShouldShow);
 }

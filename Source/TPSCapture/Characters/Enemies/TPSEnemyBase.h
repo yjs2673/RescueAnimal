@@ -12,6 +12,7 @@ class AArrowProjectile;
 class AWeaponBase;
 class UNiagaraSystem;
 class USoundBase;
+class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
@@ -76,6 +77,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Weapon")
 	bool bUseEquippedWeaponCombatData = true;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|UI")
+	TObjectPtr<UWidgetComponent> HPBarWidgetComponent;
 
 protected:
 	UFUNCTION()
@@ -146,6 +150,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void EndAttack();
+
+	virtual void UpdateHPBar() override;
+	virtual void UpdateHPBarVisibility();
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")

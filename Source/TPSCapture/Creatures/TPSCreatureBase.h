@@ -53,6 +53,9 @@ protected:
 protected:
 	virtual void InitializeStats();
 	virtual void PlayHitMontage();
+
+	virtual void UpdateHPBar();
+
 	virtual void Die();
 
 	UFUNCTION(BlueprintCallable)
