@@ -98,3 +98,27 @@ struct FWeaponData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<class AWeaponBase> WeaponClass;
 };
+
+USTRUCT(BlueprintType)
+struct FAnimalData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	FName AnimalID; // 고유 ID
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	FText DisplayName; // 인게임 이름
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	float MaxHP = 30.0f; // 최대 체력
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	float CaptureDifficulty = 1.0f; // 캡처 난이도 (높을수록 캡처하기 어려움)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	TArray<FName> DropItemIDs; // 드롭 아이템 ID 목록
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	UTexture2D* Icon = nullptr; // UI 아이콘
+};

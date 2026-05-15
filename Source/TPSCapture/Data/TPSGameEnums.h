@@ -53,3 +53,14 @@ enum class EConsumableType : uint8
 	Buff			UMETA(DisplayName = "Buff"),
 	Capture			UMETA(DisplayName = "Capture")
 };
+
+UENUM(BlueprintType)
+enum class EAnimalState : uint8
+{
+	Idle        UMETA(DisplayName = "Idle"),
+	Wander      UMETA(DisplayName = "Wander"),
+	Flee        UMETA(DisplayName = "Flee"),
+	Capturable  UMETA(DisplayName = "Capturable"),
+	Captured    UMETA(DisplayName = "Captured"),
+	Dead        UMETA(DisplayName = "Dead")
+};
