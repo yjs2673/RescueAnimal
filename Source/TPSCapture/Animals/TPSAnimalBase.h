@@ -7,6 +7,8 @@
 #include "TPSAnimalBase.generated.h"
 
 class UDataTable;
+class UWidgetComponent;
+class UEnemyHPBarWidget;
 
 UCLASS()
 class TPSCAPTURE_API AAnimalBase : public ATPSCreatureBase
@@ -18,6 +20,14 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+
+public:
+    virtual float TakeDamage(
+        float DamageAmount,
+        struct FDamageEvent const& DamageEvent,
+        AController* EventInstigator,
+        AActor* DamageCauser
+    ) override;
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Data")
@@ -44,4 +54,22 @@ protected:
 
     UFUNCTION(BlueprintCallable, Category = "Animal|State")
     void SetAnimalState(EAnimalState NewState);
+
+protected: // HP Bar
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|UI")
+    UWidgetComponent* HPWidgetComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|UI")
+    float HPBarVisibleDuration = 3.0f;
+
+    FTimerHandle HPBarHideTimerHandle;
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|UI")
+    void UpdateHPBar();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|UI")
+    void ShowHPBar();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|UI")
+    void HideHPBar();
 };
