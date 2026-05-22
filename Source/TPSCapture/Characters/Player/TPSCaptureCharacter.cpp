@@ -25,6 +25,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "InputAction.h"
 
 #include "Blueprint/UserWidget.h"
 #include "CrosshairBowWidget.h"
@@ -135,6 +136,9 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		
 		// Interacting
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Interact);
+
+		// Dodging
+		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Dodge);
 	}
 	else
 	{
@@ -147,6 +151,8 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 void ATPSCaptureCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateDodgeMovement(DeltaTime);
 
 	if (bIsBowCharging) // 활을 당기는 중이라면, 활의 방향과 충전 상태를 업데이트
 	{
@@ -229,6 +235,7 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 	bIsPunching = false;
 	bIsBowCharging = false;
 	bIsBowAiming = false;
+	bIsDodging = false;
 	bComboInputBuffered = false;
 	bCanAcceptComboInput = false;
 
@@ -252,6 +259,9 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
 	if (StatComponent && StatComponent->IsDead())
+		return;
+
+	if (bIsDodging)
 		return;
 
 	if (bIsAttacking && !bIsBowCharging)
@@ -312,6 +322,78 @@ void ATPSCaptureCharacter::Interact()
 		UE_LOG(LogTemp, Warning, TEXT("Interacting with Portal"));
 		CurrentPortal->Interact(this);
 	}
+}
+
+bool ATPSCaptureCharacter::CanDodge() const
+{
+	if (bIsDodging || bIsAttacking)
+		return false;
+
+	if (StatComponent && StatComponent->IsDead())
+		return false;
+
+	if (!GetCharacterMovement() || GetCharacterMovement()->IsFalling())
+		return false;
+
+	return true;
+}
+
+void ATPSCaptureCharacter::Dodge()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Action Dodge"));
+
+	if (!CanDodge())
+		return;
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance || !DodgeMontage)
+		return;
+
+	StopHitMontage();
+
+	const float DodgeMontageDuration = AnimInstance->Montage_Play(DodgeMontage);
+	if (DodgeMontageDuration <= 0.0f)
+		return;
+
+	bIsDodging = true;
+	CurrentDodgeMontage = DodgeMontage;
+	DodgeElapsedTime = 0.0f;
+	DodgeDuration = DodgeMontageDuration;
+	DodgeDirection = GetActorForwardVector();
+	DodgeDirection.Z = 0.0f;
+	DodgeDirection.Normalize();
+
+	AnimInstance->OnMontageEnded.RemoveDynamic(this, &ATPSCaptureCharacter::OnDodgeMontageEnded);
+	AnimInstance->OnMontageEnded.AddDynamic(this, &ATPSCaptureCharacter::OnDodgeMontageEnded);
+}
+
+void ATPSCaptureCharacter::UpdateDodgeMovement(float DeltaTime)
+{
+	if (!bIsDodging || DodgeDuration <= 0.0f || DodgeDirection.IsNearlyZero())
+		return;
+
+	const float RemainingTime = FMath::Max(DodgeDuration - DodgeElapsedTime, 0.0f);
+	const float MoveDeltaTime = FMath::Min(DeltaTime, RemainingTime);
+	const float MoveDistance = (DodgeDistance / DodgeDuration) * MoveDeltaTime;
+
+	FHitResult HitResult;
+	AddActorWorldOffset(DodgeDirection * MoveDistance, true, &HitResult);
+
+	DodgeElapsedTime += MoveDeltaTime;
+
+	if (HitResult.bBlockingHit)
+	{
+		DodgeElapsedTime = DodgeDuration;
+	}
+}
+
+void ATPSCaptureCharacter::EndDodge()
+{
+	bIsDodging = false;
+	CurrentDodgeMontage = nullptr;
+	DodgeElapsedTime = 0.0f;
+	DodgeDuration = 0.0f;
+	DodgeDirection = FVector::ZeroVector;
 }
 #pragma endregion Base Action Func
 
@@ -521,6 +603,9 @@ void ATPSCaptureCharacter::Attack()
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
+	if (bIsDodging)
+		return;
+
 	if (bIsAttacking && !bIsPunching)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Already Attacking"));
@@ -719,8 +804,8 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		);
 	}
 
-	TestAddItem("Potion", 2);
-	TestTakeDamage(20);
+	// TestAddItem("Potion", 2);
+	// TestTakeDamage(20);
 }
 
 void ATPSCaptureCharacter::StartComboAttack()
@@ -845,6 +930,9 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 void ATPSCaptureCharacter::OnAttackPressed()
 {
 	if (StatComponent && StatComponent->IsDead())
+		return;
+
+	if (bIsDodging)
 		return;
 
 	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Ranged)
@@ -1237,6 +1325,18 @@ void ATPSCaptureCharacter::OnPunchMontageEnded(UAnimMontage* Montage, bool bInte
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch Montage Ended"));
 }
 
+void ATPSCaptureCharacter::OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != CurrentDodgeMontage)
+		return;
+
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInstance->OnMontageEnded.RemoveDynamic(this, &ATPSCaptureCharacter::OnDodgeMontageEnded);
+	}
+
+	EndDodge();
+}
 void ATPSCaptureCharacter::PlayBowWeaponMontageSection(FName SectionName)
 {
 	if (!CurrentWeapon)

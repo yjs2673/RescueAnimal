@@ -76,6 +76,10 @@ class ATPSCaptureCharacter : public ACharacter
 	/** Attack Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AttackAction;
+
+	/** Dodge Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* DodgeAction;
 #pragma endregion Input Action
 
 #pragma region Constructor & Tick & Begin & Death
@@ -135,6 +139,21 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsPunching = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
+	bool bIsDodging = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dodge")
+	float DodgeDistance = 450.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dodge")
+	float DodgeElapsedTime = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dodge")
+	float DodgeDuration = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Dodge")
+	FVector DodgeDirection = FVector::ZeroVector;
 
 #pragma region Punch Var
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // 펀치 데미지
@@ -230,8 +249,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* DeathMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* DodgeMontage;
+
 	UPROPERTY(Transient)
 	UAnimMontage* CurrentHitMontage = nullptr;
+
+	UPROPERTY(Transient)
+	UAnimMontage* CurrentDodgeMontage = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	APortalActor* CurrentPortal = nullptr;
@@ -309,6 +334,10 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Interact();
+	void Dodge();
+	bool CanDodge() const;
+	void UpdateDodgeMovement(float DeltaTime);
+	void EndDodge();
 #pragma endregion Base Action Func
 
 #pragma region Equip Func
@@ -387,6 +416,9 @@ protected:
 
 	UFUNCTION()
 	void OnPunchMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION(BlueprintCallable)
 	void FireArrow(); // 활
