@@ -8,6 +8,7 @@
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 AAnimalBase::AAnimalBase()
 {
@@ -99,7 +100,14 @@ float AAnimalBase::TakeDamage(
         UpdateHPBar();
         ShowHPBar();
 
-        StartFlee(DamageCauser);
+        if (CurrentHP <= 0.0f)
+        {
+            PlayAnimalDeathVisual();
+        }
+        else
+        {
+            StartFlee(DamageCauser);
+        }
     }
 
     return ActualDamage;
@@ -309,4 +317,49 @@ void AAnimalBase::StopMovement()
     }
 
     AIController->StopMovement();
+}
+
+void AAnimalBase::PlayAnimalDeathVisual()
+{
+    SetAnimalState(EAnimalState::Dead);
+
+    // 타이머 정리
+    GetWorldTimerManager().ClearTimer(WanderTimerHandle);
+    GetWorldTimerManager().ClearTimer(FleeTimerHandle);
+    GetWorldTimerManager().ClearTimer(HPBarHideTimerHandle);
+
+    HideHPBar();
+
+    // AI 이동 정지
+    if (AAIController* AIController = Cast<AAIController>(GetController()))
+    {
+        AIController->StopMovement();
+    }
+
+    // Character Movement 정지
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+
+    // 애니메이션 정지
+    if (GetMesh())
+    {
+        GetMesh()->bPauseAnims = true;
+
+        // 물리 시뮬레이션X
+        GetMesh()->SetSimulatePhysics(false);
+
+        // 몸 색깔 붉게 변경
+        ApplyDeathTint();
+
+        // 옆으로 쓰러진 것처럼 회전
+        GetMesh()->SetRelativeRotation(GetMesh()->GetRelativeRotation() + DeathRotationOffset);
+    }
+
+    SetActorEnableCollision(false);
+    SetLifeSpan(DeathLifeSpan);
+
+    UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] PlayAnimalDeathVisual: %s"), *GetName());
 }

@@ -10,6 +10,7 @@ class UDataTable;
 class UWidgetComponent;
 class UEnemyHPBarWidget;
 class AAIController;
+class UMaterialInstanceDynamic;
 
 UCLASS()
 class TPSCAPTURE_API AAnimalBase : public ATPSCreatureBase
@@ -110,4 +111,20 @@ protected: // Animal AI
 
     UFUNCTION(BlueprintCallable, Category = "Animal|AI")
     void StopMovement();
+
+protected: // Death Visual
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Death")
+    float DeathLifeSpan = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Death")
+    FRotator DeathRotationOffset = FRotator(90.0f, 0.0f, 0.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Death")
+    FLinearColor DeathTintColor = FLinearColor(1.0f, 0.25f, 0.25f, 1.0f);
+
+    UPROPERTY()
+    TArray<UMaterialInstanceDynamic*> DynamicMaterials;
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Death")
+    void PlayAnimalDeathVisual();
 };
