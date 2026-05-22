@@ -120,11 +120,21 @@ protected: // Death Visual
     FRotator DeathRotationOffset = FRotator(90.0f, 0.0f, 0.0f);
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Death")
-    FLinearColor DeathTintColor = FLinearColor(1.0f, 0.25f, 0.25f, 1.0f);
+    float DeathFallDuration = 0.35f;
 
-    UPROPERTY()
-    TArray<UMaterialInstanceDynamic*> DynamicMaterials;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Death")
+    bool bAnimalDeathVisualPlayed = false;
+
+    FTimerHandle DeathFallTimerHandle;
+
+    FRotator DeathStartRotation;
+    FRotator DeathTargetRotation;
+
+    float DeathFallElapsedTime = 0.0f;
 
     UFUNCTION(BlueprintCallable, Category = "Animal|Death")
     void PlayAnimalDeathVisual();
+
+    UFUNCTION()
+    void UpdateDeathFallRotation();
 };

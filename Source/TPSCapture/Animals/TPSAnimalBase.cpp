@@ -321,6 +321,13 @@ void AAnimalBase::StopMovement()
 
 void AAnimalBase::PlayAnimalDeathVisual()
 {
+    if (bAnimalDeathVisualPlayed)
+    {
+        return;
+    }
+
+    bAnimalDeathVisualPlayed = true;
+
     SetAnimalState(EAnimalState::Dead);
 
     // 타이머 정리
@@ -343,23 +350,64 @@ void AAnimalBase::PlayAnimalDeathVisual()
         GetCharacterMovement()->DisableMovement();
     }
 
-    // 애니메이션 정지
     if (GetMesh())
     {
+        // 현재 애니메이션 프레임에서 정지
         GetMesh()->bPauseAnims = true;
 
-        // 물리 시뮬레이션X
+        // 물리 시뮬레이션 X
         GetMesh()->SetSimulatePhysics(false);
 
-        // 몸 색깔 붉게 변경
-        ApplyDeathTint();
+        // 회전 보간 준비
+        DeathStartRotation = GetMesh()->GetRelativeRotation();
+        DeathTargetRotation = DeathStartRotation + DeathRotationOffset;
+        DeathFallElapsedTime = 0.0f;
 
-        // 옆으로 쓰러진 것처럼 회전
-        GetMesh()->SetRelativeRotation(GetMesh()->GetRelativeRotation() + DeathRotationOffset);
+        GetWorldTimerManager().ClearTimer(DeathFallTimerHandle);
+        GetWorldTimerManager().SetTimer(
+            DeathFallTimerHandle,
+            this,
+            &AAnimalBase::UpdateDeathFallRotation,
+            0.016f,
+            true
+        );
     }
 
     SetActorEnableCollision(false);
     SetLifeSpan(DeathLifeSpan);
 
     UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] PlayAnimalDeathVisual: %s"), *GetName());
+}
+
+void AAnimalBase::UpdateDeathFallRotation()
+{
+    if (!GetMesh())
+    {
+        GetWorldTimerManager().ClearTimer(DeathFallTimerHandle);
+        return;
+    }
+
+    DeathFallElapsedTime += 0.016f;
+
+    const float Alpha = FMath::Clamp(
+        DeathFallElapsedTime / DeathFallDuration,
+        0.0f,
+        1.0f
+    );
+
+    const float SmoothAlpha = FMath::InterpEaseOut(0.0f, 1.0f, Alpha, 2.0f);
+
+    const FRotator NewRotation = FMath::Lerp(
+        DeathStartRotation,
+        DeathTargetRotation,
+        SmoothAlpha
+    );
+
+    GetMesh()->SetRelativeRotation(NewRotation);
+
+    if (Alpha >= 1.0f)
+    {
+        GetMesh()->SetRelativeRotation(DeathTargetRotation);
+        GetWorldTimerManager().ClearTimer(DeathFallTimerHandle);
+    }
 }
