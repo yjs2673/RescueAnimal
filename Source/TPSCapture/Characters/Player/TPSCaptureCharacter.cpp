@@ -624,6 +624,7 @@ void ATPSCaptureCharacter::AttackUnarmed()
 {
 	if (!bIsPunching)
 	{
+		FaceAttackDirection();
 		bIsAttacking = true;
 		StartComboAttack();
 		return;
@@ -640,6 +641,7 @@ void ATPSCaptureCharacter::AttackWithWeapon()
 		return;
 	}
 
+	FaceAttackDirection();
 	bIsAttacking = true;
 
 	UE_LOG(LogTemp, Warning, TEXT("Weapon Attack: %s"), *CurrentWeapon->GetName());
@@ -669,6 +671,15 @@ void ATPSCaptureCharacter::AttackWithWeapon()
 	}
 }
 
+void ATPSCaptureCharacter::FaceAttackDirection()
+{
+	if (!Controller)
+		return;
+
+	const FRotator ControlRot = Controller->GetControlRotation();
+	const FRotator TargetRot(0.0f, ControlRot.Yaw, 0.0f);
+	SetActorRotation(TargetRot);
+}
 void ATPSCaptureCharacter::EndAttack()
 {
 	bIsAttacking = false;
@@ -1290,6 +1301,8 @@ void ATPSCaptureCharacter::ProceedCombo()
 	CurrentComboIndex++;
 	bComboInputBuffered = false;
 	bCanAcceptComboInput = false;
+
+	FaceAttackDirection();
 
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	const FName NextSectionName = FName(*FString::Printf(TEXT("Combo%d"), CurrentComboIndex));

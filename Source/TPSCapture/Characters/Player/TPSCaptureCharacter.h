@@ -365,6 +365,7 @@ protected:
 
 	void AttackUnarmed();		// 맨손
 	void AttackWithWeapon();	// 무기
+	void FaceAttackDirection();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void EndAttack();	
