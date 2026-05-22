@@ -9,6 +9,7 @@
 class UDataTable;
 class UWidgetComponent;
 class UEnemyHPBarWidget;
+class AAIController;
 
 UCLASS()
 class TPSCAPTURE_API AAnimalBase : public ATPSCreatureBase
@@ -72,4 +73,41 @@ protected: // HP Bar
 
     UFUNCTION(BlueprintCallable, Category = "Animal|UI")
     void HideHPBar();
+
+protected: // Animal AI
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float WanderRadius = 500.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float WanderInterval = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float WanderSpeed = 120.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float FleeDistance = 800.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float FleeDuration = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
+    float FleeSpeed = 450.0f;
+
+    FTimerHandle WanderTimerHandle;
+    FTimerHandle FleeTimerHandle;
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
+    void StartWander();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
+    void MoveToRandomLocation();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
+    void StartFlee(AActor* ThreatActor);
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
+    void StopFlee();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
+    void StopMovement();
 };
