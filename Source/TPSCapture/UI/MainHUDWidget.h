@@ -11,20 +11,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
 UCLASS()
 class TPSCAPTURE_API UMainHUDWidget : public UUserWidget
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    virtual void NativeConstruct() override;
+	virtual void NativeConstruct() override;
 
 public:
-    UPROPERTY(BlueprintAssignable, Category = "MainHUD")
-    FOnInventoryButtonClicked OnInventoryButtonClicked;
+	UPROPERTY(BlueprintAssignable, Category = "MainHUD")
+	FOnInventoryButtonClicked OnInventoryButtonClicked;
 
 protected:
-    UPROPERTY(meta = (BindWidget))
-    TObjectPtr<UButton> InventoryButton;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> InventoryButton;
 
 private:
-    UFUNCTION()
-    void HandleInventoryButtonClicked();
+	UFUNCTION()
+	void HandleInventoryButtonClicked();
 };

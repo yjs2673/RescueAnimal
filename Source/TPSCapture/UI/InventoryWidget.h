@@ -11,20 +11,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryCloseRequested);
 UCLASS()
 class TPSCAPTURE_API UInventoryWidget : public UUserWidget
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    virtual void NativeConstruct() override;
+	virtual void NativeConstruct() override;
 
 public:
-    UPROPERTY(BlueprintAssignable, Category = "Inventory")
-    FOnInventoryCloseRequested OnInventoryCloseRequested;
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnInventoryCloseRequested OnInventoryCloseRequested;
 
 protected:
-    UPROPERTY(meta = (BindWidget))
-    TObjectPtr<UButton> CloseButton;
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UButton> CloseButton;
 
 private:
-    UFUNCTION()
-    void HandleCloseButtonClicked();
+	UFUNCTION()
+	void HandleCloseButtonClicked();
 };

@@ -14,6 +14,3 @@ class ATPSCaptureGameMode : public AGameModeBase
 public:
 	ATPSCaptureGameMode();
 };
-
-
-
