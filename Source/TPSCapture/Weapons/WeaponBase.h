@@ -141,8 +141,10 @@ protected:
 
 	FVector InitialWeaponMeshRelativeLocation = FVector::ZeroVector;
 	FRotator InitialWeaponMeshRelativeRotation = FRotator::ZeroRotator;
+	FVector InitialWeaponMeshRelativeScale = FVector(1.0f);
 	FVector InitialWeaponSkeletalMeshRelativeLocation = FVector::ZeroVector;
 	FRotator InitialWeaponSkeletalMeshRelativeRotation = FRotator::ZeroRotator;
+	FVector InitialWeaponSkeletalMeshRelativeScale = FVector(1.0f);
 	FRotator InitialPickupActorRotation = FRotator::ZeroRotator;
 	float PickupMotionElapsedTime = 0.0f;
 	float PickupMotionRotationYaw = 0.0f;

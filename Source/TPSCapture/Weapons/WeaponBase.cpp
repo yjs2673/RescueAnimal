@@ -45,12 +45,14 @@ void AWeaponBase::BeginPlay()
 	{
 		InitialWeaponMeshRelativeLocation = WeaponMesh->GetRelativeLocation();
 		InitialWeaponMeshRelativeRotation = WeaponMesh->GetRelativeRotation();
+		InitialWeaponMeshRelativeScale = WeaponMesh->GetRelativeScale3D();
 	}
 
 	if (WeaponSkeletalMesh)
 	{
 		InitialWeaponSkeletalMeshRelativeLocation = WeaponSkeletalMesh->GetRelativeLocation();
 		InitialWeaponSkeletalMeshRelativeRotation = WeaponSkeletalMesh->GetRelativeRotation();
+		InitialWeaponSkeletalMeshRelativeScale = WeaponSkeletalMesh->GetRelativeScale3D();
 	}
 
 	UpdateWeaponVisualState();
@@ -216,11 +218,13 @@ void AWeaponBase::ResetPickupMotionVisuals()
 	{
 		WeaponMesh->SetRelativeLocation(InitialWeaponMeshRelativeLocation);
 		WeaponMesh->SetRelativeRotation(InitialWeaponMeshRelativeRotation);
+		WeaponMesh->SetRelativeScale3D(InitialWeaponMeshRelativeScale);
 	}
 
 	if (WeaponSkeletalMesh)
 	{
 		WeaponSkeletalMesh->SetRelativeLocation(InitialWeaponSkeletalMeshRelativeLocation);
 		WeaponSkeletalMesh->SetRelativeRotation(InitialWeaponSkeletalMeshRelativeRotation);
+		WeaponSkeletalMesh->SetRelativeScale3D(InitialWeaponSkeletalMeshRelativeScale);
 	}
 }
