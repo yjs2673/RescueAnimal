@@ -9,7 +9,7 @@
 
 AWeaponBase::AWeaponBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	DefaultRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultRoot"));
 	RootComponent = DefaultRoot;
@@ -39,6 +39,18 @@ void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (WeaponMesh)
+	{
+		InitialWeaponMeshRelativeLocation = WeaponMesh->GetRelativeLocation();
+		InitialWeaponMeshRelativeRotation = WeaponMesh->GetRelativeRotation();
+	}
+
+	if (WeaponSkeletalMesh)
+	{
+		InitialWeaponSkeletalMeshRelativeLocation = WeaponSkeletalMesh->GetRelativeLocation();
+		InitialWeaponSkeletalMeshRelativeRotation = WeaponSkeletalMesh->GetRelativeRotation();
+	}
+
 	UpdateWeaponVisualState();
 
 	if (PickupSphere)
@@ -46,6 +58,13 @@ void AWeaponBase::BeginPlay()
 		PickupSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeaponBase::OnPickupSphereBeginOverlap);
 		PickupSphere->OnComponentEndOverlap.AddDynamic(this, &AWeaponBase::OnPickupSphereEndOverlap);
 	}
+}
+
+void AWeaponBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	ApplyPickupMotion(DeltaTime);
 }
 
 bool AWeaponBase::UsesSkeletalMesh() const
@@ -121,6 +140,11 @@ void AWeaponBase::SetPickupEnabled(bool bEnabled)
 {
 	bCanBePickedUp = bEnabled;
 
+	if (bEnabled)
+	{
+		ResetPickupMotionVisuals();
+	}
+
 	if (PickupSphere)
 	{
 		PickupSphere->SetGenerateOverlapEvents(bEnabled);
@@ -142,4 +166,56 @@ void AWeaponBase::EnablePickupAfterDrop()
 		PickupEnableDelay,
 		false
 	);
+}
+
+bool AWeaponBase::ShouldPlayPickupMotion() const
+{
+	return bEnablePickupMotion && bCanBePickedUp && GetAttachParentActor() == nullptr;
+}
+
+void AWeaponBase::ApplyPickupMotion(float DeltaTime)
+{
+	if (!ShouldPlayPickupMotion())
+	{
+		return;
+	}
+
+	USceneComponent* ActiveVisualComponent = GetActiveVisualComponent();
+	if (!ActiveVisualComponent)
+	{
+		return;
+	}
+
+	PickupMotionElapsedTime += DeltaTime;
+	PickupMotionRotationYaw = FMath::Fmod(PickupMotionRotationYaw + PickupRotationSpeed * DeltaTime, 360.0f);
+
+	const float BobOffsetZ = FMath::Sin(PickupMotionElapsedTime * PickupBobSpeed) * PickupBobAmplitude;
+
+	if (ActiveVisualComponent == WeaponSkeletalMesh)
+	{
+		WeaponSkeletalMesh->SetRelativeLocation(InitialWeaponSkeletalMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
+		WeaponSkeletalMesh->SetRelativeRotation(InitialWeaponSkeletalMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
+		return;
+	}
+
+	WeaponMesh->SetRelativeLocation(InitialWeaponMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
+	WeaponMesh->SetRelativeRotation(InitialWeaponMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
+}
+
+void AWeaponBase::ResetPickupMotionVisuals()
+{
+	PickupMotionElapsedTime = 0.0f;
+	PickupMotionRotationYaw = 0.0f;
+
+	if (WeaponMesh)
+	{
+		WeaponMesh->SetRelativeLocation(InitialWeaponMeshRelativeLocation);
+		WeaponMesh->SetRelativeRotation(InitialWeaponMeshRelativeRotation);
+	}
+
+	if (WeaponSkeletalMesh)
+	{
+		WeaponSkeletalMesh->SetRelativeLocation(InitialWeaponSkeletalMeshRelativeLocation);
+		WeaponSkeletalMesh->SetRelativeRotation(InitialWeaponSkeletalMeshRelativeRotation);
+	}
 }

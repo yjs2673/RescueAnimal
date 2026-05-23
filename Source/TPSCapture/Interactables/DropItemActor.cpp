@@ -3,11 +3,13 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "InventoryComponent.h"
+#include "Sound/SoundBase.h"
 
 ADropItemActor::ADropItemActor()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
@@ -31,10 +33,23 @@ void ADropItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (ItemMesh)
+	{
+		InitialMeshRelativeLocation = ItemMesh->GetRelativeLocation();
+		InitialMeshRelativeRotation = ItemMesh->GetRelativeRotation();
+	}
+
 	if (PickupCollision)
 	{
 		PickupCollision->OnComponentBeginOverlap.AddDynamic(this, &ADropItemActor::OnPickupCollisionBeginOverlap);
 	}
+}
+
+void ADropItemActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	ApplyPickupMotion(DeltaTime);
 }
 
 void ADropItemActor::InitializeDropItem(FName InItemID, int32 InCount)
@@ -72,10 +87,36 @@ void ADropItemActor::OnPickupCollisionBeginOverlap(
 	const int32 SafeCount = FMath::Max(1, Count);
 	InventoryComponent->AddItem(ItemID, SafeCount);
 
+	if (PickupSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			PickupSound,
+			GetActorLocation(),
+			PickupSoundVolume,
+			PickupSoundPitch
+		);
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("[DropItemActor] Pickup success: %s picked up %s x%d"),
 		*OtherActor->GetName(),
 		*ItemID.ToString(),
 		SafeCount);
 
 	Destroy();
+}
+
+void ADropItemActor::ApplyPickupMotion(float DeltaTime)
+{
+	if (!bEnablePickupMotion || !ItemMesh)
+	{
+		return;
+	}
+
+	PickupMotionElapsedTime += DeltaTime;
+	PickupMotionRotationYaw = FMath::Fmod(PickupMotionRotationYaw + PickupRotationSpeed * DeltaTime, 360.0f);
+
+	const float BobOffsetZ = FMath::Sin(PickupMotionElapsedTime * PickupBobSpeed) * PickupBobAmplitude;
+	ItemMesh->SetRelativeLocation(InitialMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
+	ItemMesh->SetRelativeRotation(InitialMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
 }

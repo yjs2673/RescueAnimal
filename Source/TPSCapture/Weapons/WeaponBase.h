@@ -22,6 +22,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	void OnPickupSphereBeginOverlap(
@@ -99,6 +100,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup")
 	float PickupEnableDelay = 0.3f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup|Motion")
+	bool bEnablePickupMotion = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup|Motion")
+	float PickupBobAmplitude = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup|Motion")
+	float PickupBobSpeed = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Pickup|Motion")
+	float PickupRotationSpeed = 90.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Attach")
 	FVector EquipRelativeLocation = FVector::ZeroVector;
 
@@ -120,4 +133,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	USceneComponent* GetActiveVisualComponent() const;
+
+protected:
+	bool ShouldPlayPickupMotion() const;
+	void ApplyPickupMotion(float DeltaTime);
+	void ResetPickupMotionVisuals();
+
+	FVector InitialWeaponMeshRelativeLocation = FVector::ZeroVector;
+	FRotator InitialWeaponMeshRelativeRotation = FRotator::ZeroRotator;
+	FVector InitialWeaponSkeletalMeshRelativeLocation = FVector::ZeroVector;
+	FRotator InitialWeaponSkeletalMeshRelativeRotation = FRotator::ZeroRotator;
+	float PickupMotionElapsedTime = 0.0f;
+	float PickupMotionRotationYaw = 0.0f;
 };

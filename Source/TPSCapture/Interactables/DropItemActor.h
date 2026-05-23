@@ -8,6 +8,7 @@ class USphereComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 class UPrimitiveComponent;
+class USoundBase;
 
 UCLASS()
 class TPSCAPTURE_API ADropItemActor : public AActor
@@ -33,8 +34,30 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 Count = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|SFX")
+	TObjectPtr<USoundBase> PickupSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|SFX")
+	float PickupSoundVolume = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|SFX")
+	float PickupSoundPitch = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Motion")
+	bool bEnablePickupMotion = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Motion")
+	float PickupBobAmplitude = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Motion")
+	float PickupBobSpeed = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Motion")
+	float PickupRotationSpeed = 90.0f;
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	void OnPickupCollisionBeginOverlap(
@@ -49,4 +72,12 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeDropItem(FName InItemID, int32 InCount);
+
+protected:
+	void ApplyPickupMotion(float DeltaTime);
+
+	FVector InitialMeshRelativeLocation = FVector::ZeroVector;
+	FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;
+	float PickupMotionElapsedTime = 0.0f;
+	float PickupMotionRotationYaw = 0.0f;
 };
