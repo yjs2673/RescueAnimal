@@ -26,6 +26,8 @@ public:
 	UFUNCTION()
 	void CloseInventory();
 
+	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDWidgetClass;

@@ -29,6 +29,8 @@
 
 #include "Blueprint/UserWidget.h"
 #include "CrosshairBowWidget.h"
+#include "MainHUDWidget.h"
+#include "TPSPlayerController.h"
 
 #include "Sound/SoundBase.h"
 
@@ -214,7 +216,19 @@ void ATPSCaptureCharacter::BeginPlay()
 	//			MainHUDInstance->AddToViewport();
 	//	}
 	//}
-	if (CrosshairWidgetClass)
+	if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		if (UMainHUDWidget* HUDWidget = TPSPlayerController->GetMainHUDWidget())
+		{
+			CrosshairWidgetInstance = HUDWidget->GetCrosshairBowWidget();
+			if (CrosshairWidgetInstance)
+			{
+				CrosshairWidgetInstance->SetCrosshairVisible(false);
+			}
+		}
+	}
+
+	if (!CrosshairWidgetInstance && CrosshairWidgetClass)
 	{
 		APlayerController* PC = Cast<APlayerController>(GetController());
 		if (PC)
