@@ -104,9 +104,10 @@ void ATPSPlayerController::OpenInventory()
 
 	if (InventoryWidget)
 	{
+		InventoryWidget->RefreshInventory();
 		InventoryWidget->AddToViewport();
-		bIsInventoryOpen = true;
 
+		bIsInventoryOpen = true;
 		SetUIInputMode();
 	}
 }
