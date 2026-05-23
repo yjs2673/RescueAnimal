@@ -143,6 +143,7 @@ protected:
 	FRotator InitialWeaponMeshRelativeRotation = FRotator::ZeroRotator;
 	FVector InitialWeaponSkeletalMeshRelativeLocation = FVector::ZeroVector;
 	FRotator InitialWeaponSkeletalMeshRelativeRotation = FRotator::ZeroRotator;
+	FRotator InitialPickupActorRotation = FRotator::ZeroRotator;
 	float PickupMotionElapsedTime = 0.0f;
 	float PickupMotionRotationYaw = 0.0f;
 };

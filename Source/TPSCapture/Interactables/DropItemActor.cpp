@@ -33,6 +33,8 @@ void ADropItemActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitialActorRotation = GetActorRotation();
+
 	if (ItemMesh)
 	{
 		InitialMeshRelativeLocation = ItemMesh->GetRelativeLocation();
@@ -117,6 +119,7 @@ void ADropItemActor::ApplyPickupMotion(float DeltaTime)
 	PickupMotionRotationYaw = FMath::Fmod(PickupMotionRotationYaw + PickupRotationSpeed * DeltaTime, 360.0f);
 
 	const float BobOffsetZ = FMath::Sin(PickupMotionElapsedTime * PickupBobSpeed) * PickupBobAmplitude;
+	SetActorRotation(InitialActorRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
 	ItemMesh->SetRelativeLocation(InitialMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
-	ItemMesh->SetRelativeRotation(InitialMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
+	ItemMesh->SetRelativeRotation(InitialMeshRelativeRotation);
 }

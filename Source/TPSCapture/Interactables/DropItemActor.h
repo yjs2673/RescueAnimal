@@ -78,6 +78,7 @@ protected:
 
 	FVector InitialMeshRelativeLocation = FVector::ZeroVector;
 	FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;
+	FRotator InitialActorRotation = FRotator::ZeroRotator;
 	float PickupMotionElapsedTime = 0.0f;
 	float PickupMotionRotationYaw = 0.0f;
 };

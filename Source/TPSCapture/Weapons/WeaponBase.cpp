@@ -39,6 +39,8 @@ void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitialPickupActorRotation = GetActorRotation();
+
 	if (WeaponMesh)
 	{
 		InitialWeaponMeshRelativeLocation = WeaponMesh->GetRelativeLocation();
@@ -142,6 +144,7 @@ void AWeaponBase::SetPickupEnabled(bool bEnabled)
 
 	if (bEnabled)
 	{
+		InitialPickupActorRotation = GetActorRotation();
 		ResetPickupMotionVisuals();
 	}
 
@@ -190,22 +193,24 @@ void AWeaponBase::ApplyPickupMotion(float DeltaTime)
 	PickupMotionRotationYaw = FMath::Fmod(PickupMotionRotationYaw + PickupRotationSpeed * DeltaTime, 360.0f);
 
 	const float BobOffsetZ = FMath::Sin(PickupMotionElapsedTime * PickupBobSpeed) * PickupBobAmplitude;
+	SetActorRotation(InitialPickupActorRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
 
 	if (ActiveVisualComponent == WeaponSkeletalMesh)
 	{
 		WeaponSkeletalMesh->SetRelativeLocation(InitialWeaponSkeletalMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
-		WeaponSkeletalMesh->SetRelativeRotation(InitialWeaponSkeletalMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
+		WeaponSkeletalMesh->SetRelativeRotation(InitialWeaponSkeletalMeshRelativeRotation);
 		return;
 	}
 
 	WeaponMesh->SetRelativeLocation(InitialWeaponMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
-	WeaponMesh->SetRelativeRotation(InitialWeaponMeshRelativeRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
+	WeaponMesh->SetRelativeRotation(InitialWeaponMeshRelativeRotation);
 }
 
 void AWeaponBase::ResetPickupMotionVisuals()
 {
 	PickupMotionElapsedTime = 0.0f;
 	PickupMotionRotationYaw = 0.0f;
+	SetActorRotation(InitialPickupActorRotation);
 
 	if (WeaponMesh)
 	{
