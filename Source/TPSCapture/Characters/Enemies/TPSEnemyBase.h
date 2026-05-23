@@ -1,12 +1,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TPSStructTypes.h"
 #include "TPSCreatureBase.h"
 #include "TimerManager.h"
 #include "TPSEnemyBase.generated.h"
 
 class USphereComponent;
 
+
+class ADropItemActor;
 class UAnimMontage;
 class AArrowProjectile;
 class AWeaponBase;
@@ -154,6 +157,8 @@ protected:
 	virtual void UpdateHPBar() override;
 	virtual void UpdateHPBarVisibility();
 
+	virtual void Die() override;
+	virtual void SpawnDropItems();
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void ApplyDamageToTarget();
@@ -236,6 +241,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float SwordHitDelay = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drop")
+	TArray<FDropItemData> DropItems;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drop")
+	TSubclassOf<ADropItemActor> DropItemActorClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Drop")
+	bool bHasDroppedItems = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	FName ArrowSpawnSocketName = TEXT("ArrowSpawnSocket");

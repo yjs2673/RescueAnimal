@@ -1,5 +1,6 @@
 #include "TPSEnemyBase.h"
 #include "Components/SphereComponent.h"
+#include "DropItemActor.h"
 #include "TPSCaptureCharacter.h"
 #include "ArrowProjectile.h"
 #include "WeaponBase.h"
@@ -847,4 +848,92 @@ void ATPSEnemyBase::UpdateHPBarVisibility()
 	const bool bShouldShow = Distance <= 1200.f;
 
 	HPBarWidgetComponent->SetVisibility(bShouldShow);
+}
+
+void ATPSEnemyBase::Die()
+{
+	SpawnDropItems();
+	Super::Die();
+}
+
+void ATPSEnemyBase::SpawnDropItems()
+{
+	if (bHasDroppedItems)
+	{
+		return;
+	}
+
+	bHasDroppedItems = true;
+
+	if (DropItems.Num() <= 0)
+	{
+		return;
+	}
+
+	if (!DropItemActorClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] DropItemActorClass is missing"), *GetName());
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop items: World is null"), *GetName());
+		return;
+	}
+
+	for (const FDropItemData& DropItemData : DropItems)
+	{
+		if (DropItemData.ItemID.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Skipped drop item: ItemID is None"), *GetName());
+			continue;
+		}
+
+		const float SafeDropRate = FMath::Clamp(DropItemData.DropRate, 0.0f, 1.0f);
+		if (FMath::FRand() > SafeDropRate)
+		{
+			continue;
+		}
+
+		const int32 SafeMinCount = FMath::Max(1, DropItemData.MinCount);
+		const int32 SafeMaxCount = FMath::Max(SafeMinCount, DropItemData.MaxCount);
+		const int32 DropCount = FMath::RandRange(SafeMinCount, SafeMaxCount);
+
+		const FVector RandomOffset(
+			FMath::FRandRange(-80.f, 80.f),
+			FMath::FRandRange(-80.f, 80.f),
+			30.f
+		);
+		const FVector SpawnLocation = GetActorLocation() + RandomOffset;
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+		ADropItemActor* DropItemActor = World->SpawnActor<ADropItemActor>(
+			DropItemActorClass,
+			SpawnLocation,
+			SpawnRotation,
+			SpawnParams
+		);
+
+		if (!DropItemActor)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop item: %s"),
+				*GetName(),
+				*DropItemData.ItemID.ToString());
+			continue;
+		}
+
+		DropItemActor->InitializeDropItem(DropItemData.ItemID, DropCount);
+
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d"),
+			*GetName(),
+			*DropItemData.ItemID.ToString(),
+			DropCount);
+	}
 }
