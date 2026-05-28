@@ -7,6 +7,7 @@
 class UButton;
 class UUniformGridPanel;
 class UInventorySlotWidget;
+class UQuickSlotBarWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryCloseRequested);
 
@@ -38,6 +39,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	int32 SlotColumnCount = 5;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
 
 private:
 	UFUNCTION()

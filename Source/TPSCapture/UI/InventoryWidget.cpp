@@ -1,5 +1,5 @@
 #include "InventoryWidget.h"
-
+#include "QuickSlotBarWidget.h"
 #include "Components/Button.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
@@ -108,5 +108,10 @@ void UInventoryWidget::RefreshInventory()
 		}
 
 		VisibleIndex++;
+	}
+
+	if (QuickSlotBar)
+	{
+		QuickSlotBar->RefreshQuickSlots();
 	}
 }
