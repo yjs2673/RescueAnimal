@@ -6,7 +6,9 @@
 
 class UImage;
 class UTextBlock;
-class UTexture2D;
+class UDragDropOperation;
+struct FGeometry;
+struct FPointerEvent;
 
 UCLASS()
 class TPSCAPTURE_API UInventorySlotWidget : public UUserWidget
@@ -15,6 +17,17 @@ class TPSCAPTURE_API UInventorySlotWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+
+	virtual FReply NativeOnMouseButtonDown(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent
+	) override;
+
+	virtual void NativeOnDragDetected(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent,
+		UDragDropOperation*& OutOperation
+	) override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
@@ -32,7 +45,7 @@ protected:
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
-	FName ItemID;
+	FName ItemID = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Count = 0;

@@ -6,6 +6,7 @@
 
 class UTextBlock;
 class UImage;
+class UDragDropOperation;
 
 UCLASS()
 class TPSCAPTURE_API UQuickSlotWidget : public UUserWidget
@@ -14,6 +15,12 @@ class TPSCAPTURE_API UQuickSlotWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+
+	virtual bool NativeOnDrop(
+		const FGeometry& InGeometry,
+		const FDragDropEvent& InDragDropEvent,
+		UDragDropOperation* InOperation
+	) override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "QuickSlot")

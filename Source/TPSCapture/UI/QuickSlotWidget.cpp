@@ -1,26 +1,14 @@
 #include "QuickSlotWidget.h"
-
-#include "Components/TextBlock.h"
+#include "QuickSlotComponent.h"
+#include "ItemDragDropOperation.h"
 #include "Components/Image.h"
+#include "Components/TextBlock.h"
+#include "GameFramework/Pawn.h"
+
 
 void UQuickSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (!SlotNumberText)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("QuickSlotWidget: SlotNumberText is not bound."));
-	}
-
-	if (!ItemIcon)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("QuickSlotWidget: ItemIcon is not bound."));
-	}
-
-	if (!ItemCountText)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("QuickSlotWidget: ItemCountText is not bound."));
-	}
 }
 
 void UQuickSlotWidget::SetupQuickSlot(int32 InSlotIndex, FName InItemID, int32 InItemCount)
@@ -54,4 +42,51 @@ void UQuickSlotWidget::SetupQuickSlot(int32 InSlotIndex, FName InItemID, int32 I
 			ItemCountText->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
+}
+
+bool UQuickSlotWidget::NativeOnDrop(
+	const FGeometry& InGeometry,
+	const FDragDropEvent& InDragDropEvent,
+	UDragDropOperation* InOperation
+)
+{
+	UE_LOG(LogTemp, Warning, TEXT("QuickSlotWidget NativeOnDrop called. SlotIndex: %d"), SlotIndex);
+
+	UItemDragDropOperation* ItemDragOperation = Cast<UItemDragDropOperation>(InOperation);
+
+	if (!ItemDragOperation)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Drop failed: Operation is not ItemDragDropOperation."));
+		return false;
+	}
+
+	if (ItemDragOperation->ItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Drop failed: ItemID is None."));
+		return false;
+	}
+
+	APawn* OwningPawn = GetOwningPlayerPawn();
+	if (!OwningPawn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Drop failed: OwningPawn is null."));
+		return false;
+	}
+
+	UQuickSlotComponent* QuickSlotComponent = OwningPawn->FindComponentByClass<UQuickSlotComponent>();
+	if (!QuickSlotComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Drop failed: QuickSlotComponent not found."));
+		return false;
+	}
+
+	const bool bResult = QuickSlotComponent->SetSlotItem(SlotIndex, ItemDragOperation->ItemID);
+
+	UE_LOG(LogTemp, Warning, TEXT("Drop result: %s / Slot: %d / Item: %s"),
+		bResult ? TEXT("Success") : TEXT("Fail"),
+		SlotIndex + 1,
+		*ItemDragOperation->ItemID.ToString()
+	);
+
+	return bResult;
 }

@@ -1,27 +1,14 @@
 #include "InventorySlotWidget.h"
-
+#include "ItemDragDropOperation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Input/Reply.h"
 #include "TPSGameInstance.h"
 
 void UInventorySlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (!ItemIcon)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InventorySlotWidget: ItemIcon is not bound."));
-	}
-
-	if (!ItemNameText)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InventorySlotWidget: ItemNameText is not bound."));
-	}
-
-	if (!ItemCountText)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InventorySlotWidget: ItemCountText is not bound."));
-	}
 }
 
 void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
@@ -47,9 +34,16 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 
 	if (ItemIcon)
 	{
-		if (bHasItemData && ItemData.Icon)
+		UTexture2D* ItemTexture = nullptr;
+
+		if (bHasItemData)
 		{
-			ItemIcon->SetBrushFromTexture(ItemData.Icon, true);
+			ItemTexture = ItemData.Image ? ItemData.Image : ItemData.Icon;
+		}
+
+		if (ItemTexture)
+		{
+			ItemIcon->SetBrushFromTexture(ItemTexture, true);
 			ItemIcon->SetVisibility(ESlateVisibility::Visible);
 		}
 		else
@@ -57,4 +51,43 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
+}
+
+FReply UInventorySlotWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !ItemID.IsNone())
+	{
+		return UWidgetBlueprintLibrary::DetectDragIfPressed(
+			InMouseEvent,
+			this,
+			EKeys::LeftMouseButton
+		).NativeReply;
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+void UInventorySlotWidget::NativeOnDragDetected(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent,
+	UDragDropOperation*& OutOperation
+)
+{
+	UE_LOG(LogTemp, Warning, TEXT("DragDetected ItemID: %s"), *ItemID.ToString());
+
+	UItemDragDropOperation* DragOperation = NewObject<UItemDragDropOperation>();
+
+	if (!DragOperation)
+	{
+		return;
+	}
+
+	DragOperation->ItemID = ItemID;
+	DragOperation->DefaultDragVisual = this;
+	DragOperation->Pivot = EDragPivot::MouseDown;
+
+	OutOperation = DragOperation;
 }

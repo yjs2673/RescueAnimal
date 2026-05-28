@@ -54,6 +54,9 @@ struct FItemData : public FTableRowBase
 	int32 MaxStack = 99;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	UTexture2D* Image = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	UTexture2D* Icon = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
