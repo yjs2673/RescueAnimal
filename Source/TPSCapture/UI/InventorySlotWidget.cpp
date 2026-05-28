@@ -2,6 +2,7 @@
 
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "TPSGameInstance.h"
 
 void UInventorySlotWidget::NativeConstruct()
 {
@@ -28,9 +29,15 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 	ItemID = InItemID;
 	Count = FMath::Max(0, InCount);
 
+	FItemData ItemData;
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
+
 	if (ItemNameText)
 	{
-		ItemNameText->SetText(FText::FromName(ItemID));
+		ItemNameText->SetText(bHasItemData && !ItemData.ItemName.IsEmpty()
+			? ItemData.ItemName
+			: FText::FromName(ItemID));
 	}
 
 	if (ItemCountText)
@@ -40,6 +47,14 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 
 	if (ItemIcon)
 	{
-		ItemIcon->SetVisibility(ESlateVisibility::Visible);
+		if (bHasItemData && ItemData.Icon)
+		{
+			ItemIcon->SetBrushFromTexture(ItemData.Icon, true);
+			ItemIcon->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 }
