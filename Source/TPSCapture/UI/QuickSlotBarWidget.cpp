@@ -43,6 +43,18 @@ void UQuickSlotBarWidget::NativeConstruct()
 		UE_LOG(LogTemp, Warning, TEXT("QuickSlotBarWidget: QuickSlotComponent not found."));
 	}
 
+	if (CachedInventoryComponent)
+	{
+		CachedInventoryComponent->OnItemChanged.AddDynamic(
+			this,
+			&UQuickSlotBarWidget::HandleInventoryItemChanged
+		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("QuickSlotBarWidget: InventoryComponent not found."));
+	}
+
 	if (!CachedInventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("QuickSlotBarWidget: InventoryComponent not found."));
@@ -52,6 +64,11 @@ void UQuickSlotBarWidget::NativeConstruct()
 }
 
 void UQuickSlotBarWidget::HandleQuickSlotChanged(int32 SlotIndex, FName ItemID)
+{
+	RefreshQuickSlots();
+}
+
+void UQuickSlotBarWidget::HandleInventoryItemChanged(FName ItemID, int32 NewCount)
 {
 	RefreshQuickSlots();
 }

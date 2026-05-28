@@ -4,6 +4,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
+#include "TPSGameInstance.h"
 
 
 void UQuickSlotWidget::NativeConstruct()
@@ -26,7 +27,27 @@ void UQuickSlotWidget::SetupQuickSlot(int32 InSlotIndex, FName InItemID, int32 I
 
 	if (ItemIcon)
 	{
-		ItemIcon->SetVisibility(bHasItem ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+		UTexture2D* ItemTexture = nullptr;
+
+		if (bHasItem)
+		{
+			FItemData ItemData;
+			const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+			if (TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData))
+			{
+				ItemTexture = ItemData.Image ? ItemData.Image : ItemData.Icon;
+			}
+		}
+
+		if (ItemTexture)
+		{
+			ItemIcon->SetBrushFromTexture(ItemTexture, true);
+			ItemIcon->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
+		}
 	}
 
 	if (ItemCountText)

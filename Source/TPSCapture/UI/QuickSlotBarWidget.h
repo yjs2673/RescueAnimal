@@ -31,6 +31,9 @@ protected:
 private:
 	UFUNCTION()
 	void HandleQuickSlotChanged(int32 SlotIndex, FName ItemID);
+	
+	UFUNCTION()
+	void HandleInventoryItemChanged(FName ItemID, int32 NewCount);
 
 private:
 	UPROPERTY()
