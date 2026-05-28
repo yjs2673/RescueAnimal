@@ -18,6 +18,7 @@
 
 #include "PlayerStatComponent.h"
 #include "InventoryComponent.h"
+#include "QuickSlotComponent.h"
 
 #include "TPSGameInstance.h"
 #include "TPSStructTypes.h"
@@ -90,6 +91,7 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+	QuickSlotComponent = CreateDefaultSubobject<UQuickSlotComponent>(TEXT("QuickSlotComponent"));
 
 	// 차징 시 나오는 화살: 미리보기용 StaticMeshComponent 생성 및 설정
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));

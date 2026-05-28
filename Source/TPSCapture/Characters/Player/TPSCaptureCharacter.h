@@ -32,6 +32,7 @@ class AWeaponBase;
 
 class UPlayerStatComponent;
 class UInventoryComponent;
+class UQuickSlotComponent;
 
 class APortalActor;
 
@@ -315,6 +316,11 @@ protected:
 	UInventoryComponent* InventoryComponent;
 #pragma endregion Inventory Component
 
+#pragma region Quick Slot Component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UQuickSlotComponent* QuickSlotComponent;
+#pragma endregion Quick Slot Component
+
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -485,5 +491,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UQuickSlotComponent* GetQuickSlotComponent() const { return QuickSlotComponent; }
+
 };
 
