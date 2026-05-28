@@ -1,6 +1,7 @@
 #include "MainHUDWidget.h"
 
 #include "Components/Button.h"
+#include "QuickSlotBarWidget.h"
 
 void UMainHUDWidget::NativeConstruct()
 {
@@ -15,7 +16,12 @@ void UMainHUDWidget::NativeConstruct()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("InventoryButton is not bound in WBP_MainHUD."));
+		UE_LOG(LogTemp, Warning, TEXT("MainHUDWidget: InventoryButton is not bound."));
+	}
+
+	if (QuickSlotBar)
+	{
+		QuickSlotBar->RefreshQuickSlots();
 	}
 }
 

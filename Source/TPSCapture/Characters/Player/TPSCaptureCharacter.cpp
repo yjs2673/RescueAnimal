@@ -222,7 +222,7 @@ void ATPSCaptureCharacter::BeginPlay()
 	{
 		if (UMainHUDWidget* HUDWidget = TPSPlayerController->GetMainHUDWidget())
 		{
-			CrosshairWidgetInstance = HUDWidget->GetCrosshairBowWidget();
+			// CrosshairWidgetInstance = HUDWidget->GetCrosshairBowWidget();
 			if (CrosshairWidgetInstance)
 			{
 				CrosshairWidgetInstance->SetCrosshairVisible(false);

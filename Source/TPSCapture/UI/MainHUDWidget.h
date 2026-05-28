@@ -5,7 +5,7 @@
 #include "MainHUDWidget.generated.h"
 
 class UButton;
-class UCrosshairBowWidget;
+class UQuickSlotBarWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
 
@@ -26,10 +26,7 @@ protected:
 	TObjectPtr<UButton> InventoryButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UCrosshairBowWidget> WBP_CrosshairBow;
-
-public:
-	UCrosshairBowWidget* GetCrosshairBowWidget() const { return WBP_CrosshairBow; }
+	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
 
 private:
 	UFUNCTION()
