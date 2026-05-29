@@ -20,7 +20,7 @@ void UInventoryWidget::NativeConstruct()
 
 	if (CloseButton)
 	{
-		CloseButton->OnClicked.AddDynamic(
+		CloseButton->OnClicked.AddUniqueDynamic(
 			this,
 			&UInventoryWidget::HandleCloseButtonClicked
 		);
@@ -55,7 +55,62 @@ void UInventoryWidget::NativeConstruct()
 		SetInventoryPosition(SavedInventoryPosition);
 	}
 
+	BindInventoryComponent();
+
 	BuildEmptySlots();
+	RefreshInventory();
+}
+
+void UInventoryWidget::NativeDestruct()
+{
+	UnbindInventoryComponent();
+
+	Super::NativeDestruct();
+}
+
+void UInventoryWidget::BindInventoryComponent()
+{
+	CachedInventoryComponent = GetInventoryComponent();
+
+	if (CachedInventoryComponent)
+	{
+		CachedInventoryComponent->OnItemChanged.AddUniqueDynamic(
+			this,
+			&UInventoryWidget::HandleInventoryItemChanged
+		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: Failed to bind InventoryComponent."));
+	}
+}
+
+void UInventoryWidget::UnbindInventoryComponent()
+{
+	if (CachedInventoryComponent)
+	{
+		CachedInventoryComponent->OnItemChanged.RemoveDynamic(
+			this,
+			&UInventoryWidget::HandleInventoryItemChanged
+		);
+
+		CachedInventoryComponent = nullptr;
+	}
+}
+
+UInventoryComponent* UInventoryWidget::GetInventoryComponent() const
+{
+	APawn* OwningPawn = GetOwningPlayerPawn();
+	if (!OwningPawn)
+	{
+		return nullptr;
+	}
+
+	return OwningPawn->FindComponentByClass<UInventoryComponent>();
+}
+
+void UInventoryWidget::HandleInventoryItemChanged(FName ItemID, int32 NewCount)
+{
 	RefreshInventory();
 }
 
@@ -235,14 +290,22 @@ void UInventoryWidget::RefreshInventory()
 		BuildEmptySlots();
 	}
 
-	APawn* OwningPawn = GetOwningPlayerPawn();
-	if (!OwningPawn)
+	UInventoryComponent* InventoryComponent = CachedInventoryComponent.Get();
+
+	if (!InventoryComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: OwningPawn is null."));
-		return;
+		InventoryComponent = GetInventoryComponent();
+		CachedInventoryComponent = InventoryComponent;
+
+		if (CachedInventoryComponent)
+		{
+			CachedInventoryComponent->OnItemChanged.AddUniqueDynamic(
+				this,
+				&UInventoryWidget::HandleInventoryItemChanged
+			);
+		}
 	}
 
-	UInventoryComponent* InventoryComponent = OwningPawn->FindComponentByClass<UInventoryComponent>();
 	if (!InventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventoryComponent not found."));

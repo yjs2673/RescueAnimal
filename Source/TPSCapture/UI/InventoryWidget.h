@@ -10,6 +10,7 @@ class USizeBox;
 class UUniformGridPanel;
 class UInventorySlotWidget;
 class UQuickSlotBarWidget;
+class UInventoryComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryCloseRequested);
 
@@ -20,6 +21,7 @@ class TPSCAPTURE_API UInventoryWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	virtual FReply NativeOnMouseButtonDown(
 		const FGeometry& InGeometry,
@@ -73,7 +75,14 @@ private:
 	UFUNCTION()
 	void HandleCloseButtonClicked();
 
+	UFUNCTION()
+	void HandleInventoryItemChanged(FName ItemID, int32 NewCount);
+
 	void BuildEmptySlots();
+
+	UInventoryComponent* GetInventoryComponent() const;
+	void BindInventoryComponent();
+	void UnbindInventoryComponent();
 
 	bool IsMouseOverUpperBorder(const FPointerEvent& InMouseEvent) const;
 	FVector2D GetInventoryPosition() const;
@@ -82,6 +91,9 @@ private:
 private:
 	UPROPERTY()
 	TArray<TObjectPtr<UInventorySlotWidget>> SlotWidgets;
+
+	UPROPERTY()
+	TObjectPtr<UInventoryComponent> CachedInventoryComponent;
 
 	bool bIsDraggingInventory = false;
 	FVector2D DragOffset = FVector2D::ZeroVector;

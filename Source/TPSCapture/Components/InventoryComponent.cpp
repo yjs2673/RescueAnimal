@@ -36,6 +36,7 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Count)
 	if (FInventoryEntry* FoundEntry = FindEntry(ItemID))
 	{
 		FoundEntry->Count += Count;
+
 		OnItemChanged.Broadcast(ItemID, FoundEntry->Count);
 		return;
 	}
