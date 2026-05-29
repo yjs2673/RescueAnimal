@@ -6,6 +6,7 @@
 
 class UButton;
 class UQuickSlotBarWidget;
+class UCrosshairBowWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
 
@@ -18,6 +19,8 @@ public:
 	virtual void NativeConstruct() override;
 
 public:
+	UCrosshairBowWidget* GetCrosshairBowWidget() const;
+
 	UPROPERTY(BlueprintAssignable, Category = "MainHUD")
 	FOnInventoryButtonClicked OnInventoryButtonClicked;
 
@@ -27,6 +30,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCrosshairBowWidget> CrosshairBowWidget;
 
 private:
 	UFUNCTION()

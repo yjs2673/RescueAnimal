@@ -32,11 +32,62 @@ void UInventoryWidget::NativeConstruct()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventorySlotWidgetClass is not assigned."));
 	}
+
+	BuildEmptySlots();
+	RefreshInventory();
 }
 
 void UInventoryWidget::HandleCloseButtonClicked()
 {
 	OnInventoryCloseRequested.Broadcast();
+}
+
+void UInventoryWidget::BuildEmptySlots()
+{
+	if (!InventoryGrid)
+	{
+		return;
+	}
+
+	InventoryGrid->ClearChildren();
+	SlotWidgets.Empty();
+
+	if (!InventorySlotWidgetClass)
+	{
+		return;
+	}
+
+	for (int32 Index = 0; Index < MaxSlotCount; ++Index)
+	{
+		UInventorySlotWidget* SlotWidget = CreateWidget<UInventorySlotWidget>(
+			GetOwningPlayer(),
+			InventorySlotWidgetClass
+		);
+
+		if (!SlotWidget)
+		{
+			continue;
+		}
+
+		SlotWidget->SetEmptySlot();
+
+		const int32 Row = Index / SlotColumnCount;
+		const int32 Column = Index % SlotColumnCount;
+
+		UUniformGridSlot* GridSlot = InventoryGrid->AddChildToUniformGrid(
+			SlotWidget,
+			Row,
+			Column
+		);
+
+		if (GridSlot)
+		{
+			GridSlot->SetHorizontalAlignment(HAlign_Fill);
+			GridSlot->SetVerticalAlignment(VAlign_Fill);
+		}
+
+		SlotWidgets.Add(SlotWidget);
+	}
 }
 
 void UInventoryWidget::RefreshInventory()
@@ -47,12 +98,9 @@ void UInventoryWidget::RefreshInventory()
 		return;
 	}
 
-	InventoryGrid->ClearChildren();
-
-	if (!InventorySlotWidgetClass)
+	if (SlotWidgets.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventorySlotWidgetClass is not assigned."));
-		return;
+		BuildEmptySlots();
 	}
 
 	APawn* OwningPawn = GetOwningPlayerPawn();
@@ -80,34 +128,21 @@ void UInventoryWidget::RefreshInventory()
 			continue;
 		}
 
-		UInventorySlotWidget* SlotWidget = CreateWidget<UInventorySlotWidget>(
-			GetOwningPlayer(),
-			InventorySlotWidgetClass
-		);
-
-		if (!SlotWidget)
+		if (!SlotWidgets.IsValidIndex(VisibleIndex))
 		{
-			continue;
+			break;
 		}
 
-		SlotWidget->SetupSlot(Entry.ItemID, Entry.Count);
-
-		const int32 Row = VisibleIndex / SlotColumnCount;
-		const int32 Column = VisibleIndex % SlotColumnCount;
-
-		UUniformGridSlot* GridSlot = InventoryGrid->AddChildToUniformGrid(
-			SlotWidget,
-			Row,
-			Column
-		);
-
-		if (GridSlot)
-		{
-			GridSlot->SetHorizontalAlignment(HAlign_Fill);
-			GridSlot->SetVerticalAlignment(VAlign_Fill);
-		}
-
+		SlotWidgets[VisibleIndex]->SetupSlot(Entry.ItemID, Entry.Count);
 		VisibleIndex++;
+	}
+
+	for (int32 Index = VisibleIndex; Index < SlotWidgets.Num(); ++Index)
+	{
+		if (SlotWidgets[Index])
+		{
+			SlotWidgets[Index]->SetEmptySlot();
+		}
 	}
 
 	if (QuickSlotBar)

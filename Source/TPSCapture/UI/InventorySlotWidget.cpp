@@ -9,6 +9,32 @@
 void UInventorySlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	SetEmptySlot();
+}
+
+void UInventorySlotWidget::SetEmptySlot()
+{
+	ItemID = NAME_None;
+	Count = 0;
+
+	if (ItemIcon)
+	{
+		ItemIcon->SetBrushFromTexture(nullptr);
+		ItemIcon->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (ItemNameText)
+	{
+		ItemNameText->SetText(FText::GetEmpty());
+		ItemNameText->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (ItemCountText)
+	{
+		ItemCountText->SetText(FText::GetEmpty());
+		ItemCountText->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
@@ -16,20 +42,31 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 	ItemID = InItemID;
 	Count = FMath::Max(0, InCount);
 
+	if (ItemID.IsNone() || Count <= 0)
+	{
+		SetEmptySlot();
+		return;
+	}
+
 	FItemData ItemData;
 	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
 	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
 
 	if (ItemNameText)
 	{
+		// 일반 게임 인벤토리처럼 슬롯 안에서는 이름을 숨김.
+		// 나중에 툴팁으로 보여주는 방식 추천.
 		ItemNameText->SetText(bHasItemData && !ItemData.ItemName.IsEmpty()
 			? ItemData.ItemName
 			: FText::FromName(ItemID));
+
+		ItemNameText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	if (ItemCountText)
 	{
 		ItemCountText->SetText(FText::FromString(FString::Printf(TEXT("x%d"), Count)));
+		ItemCountText->SetVisibility(ESlateVisibility::Visible);
 	}
 
 	if (ItemIcon)
@@ -58,7 +95,7 @@ FReply UInventorySlotWidget::NativeOnMouseButtonDown(
 	const FPointerEvent& InMouseEvent
 )
 {
-	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !ItemID.IsNone())
+	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !ItemID.IsNone() && Count > 0)
 	{
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(
 			InMouseEvent,
@@ -76,6 +113,11 @@ void UInventorySlotWidget::NativeOnDragDetected(
 	UDragDropOperation*& OutOperation
 )
 {
+	if (ItemID.IsNone() || Count <= 0)
+	{
+		return;
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("DragDetected ItemID: %s"), *ItemID.ToString());
 
 	UItemDragDropOperation* DragOperation = NewObject<UItemDragDropOperation>();

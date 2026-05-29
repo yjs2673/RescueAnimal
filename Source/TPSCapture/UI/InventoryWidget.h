@@ -38,7 +38,10 @@ protected:
 	TSubclassOf<UInventorySlotWidget> InventorySlotWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
-	int32 SlotColumnCount = 5;
+	int32 SlotColumnCount = 4;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	int32 MaxSlotCount = 20;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
@@ -46,4 +49,10 @@ protected:
 private:
 	UFUNCTION()
 	void HandleCloseButtonClicked();
+
+	void BuildEmptySlots();
+
+private:
+	UPROPERTY()
+	TArray<TObjectPtr<UInventorySlotWidget>> SlotWidgets;
 };

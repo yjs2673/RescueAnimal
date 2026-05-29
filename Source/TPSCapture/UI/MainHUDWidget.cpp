@@ -1,6 +1,9 @@
 #include "MainHUDWidget.h"
 
 #include "Components/Button.h"
+#include "Components/Widget.h"
+#include "Blueprint/WidgetTree.h"
+#include "CrosshairBowWidget.h"
 #include "QuickSlotBarWidget.h"
 
 void UMainHUDWidget::NativeConstruct()
@@ -28,4 +31,28 @@ void UMainHUDWidget::NativeConstruct()
 void UMainHUDWidget::HandleInventoryButtonClicked()
 {
 	OnInventoryButtonClicked.Broadcast();
+}
+
+UCrosshairBowWidget* UMainHUDWidget::GetCrosshairBowWidget() const
+{
+	if (CrosshairBowWidget)
+	{
+		return CrosshairBowWidget;
+	}
+
+	if (!WidgetTree)
+	{
+		return nullptr;
+	}
+
+	UCrosshairBowWidget* FoundCrosshairWidget = nullptr;
+	WidgetTree->ForEachWidget([&FoundCrosshairWidget](UWidget* Widget)
+	{
+		if (!FoundCrosshairWidget)
+		{
+			FoundCrosshairWidget = Cast<UCrosshairBowWidget>(Widget);
+		}
+	});
+
+	return FoundCrosshairWidget;
 }

@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void SetupSlot(FName InItemID, int32 InCount);
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void SetEmptySlot();
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> ItemIcon;
