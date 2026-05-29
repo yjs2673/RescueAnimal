@@ -1,11 +1,18 @@
 #include "InventoryWidget.h"
 #include "QuickSlotBarWidget.h"
 #include "Components/Button.h"
+#include "Components/Border.h"
+#include "Components/SizeBox.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "InventorySlotWidget.h"
 #include "InventoryComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Input/Reply.h"
+
+bool UInventoryWidget::bHasSavedInventoryPosition = false;
+FVector2D UInventoryWidget::SavedInventoryPosition = FVector2D::ZeroVector;
 
 void UInventoryWidget::NativeConstruct()
 {
@@ -23,6 +30,16 @@ void UInventoryWidget::NativeConstruct()
 		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: CloseButton is not bound."));
 	}
 
+	if (!InventoryRootSizeBox)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventoryRootSizeBox is not bound."));
+	}
+
+	if (!Upper_Border)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: Upper_Border is not bound."));
+	}
+
 	if (!InventoryGrid)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventoryGrid is not bound."));
@@ -33,8 +50,121 @@ void UInventoryWidget::NativeConstruct()
 		UE_LOG(LogTemp, Warning, TEXT("InventoryWidget: InventorySlotWidgetClass is not assigned."));
 	}
 
+	if (bHasSavedInventoryPosition)
+	{
+		SetInventoryPosition(SavedInventoryPosition);
+	}
+
 	BuildEmptySlots();
 	RefreshInventory();
+}
+
+FReply UInventoryWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton &&
+		IsMouseOverUpperBorder(InMouseEvent))
+	{
+		bIsDraggingInventory = true;
+
+		const FVector2D MouseLocalPosition =
+			InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+
+		DragOffset = MouseLocalPosition - GetInventoryPosition();
+
+		return FReply::Handled().CaptureMouse(TakeWidget());
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UInventoryWidget::NativeOnMouseMove(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (bIsDraggingInventory)
+	{
+		const FVector2D MouseLocalPosition =
+			InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
+
+		const FVector2D NewPosition = MouseLocalPosition - DragOffset;
+
+		SetInventoryPosition(NewPosition);
+
+		SavedInventoryPosition = NewPosition;
+		bHasSavedInventoryPosition = true;
+
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+FReply UInventoryWidget::NativeOnMouseButtonUp(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (bIsDraggingInventory &&
+		InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		bIsDraggingInventory = false;
+
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
+bool UInventoryWidget::IsMouseOverUpperBorder(const FPointerEvent& InMouseEvent) const
+{
+	if (!Upper_Border)
+	{
+		return false;
+	}
+
+	return Upper_Border->GetCachedGeometry().IsUnderLocation(
+		InMouseEvent.GetScreenSpacePosition()
+	);
+}
+
+FVector2D UInventoryWidget::GetInventoryPosition() const
+{
+	if (!InventoryRootSizeBox)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	const UCanvasPanelSlot* CanvasSlot =
+		Cast<UCanvasPanelSlot>(InventoryRootSizeBox->Slot);
+
+	if (!CanvasSlot)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	return CanvasSlot->GetPosition();
+}
+
+void UInventoryWidget::SetInventoryPosition(const FVector2D& NewPosition)
+{
+	if (!InventoryRootSizeBox)
+	{
+		return;
+	}
+
+	UCanvasPanelSlot* CanvasSlot =
+		Cast<UCanvasPanelSlot>(InventoryRootSizeBox->Slot);
+
+	if (!CanvasSlot)
+	{
+		return;
+	}
+
+	CanvasSlot->SetPosition(NewPosition);
 }
 
 void UInventoryWidget::HandleCloseButtonClicked()
@@ -56,6 +186,8 @@ void UInventoryWidget::BuildEmptySlots()
 	{
 		return;
 	}
+
+	InventoryGrid->SetSlotPadding(FMargin(3.0f));
 
 	for (int32 Index = 0; Index < MaxSlotCount; ++Index)
 	{
@@ -82,8 +214,8 @@ void UInventoryWidget::BuildEmptySlots()
 
 		if (GridSlot)
 		{
-			GridSlot->SetHorizontalAlignment(HAlign_Fill);
-			GridSlot->SetVerticalAlignment(VAlign_Fill);
+			GridSlot->SetHorizontalAlignment(HAlign_Center);
+			GridSlot->SetVerticalAlignment(VAlign_Center);
 		}
 
 		SlotWidgets.Add(SlotWidget);
