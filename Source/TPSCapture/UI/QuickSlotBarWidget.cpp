@@ -33,7 +33,7 @@ void UQuickSlotBarWidget::NativeConstruct()
 
 	if (CachedQuickSlotComponent)
 	{
-		CachedQuickSlotComponent->OnQuickSlotChanged.AddDynamic(
+		CachedQuickSlotComponent->OnQuickSlotChanged.AddUniqueDynamic(
 			this,
 			&UQuickSlotBarWidget::HandleQuickSlotChanged
 		);
@@ -45,7 +45,7 @@ void UQuickSlotBarWidget::NativeConstruct()
 
 	if (CachedInventoryComponent)
 	{
-		CachedInventoryComponent->OnItemChanged.AddDynamic(
+		CachedInventoryComponent->OnItemChanged.AddUniqueDynamic(
 			this,
 			&UQuickSlotBarWidget::HandleInventoryItemChanged
 		);
@@ -63,6 +63,31 @@ void UQuickSlotBarWidget::NativeConstruct()
 	RefreshQuickSlots();
 }
 
+void UQuickSlotBarWidget::NativeDestruct()
+{
+	if (CachedQuickSlotComponent)
+	{
+		CachedQuickSlotComponent->OnQuickSlotChanged.RemoveDynamic(
+			this,
+			&UQuickSlotBarWidget::HandleQuickSlotChanged
+		);
+
+		CachedQuickSlotComponent = nullptr;
+	}
+
+	if (CachedInventoryComponent)
+	{
+		CachedInventoryComponent->OnItemChanged.RemoveDynamic(
+			this,
+			&UQuickSlotBarWidget::HandleInventoryItemChanged
+		);
+
+		CachedInventoryComponent = nullptr;
+	}
+
+	Super::NativeDestruct();
+}
+
 void UQuickSlotBarWidget::HandleQuickSlotChanged(int32 SlotIndex, FName ItemID)
 {
 	RefreshQuickSlots();
@@ -70,6 +95,18 @@ void UQuickSlotBarWidget::HandleQuickSlotChanged(int32 SlotIndex, FName ItemID)
 
 void UQuickSlotBarWidget::HandleInventoryItemChanged(FName ItemID, int32 NewCount)
 {
+	if (NewCount <= 0 && CachedQuickSlotComponent && !ItemID.IsNone())
+	{
+		const int32 SlotCount = CachedQuickSlotComponent->GetSlotCount();
+		for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+		{
+			if (CachedQuickSlotComponent->GetSlotItem(SlotIndex) == ItemID)
+			{
+				CachedQuickSlotComponent->ClearSlot(SlotIndex);
+			}
+		}
+	}
+
 	RefreshQuickSlots();
 }
 

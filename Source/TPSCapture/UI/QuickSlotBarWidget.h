@@ -16,6 +16,7 @@ class TPSCAPTURE_API UQuickSlotBarWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "QuickSlot")
