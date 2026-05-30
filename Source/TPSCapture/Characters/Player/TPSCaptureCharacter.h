@@ -410,6 +410,9 @@ protected:
 	void StartBowCharge();
 	void ReleaseBowCharge();
 	void UpdateBowFacing(float DeltaTime);
+	bool HasArrowAmmo() const;
+	bool ConsumeArrowAmmo();
+	void RefundArrowAmmo();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void FireChargedArrow();

@@ -735,6 +735,12 @@ void ATPSCaptureCharacter::FireArrow()
 		return;
 	}
 
+	if (!ConsumeArrowAmmo())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireArrow failed: no Arrow ammo"));
+		return;
+	}
+
 	const FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("ArrowSpawnSocket"));
 	const FRotator SpawnRotation = GetControlRotation();
 
@@ -749,18 +755,21 @@ void ATPSCaptureCharacter::FireArrow()
 		SpawnParams
 	);
 
-	if (Arrow)
+	if (!Arrow)
 	{
-		Arrow->Damage = CurrentWeapon->AttackDamage;
-
-		if (Arrow->ProjectileMovement)
-		{
-			Arrow->ProjectileMovement->InitialSpeed = CurrentWeapon->ProjectileSpeed;
-			Arrow->ProjectileMovement->MaxSpeed = CurrentWeapon->ProjectileSpeed;
-		}
-
-		UE_LOG(LogTemp, Warning, TEXT("Arrow Fired"));
+		RefundArrowAmmo();
+		return;
 	}
+
+	Arrow->Damage = CurrentWeapon->AttackDamage;
+
+	if (Arrow->ProjectileMovement)
+	{
+		Arrow->ProjectileMovement->InitialSpeed = CurrentWeapon->ProjectileSpeed;
+		Arrow->ProjectileMovement->MaxSpeed = CurrentWeapon->ProjectileSpeed;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Arrow Fired"));
 }
 #pragma endregion Base Combat Func
 
@@ -971,6 +980,12 @@ void ATPSCaptureCharacter::OnAttackPressed()
 
 	if (CurrentWeapon && CurrentWeapon->AttackType == EAttackType::Ranged)
 	{
+		if (!HasArrowAmmo())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Bow attack blocked: no Arrow ammo"));
+			return;
+		}
+
 		StartBowCharge();
 		return;
 	}
@@ -991,6 +1006,12 @@ void ATPSCaptureCharacter::StartBowCharge()
 {
 	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
 		return;
+
+	if (!HasArrowAmmo())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("StartBowCharge failed: no Arrow ammo"));
+		return;
+	}
 
 	if (bIsAttacking || bIsBowCharging || bIsBowAiming)
 		return;
@@ -1083,6 +1104,24 @@ void ATPSCaptureCharacter::UpdateBowFacing(float DeltaTime)
 	const FRotator ControlRot = Controller->GetControlRotation();
 	const FRotator TargetRot(0.0f, ControlRot.Yaw, 0.0f);
 	SetActorRotation(TargetRot);
+}
+
+bool ATPSCaptureCharacter::HasArrowAmmo() const
+{
+	return InventoryComponent && InventoryComponent->HasItem(TEXT("Arrow"), 1);
+}
+
+bool ATPSCaptureCharacter::ConsumeArrowAmmo()
+{
+	return InventoryComponent && InventoryComponent->RemoveItem(TEXT("Arrow"), 1);
+}
+
+void ATPSCaptureCharacter::RefundArrowAmmo()
+{
+	if (InventoryComponent)
+	{
+		InventoryComponent->AddItem(TEXT("Arrow"), 1);
+	}
 }
 
 void ATPSCaptureCharacter::FireChargedArrow()
@@ -1180,6 +1219,13 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	const FVector ShootDirection = (AimTargetLocation - SpawnLocation).GetSafeNormal();
 	const FRotator SpawnRotation = ShootDirection.Rotation();
 
+	if (!ConsumeArrowAmmo())
+	{
+		HidePreviewArrow();
+		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow failed: no Arrow ammo"));
+		return;
+	}
+
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
 	SpawnParams.Instigator = this;
@@ -1192,7 +1238,10 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	);
 
 	if (!Arrow)
+	{
+		RefundArrowAmmo();
 		return;
+	}
 
 	const float DamageMultiplier = FMath::Lerp(
 		MinBowDamageMultiplier,
