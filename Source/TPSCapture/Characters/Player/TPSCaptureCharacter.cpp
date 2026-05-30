@@ -515,6 +515,7 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ¹«±â ÀåÂø, ÀÌ¹
 	}
 
 	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
+	UE_LOG(LogTemp, Warning, TEXT("Weapon Changed Broadcast: %s"), *UEnum::GetValueAsString(GetCurrentWeaponType()));
 
 	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s | Socket: %s"),
 		*CurrentWeapon->GetName(),
