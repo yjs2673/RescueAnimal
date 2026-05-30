@@ -514,6 +514,8 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 무기 장착, 이�
 		ActiveVisual->SetRelativeScale3D(CurrentWeapon->EquipRelativeScale);
 	}
 
+	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
+
 	UE_LOG(LogTemp, Warning, TEXT("Equipped Weapon: %s | Socket: %s"),
 		*CurrentWeapon->GetName(),
 		*AttachSocketName.ToString());
@@ -545,6 +547,8 @@ void ATPSCaptureCharacter::UnequipWeapon() // 장착 해제
 	UE_LOG(LogTemp, Warning, TEXT("Unequipped Weapon: %s"), *CurrentWeapon->GetName());
 
 	CurrentWeapon = nullptr;
+
+	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
 }
 
 void ATPSCaptureCharacter::DropCurrentWeapon() // 현재 장착된 무기를 떨어뜨리는 함수, 무기가 바닥에 떨어질 때의 위치와 회전을 계산하여 설정
@@ -593,6 +597,8 @@ void ATPSCaptureCharacter::DropCurrentWeapon() // 현재 장착된 무기를 떨어뜨리는 
 	WeaponToDrop->EnablePickupAfterDrop();
 
 	CurrentWeapon = nullptr;
+
+	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
 
 	UE_LOG(LogTemp, Warning, TEXT("Dropped Weapon: %s"), *WeaponToDrop->GetName());
 }
@@ -1433,6 +1439,18 @@ void ATPSCaptureCharacter::StopHitMontage()
 	CurrentHitMontage = nullptr;
 }
 #pragma endregion Anim Montage Func
+
+#pragma region Delicate Func
+EWeaponType ATPSCaptureCharacter::GetCurrentWeaponType() const
+{
+	if (!CurrentWeapon)
+	{
+		return EWeaponType::None;
+	}
+
+	return CurrentWeapon->WeaponType;
+}
+#pragma endregion Delicate Func
 
 #pragma region VFX Func
 void ATPSCaptureCharacter::SpawnHitVFX(

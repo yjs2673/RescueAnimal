@@ -4,6 +4,8 @@
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
 
+#include "TPSGameEnums.h"
+
 #include "Animation/AnimMontage.h"
 
 #include "TPSCaptureCharacter.generated.h"
@@ -37,6 +39,12 @@ class UQuickSlotComponent;
 class APortalActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnWeaponChangedSignature,
+	EWeaponType,
+	NewWeaponType
+);
 
 UCLASS(config=Game)
 class ATPSCaptureCharacter : public ACharacter
@@ -133,6 +141,11 @@ public:
 	AWeaponBase* NearbyWeapon = nullptr;
 #pragma endregion Equip Var
 	
+#pragma region Delicate Var
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnWeaponChangedSignature OnWeaponChanged;
+#pragma endregion Delicate Var
+
 protected:
 #pragma region Combat Var
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -470,6 +483,11 @@ public:
 		struct FDamageEvent const& DamageEvent,
 		class AController* EventInstigator,
 		AActor* DamageCauser) override;
+
+#pragma region Delicate Func
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	EWeaponType GetCurrentWeaponType() const;
+#pragma endregion Delicate Func
 
 	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
 	void TestTakeDamage(float DamageAmount);
