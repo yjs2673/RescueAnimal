@@ -10,6 +10,8 @@ class UWidget;
 class UQuickSlotBarWidget;
 class UCrosshairBowWidget;
 class UCurrentWeaponWidget;
+class UPlayerStatusWidget;
+class UPlayerStatComponent;
 class ATPSCaptureCharacter;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
@@ -42,6 +44,9 @@ protected:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCurrentWeaponWidget> CurrentWeaponWidget;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPlayerStatusWidget> PlayerStatusWidget;
+
 private:
 	UFUNCTION()
 	void HandleInventoryButtonClicked();
@@ -53,6 +58,24 @@ private:
 	void UnbindPlayerWeaponChanged();
 
 	ATPSCaptureCharacter* GetPlayerCharacter() const;
+
+	UFUNCTION()
+	void HandleHPChanged(float CurrentHP, float MaxHP);
+
+	UFUNCTION()
+	void HandleEXPChanged(int32 CurrentEXP, int32 RequiredEXP);
+
+	UFUNCTION()
+	void HandleLevelChanged(int32 NewLevel);
+
+	void BindPlayerStatComponent();
+	void UnbindPlayerStatComponent();
+	void RefreshPlayerStatus();
+
+	UPlayerStatComponent* GetPlayerStatComponent() const;
+
+	UPROPERTY()
+	TObjectPtr<UPlayerStatComponent> CachedPlayerStatComponent;
 
 private:
 	UPROPERTY()

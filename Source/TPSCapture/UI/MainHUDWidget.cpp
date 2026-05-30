@@ -8,6 +8,9 @@
 #include "QuickSlotBarWidget.h"
 #include "CurrentWeaponWidget.h"
 
+#include "PlayerStatusWidget.h"
+#include "PlayerStatComponent.h"
+
 #include "TPSCaptureCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -40,6 +43,9 @@ void UMainHUDWidget::NativeConstruct()
 			CachedPlayerCharacter->GetCurrentWeaponType()
 		);
 	}
+
+	BindPlayerStatComponent();
+	RefreshPlayerStatus();
 }
 
 void UMainHUDWidget::NativeDestruct()
@@ -53,6 +59,8 @@ void UMainHUDWidget::NativeDestruct()
 			&UMainHUDWidget::HandleInventoryButtonClicked
 		);
 	}
+
+	UnbindPlayerStatComponent();
 
 	Super::NativeDestruct();
 }
@@ -138,4 +146,120 @@ UCrosshairBowWidget* UMainHUDWidget::GetCrosshairBowWidget() const
 		});
 
 	return FoundCrosshairWidget;
+}
+
+void UMainHUDWidget::BindPlayerStatComponent()
+{
+	CachedPlayerStatComponent = GetPlayerStatComponent();
+
+	if (!CachedPlayerStatComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainHUDWidget: PlayerStatComponent not found."));
+		return;
+	}
+
+	CachedPlayerStatComponent->OnHPChanged.AddUniqueDynamic(
+		this,
+		&UMainHUDWidget::HandleHPChanged
+	);
+
+	CachedPlayerStatComponent->OnEXPChanged.AddUniqueDynamic(
+		this,
+		&UMainHUDWidget::HandleEXPChanged
+	);
+
+	CachedPlayerStatComponent->OnLevelChanged.AddUniqueDynamic(
+		this,
+		&UMainHUDWidget::HandleLevelChanged
+	);
+}
+
+void UMainHUDWidget::UnbindPlayerStatComponent()
+{
+	if (!CachedPlayerStatComponent)
+	{
+		return;
+	}
+
+	CachedPlayerStatComponent->OnHPChanged.RemoveDynamic(
+		this,
+		&UMainHUDWidget::HandleHPChanged
+	);
+
+	CachedPlayerStatComponent->OnEXPChanged.RemoveDynamic(
+		this,
+		&UMainHUDWidget::HandleEXPChanged
+	);
+
+	CachedPlayerStatComponent->OnLevelChanged.RemoveDynamic(
+		this,
+		&UMainHUDWidget::HandleLevelChanged
+	);
+
+	CachedPlayerStatComponent = nullptr;
+}
+
+UPlayerStatComponent* UMainHUDWidget::GetPlayerStatComponent() const
+{
+	APawn* OwningPawn = GetOwningPlayerPawn();
+
+	if (!OwningPawn)
+	{
+		return nullptr;
+	}
+
+	return OwningPawn->FindComponentByClass<UPlayerStatComponent>();
+}
+
+void UMainHUDWidget::RefreshPlayerStatus()
+{
+	if (!CachedPlayerStatComponent)
+	{
+		CachedPlayerStatComponent = GetPlayerStatComponent();
+	}
+
+	if (!CachedPlayerStatComponent || !PlayerStatusWidget)
+	{
+		return;
+	}
+
+	PlayerStatusWidget->UpdateHP(
+		CachedPlayerStatComponent->GetCurrentHP(),
+		CachedPlayerStatComponent->GetMaxHP()
+	);
+
+	PlayerStatusWidget->UpdateEXP(
+		CachedPlayerStatComponent->GetCurrentEXP(),
+		CachedPlayerStatComponent->GetRequiredEXP()
+	);
+
+	PlayerStatusWidget->UpdateLevel(
+		CachedPlayerStatComponent->GetLevel()
+	);
+}
+
+void UMainHUDWidget::HandleHPChanged(float CurrentHP, float MaxHP)
+{
+	if (PlayerStatusWidget)
+	{
+		PlayerStatusWidget->UpdateHP(CurrentHP, MaxHP);
+	}
+}
+
+void UMainHUDWidget::HandleEXPChanged(int32 CurrentEXP, int32 RequiredEXP)
+{
+	if (PlayerStatusWidget)
+	{
+		PlayerStatusWidget->UpdateEXP(CurrentEXP, RequiredEXP);
+	}
+}
+
+void UMainHUDWidget::HandleLevelChanged(int32 NewLevel)
+{
+	if (PlayerStatusWidget)
+	{
+		PlayerStatusWidget->UpdateLevel(NewLevel);
+	}
+
+	RefreshPlayerStatus();
 }
