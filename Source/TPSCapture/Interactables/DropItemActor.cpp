@@ -3,6 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "TPSGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "InventoryComponent.h"
 #include "Sound/SoundBase.h"
@@ -16,11 +17,13 @@ ADropItemActor::ADropItemActor()
 
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	ItemMesh->SetupAttachment(SceneRoot);
+	ItemMesh->SetMobility(EComponentMobility::Movable);
 	ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ItemMesh->SetGenerateOverlapEvents(false);
 
 	PickupCollision = CreateDefaultSubobject<USphereComponent>(TEXT("PickupCollision"));
 	PickupCollision->SetupAttachment(SceneRoot);
+	PickupCollision->SetMobility(EComponentMobility::Movable);
 	PickupCollision->SetSphereRadius(80.f);
 	PickupCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PickupCollision->SetCollisionObjectType(ECC_WorldDynamic);
@@ -34,12 +37,8 @@ void ADropItemActor::BeginPlay()
 	Super::BeginPlay();
 
 	InitialActorRotation = GetActorRotation();
-
-	if (ItemMesh)
-	{
-		InitialMeshRelativeLocation = ItemMesh->GetRelativeLocation();
-		InitialMeshRelativeRotation = ItemMesh->GetRelativeRotation();
-	}
+	ApplyItemDataToDropVisual();
+	CacheInitialPickupMotionTransform();
 
 	if (PickupCollision)
 	{
@@ -58,6 +57,9 @@ void ADropItemActor::InitializeDropItem(FName InItemID, int32 InCount)
 {
 	ItemID = InItemID;
 	Count = FMath::Max(1, InCount);
+
+	ApplyItemDataToDropVisual();
+	CacheInitialPickupMotionTransform();
 }
 
 void ADropItemActor::OnPickupCollisionBeginOverlap(
@@ -106,6 +108,56 @@ void ADropItemActor::OnPickupCollisionBeginOverlap(
 		SafeCount);
 
 	Destroy();
+}
+
+void ADropItemActor::ApplyItemDataToDropVisual()
+{
+	if (ItemID.IsNone())
+	{
+		return;
+	}
+
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DropItemActor] Failed to apply drop visual for %s: TPSGameInstance is null"), *ItemID.ToString());
+		return;
+	}
+
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(ItemID, ItemData))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[DropItemActor] ItemData not found for %s"), *ItemID.ToString());
+		return;
+	}
+
+	if (ItemMesh)
+	{
+		if (ItemData.Mesh)
+		{
+			ItemMesh->SetStaticMesh(ItemData.Mesh);
+		}
+
+		ItemMesh->SetRelativeLocation(ItemData.ItemMeshPosition);
+		ItemMesh->SetRelativeRotation(ItemData.ItemMeshRotation);
+		ItemMesh->SetRelativeScale3D(ItemData.ItemMeshScale);
+	}
+
+	if (PickupCollision)
+	{
+		PickupCollision->SetRelativeLocation(FVector::ZeroVector);
+		PickupCollision->SetRelativeRotation(FRotator::ZeroRotator);
+		PickupCollision->SetRelativeScale3D(ItemData.PickupCollisionScale);
+	}
+}
+
+void ADropItemActor::CacheInitialPickupMotionTransform()
+{
+	if (ItemMesh)
+	{
+		InitialMeshRelativeLocation = ItemMesh->GetRelativeLocation();
+		InitialMeshRelativeRotation = ItemMesh->GetRelativeRotation();
+	}
 }
 
 void ADropItemActor::ApplyPickupMotion(float DeltaTime)

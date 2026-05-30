@@ -908,17 +908,19 @@ void ATPSEnemyBase::SpawnDropItems()
 		);
 		const FVector SpawnLocation = GetActorLocation() + RandomOffset;
 		const FRotator SpawnRotation = FRotator::ZeroRotator;
+		const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		ADropItemActor* DropItemActor = World->SpawnActor<ADropItemActor>(
+		ADropItemActor* DropItemActor = World->SpawnActorDeferred<ADropItemActor>(
 			DropItemActorClass,
-			SpawnLocation,
-			SpawnRotation,
-			SpawnParams
+			SpawnTransform,
+			SpawnParams.Owner,
+			SpawnParams.Instigator,
+			SpawnParams.SpawnCollisionHandlingOverride
 		);
 
 		if (!DropItemActor)
@@ -930,6 +932,7 @@ void ATPSEnemyBase::SpawnDropItems()
 		}
 
 		DropItemActor->InitializeDropItem(DropItemData.ItemID, DropCount);
+		UGameplayStatics::FinishSpawningActor(DropItemActor, SpawnTransform);
 
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d"),
 			*GetName(),

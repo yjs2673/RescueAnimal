@@ -6,6 +6,7 @@
 #include "TPSStructTypes.generated.h"
 
 class UTexture2D;
+class UStaticMesh;
 class AWeaponBase;
 class AArrowProjectile;
 
@@ -61,6 +62,21 @@ struct FItemData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	UStaticMesh* Mesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector ItemMeshPosition = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FRotator ItemMeshRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector ItemMeshScale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector PickupCollisionScale = FVector::OneVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable")
 	EConsumableType ConsumableType = EConsumableType::None;

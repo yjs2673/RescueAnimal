@@ -74,6 +74,8 @@ public:
 	void InitializeDropItem(FName InItemID, int32 InCount);
 
 protected:
+	void ApplyItemDataToDropVisual();
+	void CacheInitialPickupMotionTransform();
 	void ApplyPickupMotion(float DeltaTime);
 
 	FVector InitialMeshRelativeLocation = FVector::ZeroVector;
