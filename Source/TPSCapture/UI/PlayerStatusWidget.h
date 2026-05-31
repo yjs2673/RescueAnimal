@@ -23,6 +23,8 @@ public:
 	void UpdateLevel(int32 NewLevel);
 
 protected:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> LevelText;
 
@@ -37,4 +39,28 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> EXPText;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Status|Animation")
+	float HPInterpSpeed = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Status|Animation")
+	float EXPInterpSpeed = 8.0f;
+
+	UPROPERTY(Transient)
+	float DisplayedHPPercent = 0.0f;
+
+	UPROPERTY(Transient)
+	float TargetHPPercent = 0.0f;
+
+	UPROPERTY(Transient)
+	float DisplayedEXPPercent = 0.0f;
+
+	UPROPERTY(Transient)
+	float TargetEXPPercent = 0.0f;
+
+	UPROPERTY(Transient)
+	bool bHasInitializedHPPercent = false;
+
+	UPROPERTY(Transient)
+	bool bHasInitializedEXPPercent = false;
 };
