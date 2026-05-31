@@ -7,6 +7,7 @@
 class UImage;
 class UTextBlock;
 class UDragDropOperation;
+class UItemTooltipWidget;
 struct FGeometry;
 struct FPointerEvent;
 
@@ -46,10 +47,17 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ItemCountText;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tooltip")
+	TSubclassOf<UItemTooltipWidget> ItemTooltipWidgetClass;
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	FName ItemID = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Count = 0;
+
+private:
+	void UpdateTooltip();
+	void ClearTooltip();
 };

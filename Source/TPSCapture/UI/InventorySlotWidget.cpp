@@ -1,4 +1,5 @@
 #include "InventorySlotWidget.h"
+#include "ItemTooltipWidget.h"
 #include "ItemDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/Image.h"
@@ -35,6 +36,8 @@ void UInventorySlotWidget::SetEmptySlot()
 		ItemCountText->SetText(FText::GetEmpty());
 		ItemCountText->SetVisibility(ESlateVisibility::Collapsed);
 	}
+
+	ClearTooltip();
 }
 
 void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
@@ -88,6 +91,8 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 			ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 		}
 	}
+
+	UpdateTooltip();
 }
 
 FReply UInventorySlotWidget::NativeOnMouseButtonDown(
@@ -132,4 +137,49 @@ void UInventorySlotWidget::NativeOnDragDetected(
 	DragOperation->Pivot = EDragPivot::MouseDown;
 
 	OutOperation = DragOperation;
+}
+
+void UInventorySlotWidget::UpdateTooltip()
+{
+	if (ItemID.IsNone() || Count <= 0)
+	{
+		ClearTooltip();
+		return;
+	}
+
+	if (!ItemTooltipWidgetClass)
+	{
+		ClearTooltip();
+		return;
+	}
+
+	FItemData ItemData;
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
+
+	if (!bHasItemData)
+	{
+		ClearTooltip();
+		return;
+	}
+
+	UItemTooltipWidget* TooltipWidget = CreateWidget<UItemTooltipWidget>(
+		GetOwningPlayer(),
+		ItemTooltipWidgetClass
+	);
+
+	if (!TooltipWidget)
+	{
+		ClearTooltip();
+		return;
+	}
+
+	TooltipWidget->SetupTooltip(ItemData);
+
+	SetToolTip(TooltipWidget);
+}
+
+void UInventorySlotWidget::ClearTooltip()
+{
+	SetToolTip(nullptr);
 }
