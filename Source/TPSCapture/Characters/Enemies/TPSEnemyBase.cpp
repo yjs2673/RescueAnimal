@@ -5,6 +5,7 @@
 #include "ArrowProjectile.h"
 #include "WeaponBase.h"
 #include "EnemyHPBarWidget.h"
+#include "PlayerStatComponent.h"
 
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
@@ -37,6 +38,18 @@ ATPSEnemyBase::ATPSEnemyBase()
 	HPBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
 	HPBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HPBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f));
+}
+
+float ATPSEnemyBase::TakeDamage(
+	float DamageAmount,
+	FDamageEvent const& DamageEvent,
+	AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	LastDamageInstigator = EventInstigator;
+	LastDamageCauser = DamageCauser;
+
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void ATPSEnemyBase::BeginPlay()
@@ -852,8 +865,59 @@ void ATPSEnemyBase::UpdateHPBarVisibility()
 
 void ATPSEnemyBase::Die()
 {
+	GrantEXPToKiller();
 	SpawnDropItems();
 	Super::Die();
+}
+
+void ATPSEnemyBase::GrantEXPToKiller()
+{
+	if (bHasGrantedEXP || EXPReward <= 0)
+	{
+		return;
+	}
+
+	ATPSCaptureCharacter* PlayerCharacter = nullptr;
+
+	if (LastDamageInstigator)
+	{
+		PlayerCharacter = Cast<ATPSCaptureCharacter>(LastDamageInstigator->GetPawn());
+	}
+
+	if (!PlayerCharacter && LastDamageCauser)
+	{
+		PlayerCharacter = Cast<ATPSCaptureCharacter>(LastDamageCauser);
+	}
+
+	if (!PlayerCharacter && LastDamageCauser)
+	{
+		PlayerCharacter = Cast<ATPSCaptureCharacter>(LastDamageCauser->GetOwner());
+	}
+
+	if (!PlayerCharacter && LastDamageCauser)
+	{
+		PlayerCharacter = Cast<ATPSCaptureCharacter>(LastDamageCauser->GetInstigator());
+	}
+
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	UPlayerStatComponent* PlayerStatComponent = PlayerCharacter->FindComponentByClass<UPlayerStatComponent>();
+	if (!PlayerStatComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to grant EXP: PlayerStatComponent is missing"), *GetName());
+		return;
+	}
+
+	bHasGrantedEXP = true;
+	PlayerStatComponent->AddEXP(EXPReward);
+
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Granted %d EXP to %s"),
+		*GetName(),
+		EXPReward,
+		*PlayerCharacter->GetName());
 }
 
 void ATPSEnemyBase::SpawnDropItems()

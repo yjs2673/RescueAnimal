@@ -10,6 +10,7 @@ class USphereComponent;
 
 
 class ADropItemActor;
+class AController;
 class UAnimMontage;
 class AArrowProjectile;
 class AWeaponBase;
@@ -32,6 +33,13 @@ class TPSCAPTURE_API ATPSEnemyBase : public ATPSCreatureBase
 
 public:
 	ATPSEnemyBase();
+
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator,
+		AActor* DamageCauser
+	) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -56,6 +64,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackCooldown = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Reward")
+	int32 EXPReward = 10;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
 	float MoveSpeed = 400.f;
@@ -158,6 +169,7 @@ protected:
 	virtual void UpdateHPBarVisibility();
 
 	virtual void Die() override;
+	virtual void GrantEXPToKiller();
 	virtual void SpawnDropItems();
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
@@ -250,6 +262,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Drop")
 	bool bHasDroppedItems = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Reward")
+	bool bHasGrantedEXP = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AController> LastDamageInstigator = nullptr;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> LastDamageCauser = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	FName ArrowSpawnSocketName = TEXT("ArrowSpawnSocket");
