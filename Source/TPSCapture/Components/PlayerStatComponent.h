@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "PlayerStatComponent.generated.h"
 
+class USoundBase;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHPChangedSignature, float, CurrentHP, float, MaxHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 
@@ -98,6 +100,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	int32 MaxLevel = 50;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
+	TObjectPtr<USoundBase> LevelUpSound = nullptr;
 
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")

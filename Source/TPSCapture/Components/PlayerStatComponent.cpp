@@ -1,5 +1,7 @@
 #include "PlayerStatComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+
 UPlayerStatComponent::UPlayerStatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -132,6 +134,13 @@ void UPlayerStatComponent::LevelUp()
 	}
 
 	Level++;
+
+	if (LevelUpSound)
+	{
+		const AActor* Owner = GetOwner();
+		const FVector SoundLocation = Owner ? Owner->GetActorLocation() : FVector::ZeroVector;
+		UGameplayStatics::PlaySoundAtLocation(this, LevelUpSound, SoundLocation);
+	}
 
 	BonusMaxHP += 10.f;
 	BonusAttack += 2.f;
