@@ -480,6 +480,37 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		}
 
 		case EBuffType::Defense:
+		{
+			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
+				? 1.0f + (ItemData.BuffValue / 100.0f)
+				: ItemData.BuffValue;
+
+			if (AppliedMultiplier <= 0.0f)
+			{
+				UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
+				return;
+			}
+
+			StatComponent->AddDefenseBuffMultiplier(AppliedMultiplier);
+
+			FTimerHandle DefenseBuffTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				DefenseBuffTimerHandle,
+				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveDefenseBuffMultiplier, AppliedMultiplier),
+				ItemData.BuffDuration,
+				false
+			);
+
+			bUseSucceeded = true;
+
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff used: %s | Multiplier=%.2f Duration=%.2f"),
+				*ItemID.ToString(),
+				AppliedMultiplier,
+				ItemData.BuffDuration);
+
+			break;
+		}
+
 		case EBuffType::Jump:
 		case EBuffType::MoveSpeed:
 		{
@@ -541,6 +572,16 @@ void ATPSCaptureCharacter::RemoveAttackBuffMultiplier(float Multiplier)
 	StatComponent->RemoveAttackBuffMultiplier(Multiplier);
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff expired: Multiplier=%.2f"), Multiplier);
+}
+
+void ATPSCaptureCharacter::RemoveDefenseBuffMultiplier(float Multiplier)
+{
+	if (!StatComponent)
+		return;
+
+	StatComponent->RemoveDefenseBuffMultiplier(Multiplier);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff expired: Multiplier=%.2f"), Multiplier);
 }
 bool ATPSCaptureCharacter::CanDodge() const
 {

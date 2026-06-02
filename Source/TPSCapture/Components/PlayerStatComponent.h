@@ -35,8 +35,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float LevelBonusMaxHP = 0.f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float LevelBonusDefense = 0.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
 	float AttackBuffMultiplier = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
+	float DefenseBuffMultiplier = 1.0f;
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
@@ -45,14 +51,26 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetBonusMaxHP() const { return LevelBonusMaxHP; }
 
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetBonusDefense() const { return LevelBonusDefense; }
+
 	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
 	float GetAttackBuffMultiplier() const { return AttackBuffMultiplier; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	float GetDefenseBuffMultiplier() const { return DefenseBuffMultiplier; }
 
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void AddAttackBuffMultiplier(float Multiplier);
 
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void RemoveAttackBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void AddDefenseBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void RemoveDefenseBuffMultiplier(float Multiplier);
 #pragma endregion Bonus Stats
 
 public:
@@ -63,6 +81,9 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float BaseMaxHP = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float BaseDefense = 0.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float MaxHP = 100.f;
@@ -98,6 +119,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetHPPercent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalDefense() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalDamageAfterDefense(float DamageAmount) const;
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	bool IsDead() const { return bIsDead; }

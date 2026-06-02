@@ -63,13 +63,31 @@ void UPlayerStatComponent::RemoveAttackBuffMultiplier(float Multiplier)
 	AttackBuffMultiplier = FMath::Max(1.0f, AttackBuffMultiplier / Multiplier);
 }
 
+void UPlayerStatComponent::AddDefenseBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	DefenseBuffMultiplier *= Multiplier;
+}
+
+void UPlayerStatComponent::RemoveDefenseBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	DefenseBuffMultiplier = FMath::Max(1.0f, DefenseBuffMultiplier / Multiplier);
+}
+
 #pragma region Health Stats
 float UPlayerStatComponent::ApplyDamage(float Amount)
 {
 	if (bIsDead || Amount <= 0.f)
 		return CurrentHP;
 
-	CurrentHP = FMath::Clamp(CurrentHP - Amount, 0.f, MaxHP);
+	const float FinalDamage = GetFinalDamageAfterDefense(Amount);
+
+	CurrentHP = FMath::Clamp(CurrentHP - FinalDamage, 0.f, MaxHP);
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 
 	if (CurrentHP <= 0.f)
@@ -93,6 +111,21 @@ float UPlayerStatComponent::GetHPPercent() const
 		return 0.f;
 
 	return CurrentHP / MaxHP;
+}
+
+float UPlayerStatComponent::GetFinalDefense() const
+{
+	const float AdditiveDefense = BaseDefense + LevelBonusDefense;
+	return FMath::Max(0.0f, AdditiveDefense * DefenseBuffMultiplier);
+}
+
+float UPlayerStatComponent::GetFinalDamageAfterDefense(float DamageAmount) const
+{
+	if (DamageAmount <= 0.0f)
+		return 0.0f;
+
+	const float DefenseReductionPercent = FMath::Clamp(GetFinalDefense(), 0.0f, 100.0f);
+	return DamageAmount * (1.0f - (DefenseReductionPercent / 100.0f));
 }
 
 void UPlayerStatComponent::Die()
