@@ -462,6 +462,15 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		return;
 	}
 
+	if (ConsumableUseSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			ConsumableUseSound,
+			GetActorLocation()
+		);
+	}
+
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item consumed: %s"), *ItemID.ToString());
 }
 

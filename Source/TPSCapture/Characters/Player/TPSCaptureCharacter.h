@@ -304,6 +304,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
 	USoundBase* BowDrawSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Consumable")
+	USoundBase* ConsumableUseSound;
 #pragma endregion SFX Var
 
 #pragma region VFX Var
