@@ -143,6 +143,21 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		// Dodging
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Dodge);
+		// Quick Slots
+		if (QuickSlot1Action)
+			EnhancedInputComponent->BindAction(QuickSlot1Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 0);
+		if (QuickSlot2Action)
+			EnhancedInputComponent->BindAction(QuickSlot2Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 1);
+		if (QuickSlot3Action)
+			EnhancedInputComponent->BindAction(QuickSlot3Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 2);
+		if (QuickSlot4Action)
+			EnhancedInputComponent->BindAction(QuickSlot4Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 3);
+		if (QuickSlot5Action)
+			EnhancedInputComponent->BindAction(QuickSlot5Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 4);
+		if (QuickSlot6Action)
+			EnhancedInputComponent->BindAction(QuickSlot6Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 5);
+		if (QuickSlot7Action)
+			EnhancedInputComponent->BindAction(QuickSlot7Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 6);
 	}
 	else
 	{
@@ -340,6 +355,24 @@ void ATPSCaptureCharacter::Interact()
 	}
 }
 
+
+void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
+{
+	if (StatComponent && StatComponent->IsDead())
+		return;
+
+	if (!QuickSlotComponent)
+		return;
+
+	const FName ItemID = QuickSlotComponent->GetSlotItem(SlotIndex);
+	if (ItemID.IsNone())
+	{
+		UE_LOG(LogTemplateCharacter, Log, TEXT("QuickSlot %d is empty"), SlotIndex + 1);
+		return;
+	}
+
+	UE_LOG(LogTemplateCharacter, Log, TEXT("UseQuickSlotItem: Slot=%d ItemID=%s"), SlotIndex + 1, *ItemID.ToString());
+}
 bool ATPSCaptureCharacter::CanDodge() const
 {
 	if (bIsDodging || bIsAttacking)
