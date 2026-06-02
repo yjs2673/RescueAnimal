@@ -30,17 +30,29 @@ protected:
 #pragma region Bonus Stats
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
-	float BonusAttack = 0.f;
+	float LevelBonusAttack = 0.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
-	float BonusMaxHP = 0.f;
+	float LevelBonusMaxHP = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
+	float AttackBuffMultiplier = 1.0f;
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetBonusAttack() const { return BonusAttack; }
+	float GetBonusAttack() const { return LevelBonusAttack; }
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetBonusMaxHP() const { return BonusMaxHP; }
+	float GetBonusMaxHP() const { return LevelBonusMaxHP; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	float GetAttackBuffMultiplier() const { return AttackBuffMultiplier; }
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void AddAttackBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void RemoveAttackBuffMultiplier(float Multiplier);
 #pragma endregion Bonus Stats
 
 public:

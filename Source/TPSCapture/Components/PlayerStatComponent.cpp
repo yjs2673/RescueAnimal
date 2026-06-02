@@ -36,14 +36,31 @@ void UPlayerStatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 #pragma region Bonus Stats
 void UPlayerStatComponent::RecalculateStats()
 {
-	MaxHP = BaseMaxHP + BonusMaxHP;
+	MaxHP = BaseMaxHP + LevelBonusMaxHP;
 	CurrentHP = FMath::Clamp(CurrentHP, 0.f, MaxHP);
 }
 #pragma region Bonus Stats
 
 float UPlayerStatComponent::GetFinalAttackPower(float BaseAttack) const
 {
-	return BaseAttack + BonusAttack;
+	const float AdditiveAttack = BaseAttack + LevelBonusAttack;
+	return FMath::Max(0.0f, AdditiveAttack * AttackBuffMultiplier);
+}
+
+void UPlayerStatComponent::AddAttackBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	AttackBuffMultiplier *= Multiplier;
+}
+
+void UPlayerStatComponent::RemoveAttackBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	AttackBuffMultiplier = FMath::Max(1.0f, AttackBuffMultiplier / Multiplier);
 }
 
 #pragma region Health Stats
@@ -156,8 +173,8 @@ void UPlayerStatComponent::LevelUp()
 
 	PlayLevelUpVFX();
 
-	BonusMaxHP += 10.f;
-	BonusAttack += 2.f;
+	LevelBonusMaxHP += 10.f;
+	LevelBonusAttack += 2.f;
 
 	RecalculateStats();
 	CurrentHP = MaxHP;

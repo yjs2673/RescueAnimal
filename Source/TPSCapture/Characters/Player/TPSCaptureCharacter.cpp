@@ -433,8 +433,68 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 
 	case EConsumableType::Buff:
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff consumable is not implemented yet: %s"), *ItemID.ToString());
-		return;
+		if (!StatComponent)
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: StatComponent is null"));
+			return;
+		}
+
+		if (ItemData.BuffDuration <= 0.0f)
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: BuffDuration must be greater than 0. ItemID=%s"), *ItemID.ToString());
+			return;
+		}
+
+		switch (ItemData.BuffTargetType)
+		{
+		case EBuffType::Attack:
+		{
+			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
+				? 1.0f + (ItemData.BuffValue / 100.0f)
+				: ItemData.BuffValue;
+
+			if (AppliedMultiplier <= 0.0f)
+			{
+				UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
+				return;
+			}
+
+			StatComponent->AddAttackBuffMultiplier(AppliedMultiplier);
+
+			FTimerHandle AttackBuffTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				AttackBuffTimerHandle,
+				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveAttackBuffMultiplier, AppliedMultiplier),
+				ItemData.BuffDuration,
+				false
+			);
+
+			bUseSucceeded = true;
+
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff used: %s | Multiplier=%.2f Duration=%.2f"),
+				*ItemID.ToString(),
+				AppliedMultiplier,
+				ItemData.BuffDuration);
+
+			break;
+		}
+
+		case EBuffType::Defense:
+		case EBuffType::Jump:
+		case EBuffType::MoveSpeed:
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff target is not implemented yet: %s"), *ItemID.ToString());
+			return;
+		}
+
+		default:
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Unknown buff target: %s"), *ItemID.ToString());
+			return;
+		}
+		}
+
+		break;
 	}
 
 	case EConsumableType::Capture:
@@ -473,7 +533,15 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item consumed: %s"), *ItemID.ToString());
 }
+void ATPSCaptureCharacter::RemoveAttackBuffMultiplier(float Multiplier)
+{
+	if (!StatComponent)
+		return;
 
+	StatComponent->RemoveAttackBuffMultiplier(Multiplier);
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff expired: Multiplier=%.2f"), Multiplier);
+}
 bool ATPSCaptureCharacter::CanDodge() const
 {
 	if (bIsDodging || bIsAttacking)
