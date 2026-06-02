@@ -217,7 +217,10 @@ void ATPSCaptureCharacter::BeginPlay()
 	ApplyMovementStats();
 
 	if (StatComponent)
+	{
 		StatComponent->OnDeath.AddDynamic(this, &ATPSCaptureCharacter::HandleCharacterDeath);
+		StatComponent->OnMovementStatsChanged.AddUniqueDynamic(this, &ATPSCaptureCharacter::ApplyMovementStats);
+	}
 
 
 	if (CameraBoom)
@@ -482,150 +485,19 @@ bool ATPSCaptureCharacter::UseConsumableItem(FName ItemID)
 			return false;
 		}
 
-		if (ItemData.BuffDuration <= 0.0f)
+		if (!StatComponent->ApplyBuffItem(ItemData))
 		{
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: BuffDuration must be greater than 0. ItemID=%s"), *ItemID.ToString());
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: %s"), *ItemID.ToString());
 			return false;
 		}
 
-		switch (ItemData.BuffTargetType)
-		{
-		case EBuffType::Attack:
-		{
-			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
-				? 1.0f + (ItemData.BuffValue / 100.0f)
-				: ItemData.BuffValue;
+		bUseSucceeded = true;
 
-			if (AppliedMultiplier <= 0.0f)
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return false;
-			}
-
-			StatComponent->AddAttackBuffMultiplier(AppliedMultiplier);
-
-			FTimerHandle AttackBuffTimerHandle;
-			GetWorldTimerManager().SetTimer(
-				AttackBuffTimerHandle,
-				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveAttackBuffMultiplier, AppliedMultiplier),
-				ItemData.BuffDuration,
-				false
-			);
-
-			bUseSucceeded = true;
-
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff used: %s | Multiplier=%.2f Duration=%.2f"),
-				*ItemID.ToString(),
-				AppliedMultiplier,
-				ItemData.BuffDuration);
-
-			break;
-		}
-
-		case EBuffType::Defense:
-		{
-			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
-				? 1.0f + (ItemData.BuffValue / 100.0f)
-				: ItemData.BuffValue;
-
-			if (AppliedMultiplier <= 0.0f)
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return false;
-			}
-
-			StatComponent->AddDefenseBuffMultiplier(AppliedMultiplier);
-
-			FTimerHandle DefenseBuffTimerHandle;
-			GetWorldTimerManager().SetTimer(
-				DefenseBuffTimerHandle,
-				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveDefenseBuffMultiplier, AppliedMultiplier),
-				ItemData.BuffDuration,
-				false
-			);
-
-			bUseSucceeded = true;
-
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff used: %s | Multiplier=%.2f Duration=%.2f"),
-				*ItemID.ToString(),
-				AppliedMultiplier,
-				ItemData.BuffDuration);
-
-			break;
-		}
-
-		case EBuffType::Jump:
-		{
-			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
-				? 1.0f + (ItemData.BuffValue / 100.0f)
-				: ItemData.BuffValue;
-
-			if (AppliedMultiplier <= 0.0f)
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return false;
-			}
-
-			StatComponent->AddJumpBuffMultiplier(AppliedMultiplier);
-			ApplyMovementStats();
-
-			FTimerHandle JumpBuffTimerHandle;
-			GetWorldTimerManager().SetTimer(
-				JumpBuffTimerHandle,
-				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveJumpBuffMultiplier, AppliedMultiplier),
-				ItemData.BuffDuration,
-				false
-			);
-
-			bUseSucceeded = true;
-
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff used: %s | Multiplier=%.2f Duration=%.2f"),
-				*ItemID.ToString(),
-				AppliedMultiplier,
-				ItemData.BuffDuration);
-
-			break;
-		}
-
-		case EBuffType::MoveSpeed:
-		{
-			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
-				? 1.0f + (ItemData.BuffValue / 100.0f)
-				: ItemData.BuffValue;
-
-			if (AppliedMultiplier <= 0.0f)
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return false;
-			}
-
-			StatComponent->AddMoveSpeedBuffMultiplier(AppliedMultiplier);
-			ApplyMovementStats();
-
-			FTimerHandle MoveSpeedBuffTimerHandle;
-			GetWorldTimerManager().SetTimer(
-				MoveSpeedBuffTimerHandle,
-				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveMoveSpeedBuffMultiplier, AppliedMultiplier),
-				ItemData.BuffDuration,
-				false
-			);
-
-			bUseSucceeded = true;
-
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff used: %s | Multiplier=%.2f Duration=%.2f"),
-				*ItemID.ToString(),
-				AppliedMultiplier,
-				ItemData.BuffDuration);
-
-			break;
-		}
-
-		default:
-		{
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Unknown buff target: %s"), *ItemID.ToString());
-			return false;
-		}
-		}
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item used: %s | Type=%d Value=%.2f Duration=%.2f"),
+			*ItemID.ToString(),
+			static_cast<uint8>(ItemData.BuffTargetType),
+			ItemData.BuffValue,
+			ItemData.BuffDuration);
 
 		break;
 	}
@@ -798,48 +670,6 @@ bool ATPSCaptureCharacter::EquipWeaponFromInventory(FName ItemID)
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Equipped weapon from inventory: %s"), *ItemID.ToString());
 	return true;
-}
-
-void ATPSCaptureCharacter::RemoveAttackBuffMultiplier(float Multiplier)
-{
-	if (!StatComponent)
-		return;
-
-	StatComponent->RemoveAttackBuffMultiplier(Multiplier);
-
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff expired: Multiplier=%.2f"), Multiplier);
-}
-
-void ATPSCaptureCharacter::RemoveDefenseBuffMultiplier(float Multiplier)
-{
-	if (!StatComponent)
-		return;
-
-	StatComponent->RemoveDefenseBuffMultiplier(Multiplier);
-
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff expired: Multiplier=%.2f"), Multiplier);
-}
-
-void ATPSCaptureCharacter::RemoveJumpBuffMultiplier(float Multiplier)
-{
-	if (!StatComponent)
-		return;
-
-	StatComponent->RemoveJumpBuffMultiplier(Multiplier);
-	ApplyMovementStats();
-
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff expired: Multiplier=%.2f"), Multiplier);
-}
-
-void ATPSCaptureCharacter::RemoveMoveSpeedBuffMultiplier(float Multiplier)
-{
-	if (!StatComponent)
-		return;
-
-	StatComponent->RemoveMoveSpeedBuffMultiplier(Multiplier);
-	ApplyMovementStats();
-
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff expired: Multiplier=%.2f"), Multiplier);
 }
 
 void ATPSCaptureCharacter::ApplyMovementStats()

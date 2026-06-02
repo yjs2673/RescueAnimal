@@ -374,10 +374,8 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void Interact();
 	void UseQuickSlotItem(int32 SlotIndex);
-	void RemoveAttackBuffMultiplier(float Multiplier);
-	void RemoveDefenseBuffMultiplier(float Multiplier);
-	void RemoveJumpBuffMultiplier(float Multiplier);
-	void RemoveMoveSpeedBuffMultiplier(float Multiplier);
+
+	UFUNCTION()
 	void ApplyMovementStats();
 	void Dodge();
 	bool CanDodge() const;

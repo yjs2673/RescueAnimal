@@ -24,10 +24,23 @@ void UPlayerStatComponent::BeginPlay()
 	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
 
 	OnLevelChanged.Broadcast(Level);
+
+	OnActiveBuffsChanged.Broadcast();
 }
 
 void UPlayerStatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UWorld* World = GetWorld())
+	{
+		for (TPair<EBuffType, FTimerHandle>& TimerPair : ActiveBuffTimerHandles)
+		{
+			World->GetTimerManager().ClearTimer(TimerPair.Value);
+		}
+	}
+
+	ActiveBuffTimerHandles.Empty();
+	ActiveBuffs.Empty();
+
 	StopLevelUpVFX();
 
 	Super::EndPlay(EndPlayReason);
@@ -85,6 +98,7 @@ void UPlayerStatComponent::AddJumpBuffMultiplier(float Multiplier)
 		return;
 
 	JumpBuffMultiplier *= Multiplier;
+	OnMovementStatsChanged.Broadcast();
 }
 
 void UPlayerStatComponent::RemoveJumpBuffMultiplier(float Multiplier)
@@ -93,6 +107,7 @@ void UPlayerStatComponent::RemoveJumpBuffMultiplier(float Multiplier)
 		return;
 
 	JumpBuffMultiplier = FMath::Max(1.0f, JumpBuffMultiplier / Multiplier);
+	OnMovementStatsChanged.Broadcast();
 }
 
 void UPlayerStatComponent::AddMoveSpeedBuffMultiplier(float Multiplier)
@@ -101,6 +116,7 @@ void UPlayerStatComponent::AddMoveSpeedBuffMultiplier(float Multiplier)
 		return;
 
 	MoveSpeedBuffMultiplier *= Multiplier;
+	OnMovementStatsChanged.Broadcast();
 }
 
 void UPlayerStatComponent::RemoveMoveSpeedBuffMultiplier(float Multiplier)
@@ -109,6 +125,168 @@ void UPlayerStatComponent::RemoveMoveSpeedBuffMultiplier(float Multiplier)
 		return;
 
 	MoveSpeedBuffMultiplier = FMath::Max(1.0f, MoveSpeedBuffMultiplier / Multiplier);
+	OnMovementStatsChanged.Broadcast();
+}
+
+bool UPlayerStatComponent::ApplyBuffItem(const FItemData& ItemData)
+{
+	if (ItemData.BuffTargetType == EBuffType::None)
+		return false;
+
+	if (ItemData.BuffDuration <= 0.0f)
+		return false;
+
+	const float AppliedMultiplier = CalculateBuffMultiplier(ItemData);
+	if (AppliedMultiplier <= 0.0f)
+		return false;
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return false;
+
+	RemoveActiveBuff(ItemData.BuffTargetType, false);
+
+	if (!ApplyBuffMultiplier(ItemData.BuffTargetType, AppliedMultiplier))
+		return false;
+
+	FActiveBuffInfo BuffInfo;
+	BuffInfo.BuffType = ItemData.BuffTargetType;
+	BuffInfo.ItemID = ItemData.ItemID;
+	BuffInfo.BuffName = ItemData.ItemName;
+	BuffInfo.Icon = ItemData.Image ? ItemData.Image : ItemData.Icon;
+	BuffInfo.BuffValue = ItemData.BuffValue;
+	BuffInfo.bBuffValueIsPercent = ItemData.bBuffValueIsPercent;
+	BuffInfo.AppliedMultiplier = AppliedMultiplier;
+	BuffInfo.Duration = ItemData.BuffDuration;
+	BuffInfo.EndTime = World->GetTimeSeconds() + ItemData.BuffDuration;
+
+	ActiveBuffs.Add(ItemData.BuffTargetType, BuffInfo);
+
+	FTimerHandle& TimerHandle = ActiveBuffTimerHandles.FindOrAdd(ItemData.BuffTargetType);
+	World->GetTimerManager().SetTimer(
+		TimerHandle,
+		FTimerDelegate::CreateUObject(this, &UPlayerStatComponent::ExpireBuff, ItemData.BuffTargetType),
+		ItemData.BuffDuration,
+		false
+	);
+
+	OnActiveBuffsChanged.Broadcast();
+
+	return true;
+}
+
+TArray<FActiveBuffInfo> UPlayerStatComponent::GetActiveBuffs() const
+{
+	TArray<FActiveBuffInfo> Buffs;
+	ActiveBuffs.GenerateValueArray(Buffs);
+
+	Buffs.Sort([](const FActiveBuffInfo& Left, const FActiveBuffInfo& Right)
+	{
+		return static_cast<uint8>(Left.BuffType) < static_cast<uint8>(Right.BuffType);
+	});
+
+	return Buffs;
+}
+
+bool UPlayerStatComponent::GetActiveBuff(EBuffType BuffType, FActiveBuffInfo& OutBuffInfo) const
+{
+	if (const FActiveBuffInfo* BuffInfo = ActiveBuffs.Find(BuffType))
+	{
+		OutBuffInfo = *BuffInfo;
+		return true;
+	}
+
+	return false;
+}
+
+float UPlayerStatComponent::GetBuffRemainingTime(EBuffType BuffType) const
+{
+	const FActiveBuffInfo* BuffInfo = ActiveBuffs.Find(BuffType);
+	if (!BuffInfo)
+		return 0.0f;
+
+	const UWorld* World = GetWorld();
+	if (!World)
+		return 0.0f;
+
+	return FMath::Max(0.0f, BuffInfo->EndTime - World->GetTimeSeconds());
+}
+
+bool UPlayerStatComponent::ApplyBuffMultiplier(EBuffType BuffType, float Multiplier)
+{
+	switch (BuffType)
+	{
+	case EBuffType::Attack:
+		AddAttackBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::Defense:
+		AddDefenseBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::Jump:
+		AddJumpBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::MoveSpeed:
+		AddMoveSpeedBuffMultiplier(Multiplier);
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool UPlayerStatComponent::RemoveBuffMultiplier(EBuffType BuffType, float Multiplier)
+{
+	switch (BuffType)
+	{
+	case EBuffType::Attack:
+		RemoveAttackBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::Defense:
+		RemoveDefenseBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::Jump:
+		RemoveJumpBuffMultiplier(Multiplier);
+		return true;
+	case EBuffType::MoveSpeed:
+		RemoveMoveSpeedBuffMultiplier(Multiplier);
+		return true;
+	default:
+		return false;
+	}
+}
+
+void UPlayerStatComponent::RemoveActiveBuff(EBuffType BuffType, bool bBroadcastChange)
+{
+	FActiveBuffInfo RemovedBuffInfo;
+	if (!ActiveBuffs.RemoveAndCopyValue(BuffType, RemovedBuffInfo))
+		return;
+
+	if (UWorld* World = GetWorld())
+	{
+		if (FTimerHandle* TimerHandle = ActiveBuffTimerHandles.Find(BuffType))
+		{
+			World->GetTimerManager().ClearTimer(*TimerHandle);
+		}
+	}
+
+	ActiveBuffTimerHandles.Remove(BuffType);
+	RemoveBuffMultiplier(BuffType, RemovedBuffInfo.AppliedMultiplier);
+
+	if (bBroadcastChange)
+	{
+		OnActiveBuffsChanged.Broadcast();
+	}
+}
+
+void UPlayerStatComponent::ExpireBuff(EBuffType BuffType)
+{
+	RemoveActiveBuff(BuffType, true);
+}
+
+float UPlayerStatComponent::CalculateBuffMultiplier(const FItemData& ItemData) const
+{
+	return ItemData.bBuffValueIsPercent
+		? 1.0f + (ItemData.BuffValue / 100.0f)
+		: ItemData.BuffValue;
 }
 
 #pragma region Health Stats

@@ -2,18 +2,55 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "TPSStructTypes.h"
 #include "TimerManager.h"
 #include "PlayerStatComponent.generated.h"
 
 class USoundBase;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class UTexture2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHPChangedSignature, float, CurrentHP, float, MaxHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEXPChangedSignature, int32, CurrentEXP, int32, RequiredEXP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLevelChangedSignature, int32, NewLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActiveBuffsChangedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMovementStatsChangedSignature);
+
+USTRUCT(BlueprintType)
+struct FActiveBuffInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	EBuffType BuffType = EBuffType::None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	FText BuffName;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	TObjectPtr<UTexture2D> Icon = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	float BuffValue = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	bool bBuffValueIsPercent = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	float AppliedMultiplier = 1.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	float Duration = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Buff")
+	float EndTime = 0.0f;
+};
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TPSCAPTURE_API UPlayerStatComponent : public UActorComponent
@@ -107,6 +144,36 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void RemoveMoveSpeedBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	bool ApplyBuffItem(const FItemData& ItemData);
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	TArray<FActiveBuffInfo> GetActiveBuffs() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	bool GetActiveBuff(EBuffType BuffType, FActiveBuffInfo& OutBuffInfo) const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	float GetBuffRemainingTime(EBuffType BuffType) const;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events|Buff")
+	FOnActiveBuffsChangedSignature OnActiveBuffsChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events|Buff")
+	FOnMovementStatsChangedSignature OnMovementStatsChanged;
+
+protected:
+	UPROPERTY(Transient)
+	TMap<EBuffType, FActiveBuffInfo> ActiveBuffs;
+
+	TMap<EBuffType, FTimerHandle> ActiveBuffTimerHandles;
+
+	bool ApplyBuffMultiplier(EBuffType BuffType, float Multiplier);
+	bool RemoveBuffMultiplier(EBuffType BuffType, float Multiplier);
+	void RemoveActiveBuff(EBuffType BuffType, bool bBroadcastChange);
+	void ExpireBuff(EBuffType BuffType);
+	float CalculateBuffMultiplier(const FItemData& ItemData) const;
 #pragma endregion Bonus Stats
 
 public:
