@@ -153,7 +153,7 @@ bool UPlayerStatComponent::ApplyBuffItem(const FItemData& ItemData)
 	BuffInfo.BuffType = ItemData.BuffTargetType;
 	BuffInfo.ItemID = ItemData.ItemID;
 	BuffInfo.BuffName = ItemData.ItemName;
-	BuffInfo.Icon = ItemData.Image ? ItemData.Image : ItemData.Icon;
+	BuffInfo.Icon = ItemData.BuffIcon ? ItemData.BuffIcon : (ItemData.Image ? ItemData.Image : ItemData.Icon);
 	BuffInfo.BuffValue = ItemData.BuffValue;
 	BuffInfo.bBuffValueIsPercent = ItemData.bBuffValueIsPercent;
 	BuffInfo.AppliedMultiplier = AppliedMultiplier;

@@ -7,7 +7,7 @@
 #include "CrosshairBowWidget.h"
 #include "QuickSlotBarWidget.h"
 #include "CurrentWeaponWidget.h"
-
+#include "BuffListWidget.h"
 #include "PlayerStatusWidget.h"
 #include "PlayerStatComponent.h"
 
@@ -172,6 +172,11 @@ void UMainHUDWidget::BindPlayerStatComponent()
 		this,
 		&UMainHUDWidget::HandleLevelChanged
 	);
+
+	if (BuffListWidget)
+	{
+		BuffListWidget->BindPlayerStatComponent(CachedPlayerStatComponent);
+	}
 }
 
 void UMainHUDWidget::UnbindPlayerStatComponent()
@@ -195,6 +200,11 @@ void UMainHUDWidget::UnbindPlayerStatComponent()
 		this,
 		&UMainHUDWidget::HandleLevelChanged
 	);
+
+	if (BuffListWidget)
+	{
+		BuffListWidget->UnbindPlayerStatComponent();
+	}
 
 	CachedPlayerStatComponent = nullptr;
 }
@@ -236,6 +246,11 @@ void UMainHUDWidget::RefreshPlayerStatus()
 	PlayerStatusWidget->UpdateLevel(
 		CachedPlayerStatComponent->GetLevel()
 	);
+
+	if (BuffListWidget)
+	{
+		BuffListWidget->RefreshBuffs();
+	}
 }
 
 void UMainHUDWidget::HandleHPChanged(float CurrentHP, float MaxHP)

@@ -101,6 +101,9 @@ struct FItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
 	bool bBuffValueIsPercent = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	UTexture2D* BuffIcon = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Capture")
 	float CapturePower = 0.f;
 };

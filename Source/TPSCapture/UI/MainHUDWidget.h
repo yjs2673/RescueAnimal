@@ -10,6 +10,7 @@ class UWidget;
 class UQuickSlotBarWidget;
 class UCrosshairBowWidget;
 class UCurrentWeaponWidget;
+class UBuffListWidget;
 class UPlayerStatusWidget;
 class UPlayerStatComponent;
 class ATPSCaptureCharacter;
@@ -46,6 +47,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UPlayerStatusWidget> PlayerStatusWidget;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBuffListWidget> BuffListWidget;
 
 private:
 	UFUNCTION()
