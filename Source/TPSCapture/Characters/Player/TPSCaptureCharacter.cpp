@@ -144,6 +144,14 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// Dodging
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Dodge);
 		// Quick Slots
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot binding setup. Actions: 1=%s 2=%s 3=%s 4=%s 5=%s 6=%s 7=%s"),
+			QuickSlot1Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot2Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot3Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot4Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot5Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot6Action ? TEXT("Set") : TEXT("None"),
+			QuickSlot7Action ? TEXT("Set") : TEXT("None"));
 		if (QuickSlot1Action)
 			EnhancedInputComponent->BindAction(QuickSlot1Action, ETriggerEvent::Started, this, &ATPSCaptureCharacter::UseQuickSlotItem, 0);
 		if (QuickSlot2Action)
@@ -355,7 +363,6 @@ void ATPSCaptureCharacter::Interact()
 	}
 }
 
-
 void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 {
 	if (StatComponent && StatComponent->IsDead())
@@ -367,12 +374,39 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 	const FName ItemID = QuickSlotComponent->GetSlotItem(SlotIndex);
 	if (ItemID.IsNone())
 	{
-		UE_LOG(LogTemplateCharacter, Log, TEXT("QuickSlot %d is empty"), SlotIndex + 1);
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot %d is empty"), SlotIndex + 1);
 		return;
 	}
 
-	UE_LOG(LogTemplateCharacter, Log, TEXT("UseQuickSlotItem: Slot=%d ItemID=%s"), SlotIndex + 1, *ItemID.ToString());
+	if (!InventoryComponent || !InventoryComponent->HasItem(ItemID, 1))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot item not found in inventory: %s"), *ItemID.ToString());
+		return;
+	}
+
+	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseQuickSlotItem failed: TPSGameInstance is null"));
+		return;
+	}
+
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(ItemID, ItemData))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseQuickSlotItem failed: ItemData not found. ItemID=%s"), *ItemID.ToString());
+		return;
+	}
+
+	if (ItemData.ItemType != EItemType::Consumable)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot item is not consumable: %s"), *ItemID.ToString());
+		return;
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item ready: %s"), *ItemID.ToString());
 }
+
 bool ATPSCaptureCharacter::CanDodge() const
 {
 	if (bIsDodging || bIsAttacking)
