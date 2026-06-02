@@ -3,6 +3,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 
+#include "Components/SceneComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
@@ -184,20 +185,43 @@ void UPlayerStatComponent::PlayLevelUpVFX()
 
 	const FVector SpawnLocation = Owner->GetActorLocation();
 
-	ActiveLevelUpVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		World,
-		LevelUpVFX,
-		SpawnLocation,
-		Owner->GetActorRotation(),
-		FVector(1.0f),
-		false,
-		true,
-		ENCPoolMethod::None,
-		true
-	);
+	if (USceneComponent* OwnerRootComponent = Owner->GetRootComponent())
+	{
+		ActiveLevelUpVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			LevelUpVFX,
+			OwnerRootComponent,
+			NAME_None,
+			FVector::ZeroVector,
+			FRotator::ZeroRotator,
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			true,
+			ENCPoolMethod::None,
+			true
+		);
+	}
+
+	if (!ActiveLevelUpVFX)
+	{
+		ActiveLevelUpVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			World,
+			LevelUpVFX,
+			SpawnLocation,
+			Owner->GetActorRotation(),
+			FVector(1.0f),
+			false,
+			true,
+			ENCPoolMethod::None,
+			true
+		);
+	}
 
 	if (!ActiveLevelUpVFX)
 		return;
+
+	ActiveLevelUpVFX->SetRelativeLocation(FVector::ZeroVector);
+	ActiveLevelUpVFX->SetRelativeRotation(FRotator::ZeroRotator);
+	ActiveLevelUpVFX->SetRelativeScale3D(FVector(1.0f));
 
 	ActiveLevelUpVFX->SetVariableLinearColor(TEXT("Color"), LevelUpVFXColor);
 	ActiveLevelUpVFX->SetVariableFloat(TEXT("Scale"), LevelUpVFXScale);
