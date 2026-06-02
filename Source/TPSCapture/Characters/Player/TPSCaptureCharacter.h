@@ -369,6 +369,7 @@ public:
 
 protected:
 #pragma region Base Action Func
+	void StartJump();
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Interact();

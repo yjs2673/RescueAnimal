@@ -123,7 +123,7 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::StartJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -297,6 +297,13 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 }
 
 #pragma region Base Action Func
+void ATPSCaptureCharacter::StartJump()
+{
+	if (bIsDodging)
+		return;
+
+	Jump();
+}
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
 	if (StatComponent && StatComponent->IsDead())
@@ -1960,6 +1967,12 @@ float ATPSCaptureCharacter::TakeDamage(
 {
 	if (!StatComponent || StatComponent->IsDead())
 		return 0.f;
+
+	if (bIsDodging)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Damage ignored during dodge: %.1f"), DamageAmount);
+		return 0.f;
+	}
 
 	const float OldHP = StatComponent->GetCurrentHP();
 	StatComponent->ApplyDamage(DamageAmount);
