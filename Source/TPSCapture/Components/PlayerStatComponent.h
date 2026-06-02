@@ -2,9 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "TimerManager.h"
 #include "PlayerStatComponent.generated.h"
 
 class USoundBase;
+class UNiagaraComponent;
+class UNiagaraSystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHPChangedSignature, float, CurrentHP, float, MaxHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
@@ -22,6 +25,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 #pragma region Bonus Stats
 protected:
@@ -104,6 +108,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX")
 	TObjectPtr<USoundBase> LevelUpSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp")
+	TObjectPtr<UNiagaraSystem> LevelUpVFX = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp")
+	FLinearColor LevelUpVFXColor = FLinearColor(0.25f, 0.75f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp")
+	float LevelUpVFXScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp", meta = (ClampMin = "0.01"))
+	float LevelUpVFXRevealDuration = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp", meta = (ClampMin = "0.0"))
+	float LevelUpVFXHoldDuration = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp", meta = (ClampMin = "0.01"))
+	float LevelUpVFXLifetime = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX|LevelUp")
+	FName LevelUpVFXRevealParameterName = TEXT("RevealAmount");
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveLevelUpVFX = nullptr;
+
+	FTimerHandle LevelUpVFXTimerHandle;
+	float LevelUpVFXElapsedTime = 0.0f;
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnEXPChangedSignature OnEXPChanged;
@@ -132,5 +163,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetEXPPercent() const;
+
+protected:
+	void PlayLevelUpVFX();
+	void UpdateLevelUpVFX();
+	void StopLevelUpVFX();
 #pragma endregion Experience Stats
 };

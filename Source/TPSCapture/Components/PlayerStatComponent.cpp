@@ -1,6 +1,10 @@
 #include "PlayerStatComponent.h"
 
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 UPlayerStatComponent::UPlayerStatComponent()
 {
@@ -19,6 +23,13 @@ void UPlayerStatComponent::BeginPlay()
 	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
 
 	OnLevelChanged.Broadcast(Level);
+}
+
+void UPlayerStatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopLevelUpVFX();
+
+	Super::EndPlay(EndPlayReason);
 }
 
 #pragma region Bonus Stats
@@ -142,6 +153,8 @@ void UPlayerStatComponent::LevelUp()
 		UGameplayStatics::PlaySoundAtLocation(this, LevelUpSound, SoundLocation);
 	}
 
+	PlayLevelUpVFX();
+
 	BonusMaxHP += 10.f;
 	BonusAttack += 2.f;
 
@@ -153,3 +166,114 @@ void UPlayerStatComponent::LevelUp()
 	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
 }
 #pragma endregion Experience Stats
+
+void UPlayerStatComponent::PlayLevelUpVFX()
+{
+	if (!LevelUpVFX)
+		return;
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return;
+
+	AActor* Owner = GetOwner();
+	if (!Owner)
+		return;
+
+	StopLevelUpVFX();
+
+	const FVector SpawnLocation = Owner->GetActorLocation();
+
+	ActiveLevelUpVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		World,
+		LevelUpVFX,
+		SpawnLocation,
+		Owner->GetActorRotation(),
+		FVector(1.0f),
+		false,
+		true,
+		ENCPoolMethod::None,
+		true
+	);
+
+	if (!ActiveLevelUpVFX)
+		return;
+
+	ActiveLevelUpVFX->SetVariableLinearColor(TEXT("Color"), LevelUpVFXColor);
+	ActiveLevelUpVFX->SetVariableFloat(TEXT("Scale"), LevelUpVFXScale);
+	ActiveLevelUpVFX->SetVariableFloat(TEXT("Lifetime"), LevelUpVFXLifetime);
+	ActiveLevelUpVFX->SetVariableFloat(LevelUpVFXRevealParameterName, 0.0f);
+
+	LevelUpVFXElapsedTime = 0.0f;
+
+	World->GetTimerManager().SetTimer(
+		LevelUpVFXTimerHandle,
+		this,
+		&UPlayerStatComponent::UpdateLevelUpVFX,
+		1.0f / 60.0f,
+		true
+	);
+}
+
+void UPlayerStatComponent::UpdateLevelUpVFX()
+{
+	if (!ActiveLevelUpVFX)
+	{
+		StopLevelUpVFX();
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		StopLevelUpVFX();
+		return;
+	}
+
+	const float RevealDuration = FMath::Max(LevelUpVFXRevealDuration, 0.01f);
+	const float HoldDuration = FMath::Max(LevelUpVFXHoldDuration, 0.0f);
+	const float TotalDuration = RevealDuration + HoldDuration + RevealDuration;
+
+	LevelUpVFXElapsedTime += World->GetDeltaSeconds();
+
+	float RevealAmount = 0.0f;
+	if (LevelUpVFXElapsedTime <= RevealDuration)
+	{
+		RevealAmount = LevelUpVFXElapsedTime / RevealDuration;
+	}
+	else if (LevelUpVFXElapsedTime <= RevealDuration + HoldDuration)
+	{
+		RevealAmount = 1.0f;
+	}
+	else if (LevelUpVFXElapsedTime <= TotalDuration)
+	{
+		RevealAmount = 1.0f - ((LevelUpVFXElapsedTime - RevealDuration - HoldDuration) / RevealDuration);
+	}
+	else
+	{
+		StopLevelUpVFX();
+		return;
+	}
+
+	ActiveLevelUpVFX->SetVariableFloat(
+		LevelUpVFXRevealParameterName,
+		FMath::Clamp(RevealAmount, 0.0f, 1.0f)
+	);
+}
+
+void UPlayerStatComponent::StopLevelUpVFX()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LevelUpVFXTimerHandle);
+	}
+
+	if (ActiveLevelUpVFX)
+	{
+		ActiveLevelUpVFX->DeactivateImmediate();
+		ActiveLevelUpVFX->DestroyComponent();
+		ActiveLevelUpVFX = nullptr;
+	}
+
+	LevelUpVFXElapsedTime = 0.0f;
+}
