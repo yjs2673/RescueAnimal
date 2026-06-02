@@ -1,4 +1,6 @@
 #include "ArrowProjectile.h"
+#include "TPSCaptureCharacter.h"
+
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -59,6 +61,15 @@ void AArrowProjectile::OnArrowOverlap(
 
 	if (OtherActor && OtherActor != this && OtherActor != OwnerActor)
 	{
+		if (const ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(OtherActor))
+		{
+			if (PlayerCharacter->IsDodging())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Arrow passed through dodging player: %s"), *OtherActor->GetName());
+				return;
+			}
+		}
+
 		UE_LOG(LogTemp, Warning, TEXT("Arrow hit actor: %s"), *OtherActor->GetName());
 
 		UGameplayStatics::ApplyDamage(

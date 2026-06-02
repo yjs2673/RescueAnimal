@@ -728,6 +728,15 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 	if (DistanceToTarget > AttackRange)
 		return;
 
+	if (const ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(TargetActor))
+	{
+		if (PlayerCharacter->IsDodging())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack missed because target is dodging."), *GetName());
+			return;
+		}
+	}
+
 	const FVector HitLocation = TargetActor->GetActorLocation();
 	PlayMeleeHitEffects(HitLocation);
 

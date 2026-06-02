@@ -536,6 +536,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool TestUsePotion();
 
+	UFUNCTION(BlueprintPure, Category = "State")
+	bool IsDodging() const { return bIsDodging; }
+
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
 
