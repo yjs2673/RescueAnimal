@@ -534,6 +534,9 @@ public:
 	bool TestUseItem(FName ItemID, int32 Count = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UseConsumableItem(FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool TestUsePotion();
 
 	UFUNCTION(BlueprintPure, Category = "State")

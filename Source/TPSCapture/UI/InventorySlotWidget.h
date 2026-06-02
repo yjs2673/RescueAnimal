@@ -24,6 +24,11 @@ public:
 		const FPointerEvent& InMouseEvent
 	) override;
 
+	virtual FReply NativeOnMouseButtonDoubleClick(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent
+	) override;
+
 	virtual void NativeOnDragDetected(
 		const FGeometry& InGeometry,
 		const FPointerEvent& InMouseEvent,
@@ -57,7 +62,15 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
 	int32 Count = 0;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
+	float DoubleClickUseThreshold = 0.3f;
+
 private:
 	void UpdateTooltip();
 	void ClearTooltip();
+	bool IsConsumableItem() const;
+	bool TryUseItemOnDoubleClick();
+
+	FName LastClickedItemID = NAME_None;
+	float LastClickTime = -1.0f;
 };

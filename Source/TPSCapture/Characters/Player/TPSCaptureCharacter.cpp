@@ -374,9 +374,6 @@ void ATPSCaptureCharacter::Interact()
 
 void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 {
-	if (StatComponent && StatComponent->IsDead())
-		return;
-
 	if (!QuickSlotComponent)
 		return;
 
@@ -387,30 +384,41 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		return;
 	}
 
+	UseConsumableItem(ItemID);
+}
+
+bool ATPSCaptureCharacter::UseConsumableItem(FName ItemID)
+{
+	if (StatComponent && StatComponent->IsDead())
+		return false;
+
+	if (ItemID.IsNone())
+		return false;
+
 	if (!InventoryComponent || !InventoryComponent->HasItem(ItemID, 1))
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot item not found in inventory: %s"), *ItemID.ToString());
-		return;
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item not found in inventory: %s"), *ItemID.ToString());
+		return false;
 	}
 
 	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
 	if (!TPSGameInstance)
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseQuickSlotItem failed: TPSGameInstance is null"));
-		return;
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseConsumableItem failed: TPSGameInstance is null"));
+		return false;
 	}
 
 	FItemData ItemData;
 	if (!TPSGameInstance->GetItemDataByID(ItemID, ItemData))
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseQuickSlotItem failed: ItemData not found. ItemID=%s"), *ItemID.ToString());
-		return;
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("UseConsumableItem failed: ItemData not found. ItemID=%s"), *ItemID.ToString());
+		return false;
 	}
 
 	if (ItemData.ItemType != EItemType::Consumable)
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot item is not consumable: %s"), *ItemID.ToString());
-		return;
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Item is not consumable: %s"), *ItemID.ToString());
+		return false;
 	}
 
 	bool bUseSucceeded = false;
@@ -422,7 +430,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		if (!StatComponent)
 		{
 			UE_LOG(LogTemplateCharacter, Warning, TEXT("Heal item failed: StatComponent is null"));
-			return;
+			return false;
 		}
 
 		const float OldHP = StatComponent->GetCurrentHP();
@@ -445,13 +453,13 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		if (!StatComponent)
 		{
 			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: StatComponent is null"));
-			return;
+			return false;
 		}
 
 		if (ItemData.BuffDuration <= 0.0f)
 		{
 			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff item failed: BuffDuration must be greater than 0. ItemID=%s"), *ItemID.ToString());
-			return;
+			return false;
 		}
 
 		switch (ItemData.BuffTargetType)
@@ -465,7 +473,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 			if (AppliedMultiplier <= 0.0f)
 			{
 				UE_LOG(LogTemplateCharacter, Warning, TEXT("Attack buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return;
+				return false;
 			}
 
 			StatComponent->AddAttackBuffMultiplier(AppliedMultiplier);
@@ -497,7 +505,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 			if (AppliedMultiplier <= 0.0f)
 			{
 				UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return;
+				return false;
 			}
 
 			StatComponent->AddDefenseBuffMultiplier(AppliedMultiplier);
@@ -529,7 +537,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 			if (AppliedMultiplier <= 0.0f)
 			{
 				UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return;
+				return false;
 			}
 
 			StatComponent->AddJumpBuffMultiplier(AppliedMultiplier);
@@ -562,7 +570,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 			if (AppliedMultiplier <= 0.0f)
 			{
 				UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
-				return;
+				return false;
 			}
 
 			StatComponent->AddMoveSpeedBuffMultiplier(AppliedMultiplier);
@@ -589,7 +597,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		default:
 		{
 			UE_LOG(LogTemplateCharacter, Warning, TEXT("Unknown buff target: %s"), *ItemID.ToString());
-			return;
+			return false;
 		}
 		}
 
@@ -599,26 +607,26 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 	case EConsumableType::Capture:
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Capture consumable is not implemented yet: %s"), *ItemID.ToString());
-		return;
+		return false;
 	}
 
 	default:
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Unknown consumable type: %s"), *ItemID.ToString());
-		return;
+		return false;
 	}
 	}
 
 	if (!bUseSucceeded)
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable use failed: %s"), *ItemID.ToString());
-		return;
+		return false;
 	}
 
 	if (!InventoryComponent->RemoveItem(ItemID, 1))
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Failed to consume inventory item after use: %s"), *ItemID.ToString());
-		return;
+		return false;
 	}
 
 	if (ConsumableUseSound)
@@ -631,6 +639,7 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 	}
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item consumed: %s"), *ItemID.ToString());
+	return true;
 }
 void ATPSCaptureCharacter::RemoveAttackBuffMultiplier(float Multiplier)
 {
@@ -1320,6 +1329,12 @@ void ATPSCaptureCharacter::OnAttackPressed()
 {
 	if (StatComponent && StatComponent->IsDead())
 		return;
+
+	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		if (TPSPlayerController->IsInventoryOpen())
+			return;
+	}
 
 	if (bIsDodging)
 		return;

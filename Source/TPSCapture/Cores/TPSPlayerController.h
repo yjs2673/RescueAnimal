@@ -27,6 +27,7 @@ public:
 	void CloseInventory();
 
 	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
+	bool IsInventoryOpen() const { return bIsInventoryOpen; }
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")

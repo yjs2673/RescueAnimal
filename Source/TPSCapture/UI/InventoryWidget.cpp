@@ -132,7 +132,25 @@ FReply UInventoryWidget::NativeOnMouseButtonDown(
 		return FReply::Handled().CaptureMouse(TakeWidget());
 	}
 
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		return FReply::Handled();
+	}
+
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UInventoryWidget::NativeOnMouseButtonDoubleClick(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
 }
 
 FReply UInventoryWidget::NativeOnMouseMove(
@@ -169,6 +187,11 @@ FReply UInventoryWidget::NativeOnMouseButtonUp(
 		bIsDraggingInventory = false;
 
 		return FReply::Handled().ReleaseMouseCapture();
+	}
+
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		return FReply::Handled();
 	}
 
 	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);

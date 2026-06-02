@@ -6,6 +6,8 @@
 #include "Components/TextBlock.h"
 #include "Input/Reply.h"
 #include "TPSGameInstance.h"
+#include "TPSCaptureCharacter.h"
+#include "Engine/World.h"
 
 void UInventorySlotWidget::NativeConstruct()
 {
@@ -18,6 +20,8 @@ void UInventorySlotWidget::SetEmptySlot()
 {
 	ItemID = NAME_None;
 	Count = 0;
+	LastClickedItemID = NAME_None;
+	LastClickTime = -1.0f;
 
 	if (ItemIcon)
 	{
@@ -42,6 +46,12 @@ void UInventorySlotWidget::SetEmptySlot()
 
 void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 {
+	if (ItemID != InItemID)
+	{
+		LastClickedItemID = NAME_None;
+		LastClickTime = -1.0f;
+	}
+
 	ItemID = InItemID;
 	Count = FMath::Max(0, InCount);
 
@@ -102,6 +112,17 @@ FReply UInventorySlotWidget::NativeOnMouseButtonDown(
 {
 	if (InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !ItemID.IsNone() && Count > 0)
 	{
+		if (TryUseItemOnDoubleClick())
+		{
+			return FReply::Handled();
+		}
+
+		if (UWorld* World = GetWorld())
+		{
+			LastClickedItemID = ItemID;
+			LastClickTime = World->GetTimeSeconds();
+		}
+
 		return UWidgetBlueprintLibrary::DetectDragIfPressed(
 			InMouseEvent,
 			this,
@@ -112,6 +133,19 @@ FReply UInventorySlotWidget::NativeOnMouseButtonDown(
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
+FReply UInventorySlotWidget::NativeOnMouseButtonDoubleClick(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !ItemID.IsNone() && Count > 0)
+	{
+		TryUseItemOnDoubleClick();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDoubleClick(InGeometry, InMouseEvent);
+}
 void UInventorySlotWidget::NativeOnDragDetected(
 	const FGeometry& InGeometry,
 	const FPointerEvent& InMouseEvent,
@@ -122,6 +156,9 @@ void UInventorySlotWidget::NativeOnDragDetected(
 	{
 		return;
 	}
+
+	LastClickedItemID = NAME_None;
+	LastClickTime = -1.0f;
 
 	UE_LOG(LogTemp, Warning, TEXT("DragDetected ItemID: %s"), *ItemID.ToString());
 
@@ -137,6 +174,45 @@ void UInventorySlotWidget::NativeOnDragDetected(
 	DragOperation->Pivot = EDragPivot::MouseDown;
 
 	OutOperation = DragOperation;
+}
+
+bool UInventorySlotWidget::IsConsumableItem() const
+{
+	if (ItemID.IsNone() || Count <= 0)
+		return false;
+
+	FItemData ItemData;
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	return TPSGameInstance &&
+		TPSGameInstance->GetItemDataByID(ItemID, ItemData) &&
+		ItemData.ItemType == EItemType::Consumable;
+}
+
+bool UInventorySlotWidget::TryUseItemOnDoubleClick()
+{
+	if (!IsConsumableItem())
+		return false;
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return false;
+
+	const float CurrentTime = World->GetTimeSeconds();
+	const bool bIsDoubleClick = LastClickedItemID == ItemID &&
+		CurrentTime - LastClickTime <= DoubleClickUseThreshold;
+
+	if (!bIsDoubleClick)
+		return false;
+
+	LastClickedItemID = NAME_None;
+	LastClickTime = -1.0f;
+
+	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(GetOwningPlayerPawn());
+	if (!PlayerCharacter)
+		return true;
+
+	PlayerCharacter->UseConsumableItem(ItemID);
+	return true;
 }
 
 void UInventorySlotWidget::UpdateTooltip()
