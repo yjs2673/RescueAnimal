@@ -404,7 +404,65 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		return;
 	}
 
-	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item ready: %s"), *ItemID.ToString());
+	bool bUseSucceeded = false;
+
+	switch (ItemData.ConsumableType)
+	{
+	case EConsumableType::Heal:
+	{
+		if (!StatComponent)
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Heal item failed: StatComponent is null"));
+			return;
+		}
+
+		const float OldHP = StatComponent->GetCurrentHP();
+
+		StatComponent->Heal(ItemData.HealAmount);
+
+		const float NewHP = StatComponent->GetCurrentHP();
+		bUseSucceeded = true;
+
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Heal item used: %s | HP %.1f -> %.1f"),
+			*ItemID.ToString(),
+			OldHP,
+			NewHP);
+
+		break;
+	}
+
+	case EConsumableType::Buff:
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff consumable is not implemented yet: %s"), *ItemID.ToString());
+		return;
+	}
+
+	case EConsumableType::Capture:
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Capture consumable is not implemented yet: %s"), *ItemID.ToString());
+		return;
+	}
+
+	default:
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Unknown consumable type: %s"), *ItemID.ToString());
+		return;
+	}
+	}
+
+	if (!bUseSucceeded)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable use failed: %s"), *ItemID.ToString());
+		return;
+	}
+
+	if (!InventoryComponent->RemoveItem(ItemID, 1))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Failed to consume inventory item after use: %s"), *ItemID.ToString());
+		return;
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item consumed: %s"), *ItemID.ToString());
 }
 
 bool ATPSCaptureCharacter::CanDodge() const
