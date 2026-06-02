@@ -8,6 +8,7 @@
 #include "Components/UniformGridSlot.h"
 #include "InventorySlotWidget.h"
 #include "InventoryComponent.h"
+#include "TPSGameInstance.h"
 #include "GameFramework/Pawn.h"
 #include "Input/Reply.h"
 
@@ -111,6 +112,12 @@ UInventoryComponent* UInventoryWidget::GetInventoryComponent() const
 
 void UInventoryWidget::HandleInventoryItemChanged(FName ItemID, int32 NewCount)
 {
+	RefreshInventory();
+}
+
+void UInventoryWidget::SetInventoryFilter(EItemType NewItemType)
+{
+	CurrentFilterItemType = NewItemType;
 	RefreshInventory();
 }
 
@@ -336,12 +343,24 @@ void UInventoryWidget::RefreshInventory()
 	}
 
 	const TArray<FInventoryEntry>& InventoryItems = InventoryComponent->GetAllItems();
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
 
 	int32 VisibleIndex = 0;
 
 	for (const FInventoryEntry& Entry : InventoryItems)
 	{
 		if (Entry.ItemID.IsNone() || Entry.Count <= 0)
+		{
+			continue;
+		}
+
+		FItemData ItemData;
+		if (!TPSGameInstance || !TPSGameInstance->GetItemDataByID(Entry.ItemID, ItemData))
+		{
+			continue;
+		}
+
+		if (ItemData.ItemType != CurrentFilterItemType)
 		{
 			continue;
 		}

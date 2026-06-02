@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "TPSGameEnums.h"
 #include "InventoryWidget.generated.h"
 
 class UButton;
@@ -47,6 +48,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void RefreshInventory();
 
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void SetInventoryFilter(EItemType NewItemType);
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnInventoryCloseRequested OnInventoryCloseRequested;
@@ -72,6 +76,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	int32 MaxSlotCount = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory")
+	EItemType CurrentFilterItemType = EItemType::Weapon;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
