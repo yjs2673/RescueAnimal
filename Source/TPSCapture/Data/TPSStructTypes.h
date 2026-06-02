@@ -7,6 +7,7 @@
 
 class UTexture2D;
 class UStaticMesh;
+class USkeletalMesh;
 class AWeaponBase;
 class AArrowProjectile;
 
@@ -65,6 +66,9 @@ struct FItemData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
 	UStaticMesh* Mesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	USkeletalMesh* SkeletalMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
 	FVector ItemMeshPosition = FVector::ZeroVector;

@@ -16,6 +16,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Data")
 	bool GetItemDataByID(FName ItemID, FItemData& OutItemData) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Data")
+	bool GetWeaponDataByID(FName WeaponID, FWeaponData& OutWeaponData) const;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
 	UDataTable* ItemDataTable;

@@ -3,6 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "TPSGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "InventoryComponent.h"
@@ -20,6 +21,14 @@ ADropItemActor::ADropItemActor()
 	ItemMesh->SetMobility(EComponentMobility::Movable);
 	ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ItemMesh->SetGenerateOverlapEvents(false);
+
+	ItemSkeletalMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemSkeletalMesh"));
+	ItemSkeletalMesh->SetupAttachment(SceneRoot);
+	ItemSkeletalMesh->SetMobility(EComponentMobility::Movable);
+	ItemSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ItemSkeletalMesh->SetGenerateOverlapEvents(false);
+	ItemSkeletalMesh->SetVisibility(false);
+	ItemSkeletalMesh->SetHiddenInGame(true);
 
 	PickupCollision = CreateDefaultSubobject<USphereComponent>(TEXT("PickupCollision"));
 	PickupCollision->SetupAttachment(SceneRoot);
@@ -133,14 +142,40 @@ void ADropItemActor::ApplyItemDataToDropVisual()
 
 	if (ItemMesh)
 	{
-		if (ItemData.Mesh)
+		if (ItemData.SkeletalMesh)
+		{
+			ItemMesh->SetVisibility(false);
+			ItemMesh->SetHiddenInGame(true);
+		}
+		else if (ItemData.Mesh)
 		{
 			ItemMesh->SetStaticMesh(ItemData.Mesh);
+			ItemMesh->SetVisibility(true);
+			ItemMesh->SetHiddenInGame(false);
 		}
 
 		ItemMesh->SetRelativeLocation(ItemData.ItemMeshPosition);
 		ItemMesh->SetRelativeRotation(ItemData.ItemMeshRotation);
 		ItemMesh->SetRelativeScale3D(ItemData.ItemMeshScale);
+	}
+
+	if (ItemSkeletalMesh)
+	{
+		if (ItemData.SkeletalMesh)
+		{
+			ItemSkeletalMesh->SetSkeletalMesh(ItemData.SkeletalMesh);
+			ItemSkeletalMesh->SetVisibility(true);
+			ItemSkeletalMesh->SetHiddenInGame(false);
+		}
+		else
+		{
+			ItemSkeletalMesh->SetVisibility(false);
+			ItemSkeletalMesh->SetHiddenInGame(true);
+		}
+
+		ItemSkeletalMesh->SetRelativeLocation(ItemData.ItemMeshPosition);
+		ItemSkeletalMesh->SetRelativeRotation(ItemData.ItemMeshRotation);
+		ItemSkeletalMesh->SetRelativeScale3D(ItemData.ItemMeshScale);
 	}
 
 	if (PickupCollision)
@@ -153,16 +188,17 @@ void ADropItemActor::ApplyItemDataToDropVisual()
 
 void ADropItemActor::CacheInitialPickupMotionTransform()
 {
-	if (ItemMesh)
+	if (USceneComponent* ActiveVisual = GetActiveVisualComponent())
 	{
-		InitialMeshRelativeLocation = ItemMesh->GetRelativeLocation();
-		InitialMeshRelativeRotation = ItemMesh->GetRelativeRotation();
+		InitialMeshRelativeLocation = ActiveVisual->GetRelativeLocation();
+		InitialMeshRelativeRotation = ActiveVisual->GetRelativeRotation();
 	}
 }
 
 void ADropItemActor::ApplyPickupMotion(float DeltaTime)
 {
-	if (!bEnablePickupMotion || !ItemMesh)
+	USceneComponent* ActiveVisual = GetActiveVisualComponent();
+	if (!bEnablePickupMotion || !ActiveVisual)
 	{
 		return;
 	}
@@ -172,6 +208,16 @@ void ADropItemActor::ApplyPickupMotion(float DeltaTime)
 
 	const float BobOffsetZ = FMath::Sin(PickupMotionElapsedTime * PickupBobSpeed) * PickupBobAmplitude;
 	SetActorRotation(InitialActorRotation + FRotator(0.0f, PickupMotionRotationYaw, 0.0f));
-	ItemMesh->SetRelativeLocation(InitialMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
-	ItemMesh->SetRelativeRotation(InitialMeshRelativeRotation);
+	ActiveVisual->SetRelativeLocation(InitialMeshRelativeLocation + FVector(0.0f, 0.0f, BobOffsetZ));
+	ActiveVisual->SetRelativeRotation(InitialMeshRelativeRotation);
+}
+
+USceneComponent* ADropItemActor::GetActiveVisualComponent() const
+{
+	if (ItemSkeletalMesh && ItemSkeletalMesh->IsVisible())
+	{
+		return ItemSkeletalMesh;
+	}
+
+	return ItemMesh;
 }

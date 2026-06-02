@@ -5,6 +5,7 @@
 #include "QuickSlotWidget.h"
 #include "QuickSlotComponent.h"
 #include "InventoryComponent.h"
+#include "TPSGameInstance.h"
 #include "GameFramework/Pawn.h"
 
 void UQuickSlotBarWidget::NativeConstruct()
@@ -97,6 +98,16 @@ void UQuickSlotBarWidget::HandleInventoryItemChanged(FName ItemID, int32 NewCoun
 {
 	if (NewCount <= 0 && CachedQuickSlotComponent && !ItemID.IsNone())
 	{
+		FItemData ItemData;
+		const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+		if (TPSGameInstance &&
+			TPSGameInstance->GetItemDataByID(ItemID, ItemData) &&
+			ItemData.ItemType == EItemType::Weapon)
+		{
+			RefreshQuickSlots();
+			return;
+		}
+
 		const int32 SlotCount = CachedQuickSlotComponent->GetSlotCount();
 		for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
 		{

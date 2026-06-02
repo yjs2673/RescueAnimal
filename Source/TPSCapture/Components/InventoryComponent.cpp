@@ -1,4 +1,6 @@
 #include "InventoryComponent.h"
+#include "TPSGameInstance.h"
+#include "Engine/World.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -33,6 +35,25 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Count)
 		return;
 	}
 
+	FItemData ItemData;
+	const UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr;
+	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
+	const bool bShouldStack = !bHasItemData || (ItemData.ItemType != EItemType::Weapon && ItemData.MaxStack > 1);
+
+	if (!bShouldStack)
+	{
+		for (int32 Index = 0; Index < Count; ++Index)
+		{
+			FInventoryEntry NewEntry;
+			NewEntry.ItemID = ItemID;
+			NewEntry.Count = 1;
+			Items.Add(NewEntry);
+		}
+
+		OnItemChanged.Broadcast(ItemID, GetItemCount(ItemID));
+		return;
+	}
+
 	if (FInventoryEntry* FoundEntry = FindEntry(ItemID))
 	{
 		FoundEntry->Count += Count;
@@ -56,35 +77,52 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Count)
 		return false;
 	}
 
-	FInventoryEntry* FoundEntry = FindEntry(ItemID);
-	if (!FoundEntry || FoundEntry->Count < Count)
+	if (GetItemCount(ItemID) < Count)
 	{
 		return false;
 	}
 
-	FoundEntry->Count -= Count;
-	const int32 NewCount = FoundEntry->Count;
+	int32 RemainingCount = Count;
 
-	if (FoundEntry->Count <= 0)
+	for (int32 Index = 0; Index < Items.Num() && RemainingCount > 0;)
 	{
-		Items.RemoveAll([&](const FInventoryEntry& Entry)
-			{
-				return Entry.ItemID == ItemID;
-			});
+		FInventoryEntry& Entry = Items[Index];
+		if (Entry.ItemID != ItemID)
+		{
+			++Index;
+			continue;
+		}
+
+		const int32 RemoveCount = FMath::Min(Entry.Count, RemainingCount);
+		Entry.Count -= RemoveCount;
+		RemainingCount -= RemoveCount;
+
+		if (Entry.Count <= 0)
+		{
+			Items.RemoveAt(Index);
+			continue;
+		}
+
+		++Index;
 	}
 
-	OnItemChanged.Broadcast(ItemID, FMath::Max(NewCount, 0));
+	OnItemChanged.Broadcast(ItemID, GetItemCount(ItemID));
 	return true;
 }
 
 int32 UInventoryComponent::GetItemCount(FName ItemID) const
 {
-	if (const FInventoryEntry* FoundEntry = FindEntry(ItemID))
+	int32 TotalCount = 0;
+
+	for (const FInventoryEntry& Entry : Items)
 	{
-		return FoundEntry->Count;
+		if (Entry.ItemID == ItemID)
+		{
+			TotalCount += Entry.Count;
+		}
 	}
 
-	return 0;
+	return TotalCount;
 }
 
 bool UInventoryComponent::HasItem(FName ItemID, int32 Count) const

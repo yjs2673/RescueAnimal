@@ -5,11 +5,30 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 #include "TPSGameInstance.h"
+#include "TPSCaptureCharacter.h"
 
 
 void UQuickSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+}
+
+FReply UQuickSlotWidget::NativeOnMouseButtonDown(
+	const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent
+)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !ItemID.IsNone())
+	{
+		if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(GetOwningPlayerPawn()))
+		{
+			PlayerCharacter->UseInventoryItem(ItemID);
+		}
+
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UQuickSlotWidget::SetupQuickSlot(int32 InSlotIndex, FName InItemID, int32 InItemCount)

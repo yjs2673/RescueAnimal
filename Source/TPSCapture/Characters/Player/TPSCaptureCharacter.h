@@ -534,7 +534,16 @@ public:
 	bool TestUseItem(FName ItemID, int32 Count = 1);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UseInventoryItem(FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool UseConsumableItem(FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool EquipWeaponFromInventory(FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool UnequipCurrentWeaponToInventory();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool TestUsePotion();

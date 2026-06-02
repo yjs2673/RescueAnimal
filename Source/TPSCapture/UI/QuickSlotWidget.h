@@ -7,6 +7,8 @@
 class UTextBlock;
 class UImage;
 class UDragDropOperation;
+struct FGeometry;
+struct FPointerEvent;
 
 UCLASS()
 class TPSCAPTURE_API UQuickSlotWidget : public UUserWidget
@@ -15,6 +17,11 @@ class TPSCAPTURE_API UQuickSlotWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+
+	virtual FReply NativeOnMouseButtonDown(
+		const FGeometry& InGeometry,
+		const FPointerEvent& InMouseEvent
+	) override;
 
 	virtual bool NativeOnDrop(
 		const FGeometry& InGeometry,

@@ -140,7 +140,9 @@ FReply UInventorySlotWidget::NativeOnMouseButtonDoubleClick(
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && !ItemID.IsNone() && Count > 0)
 	{
-		TryUseItemOnDoubleClick();
+		UseSlotItem();
+		LastClickedItemID = NAME_None;
+		LastClickTime = -1.0f;
 		return FReply::Handled();
 	}
 
@@ -176,23 +178,32 @@ void UInventorySlotWidget::NativeOnDragDetected(
 	OutOperation = DragOperation;
 }
 
-bool UInventorySlotWidget::IsConsumableItem() const
+bool UInventorySlotWidget::GetSlotItemData(FItemData& OutItemData) const
 {
 	if (ItemID.IsNone() || Count <= 0)
 		return false;
 
-	FItemData ItemData;
 	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
-	return TPSGameInstance &&
-		TPSGameInstance->GetItemDataByID(ItemID, ItemData) &&
-		ItemData.ItemType == EItemType::Consumable;
+	return TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, OutItemData);
 }
 
-bool UInventorySlotWidget::TryUseItemOnDoubleClick()
+bool UInventorySlotWidget::UseSlotItem()
 {
-	if (!IsConsumableItem())
+	FItemData ItemData;
+	if (!GetSlotItemData(ItemData))
 		return false;
 
+	if (ItemData.ItemType != EItemType::Consumable && ItemData.ItemType != EItemType::Weapon)
+		return false;
+
+	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(GetOwningPlayerPawn());
+	if (!PlayerCharacter)
+		return false;
+
+	return PlayerCharacter->UseInventoryItem(ItemID);
+}
+bool UInventorySlotWidget::TryUseItemOnDoubleClick()
+{
 	UWorld* World = GetWorld();
 	if (!World)
 		return false;
@@ -207,14 +218,8 @@ bool UInventorySlotWidget::TryUseItemOnDoubleClick()
 	LastClickedItemID = NAME_None;
 	LastClickTime = -1.0f;
 
-	ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(GetOwningPlayerPawn());
-	if (!PlayerCharacter)
-		return true;
-
-	PlayerCharacter->UseConsumableItem(ItemID);
-	return true;
+	return UseSlotItem();
 }
-
 void UInventorySlotWidget::UpdateTooltip()
 {
 	if (ItemID.IsNone() || Count <= 0)

@@ -7,6 +7,7 @@
 class USphereComponent;
 class USceneComponent;
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
 class UPrimitiveComponent;
 class USoundBase;
 
@@ -24,6 +25,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> ItemMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> ItemSkeletalMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> PickupCollision;
@@ -77,6 +81,7 @@ protected:
 	void ApplyItemDataToDropVisual();
 	void CacheInitialPickupMotionTransform();
 	void ApplyPickupMotion(float DeltaTime);
+	USceneComponent* GetActiveVisualComponent() const;
 
 	FVector InitialMeshRelativeLocation = FVector::ZeroVector;
 	FRotator InitialMeshRelativeRotation = FRotator::ZeroRotator;

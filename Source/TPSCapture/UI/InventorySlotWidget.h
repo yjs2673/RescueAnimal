@@ -8,6 +8,7 @@ class UImage;
 class UTextBlock;
 class UDragDropOperation;
 class UItemTooltipWidget;
+struct FItemData;
 struct FGeometry;
 struct FPointerEvent;
 
@@ -68,7 +69,8 @@ protected:
 private:
 	void UpdateTooltip();
 	void ClearTooltip();
-	bool IsConsumableItem() const;
+	bool GetSlotItemData(FItemData& OutItemData) const;
+	bool UseSlotItem();
 	bool TryUseItemOnDoubleClick();
 
 	FName LastClickedItemID = NAME_None;

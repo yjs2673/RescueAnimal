@@ -359,7 +359,7 @@ void ATPSCaptureCharacter::Interact()
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
-	if (NearbyWeapon || CurrentWeapon) // 무가 상호작용을 포탈보다 우선시
+	if (NearbyWeapon || CurrentWeapon) // 무기 상호작용을 포탈보다 우선시
 	{
 		HandleWeaponInteract();
 		return;
@@ -384,7 +384,33 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		return;
 	}
 
-	UseConsumableItem(ItemID);
+	UseInventoryItem(ItemID);
+}
+
+bool ATPSCaptureCharacter::UseInventoryItem(FName ItemID)
+{
+	if (ItemID.IsNone())
+		return false;
+
+	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
+		return false;
+
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(ItemID, ItemData))
+		return false;
+
+	switch (ItemData.ItemType)
+	{
+	case EItemType::Consumable:
+		return UseConsumableItem(ItemID);
+
+	case EItemType::Weapon:
+		return EquipWeaponFromInventory(ItemID);
+
+	default:
+		return false;
+	}
 }
 
 bool ATPSCaptureCharacter::UseConsumableItem(FName ItemID)
@@ -641,6 +667,139 @@ bool ATPSCaptureCharacter::UseConsumableItem(FName ItemID)
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Consumable item consumed: %s"), *ItemID.ToString());
 	return true;
 }
+
+bool ATPSCaptureCharacter::UnequipCurrentWeaponToInventory()
+{
+	if (StatComponent && StatComponent->IsDead())
+		return false;
+
+	if (!CurrentWeapon || !InventoryComponent)
+		return false;
+
+	const FName PreviousWeaponID = CurrentWeapon->WeaponID;
+	if (PreviousWeaponID.IsNone())
+		return false;
+
+	if (bIsBowCharging || bIsBowAiming)
+	{
+		EndBowAim();
+		ApplyMovementStats();
+	}
+
+	AWeaponBase* OldWeapon = CurrentWeapon;
+	CurrentWeapon = nullptr;
+	OldWeapon->Destroy();
+
+	if (!InventoryComponent->HasItem(PreviousWeaponID, 1))
+	{
+		InventoryComponent->AddItem(PreviousWeaponID, 1);
+	}
+
+	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
+
+	if (EquipmentSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			EquipmentSound,
+			GetActorLocation()
+		);
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Unequipped weapon to inventory: %s"), *PreviousWeaponID.ToString());
+	return true;
+}
+
+bool ATPSCaptureCharacter::EquipWeaponFromInventory(FName ItemID)
+{
+	if (StatComponent && StatComponent->IsDead())
+		return false;
+
+	if (ItemID.IsNone())
+		return false;
+
+	if (CurrentWeapon && CurrentWeapon->WeaponID == ItemID)
+	{
+		return UnequipCurrentWeaponToInventory();
+	}
+
+	if (!InventoryComponent || !InventoryComponent->HasItem(ItemID, 1))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: item not found. ItemID=%s"), *ItemID.ToString());
+		return false;
+	}
+
+	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: TPSGameInstance is null"));
+		return false;
+	}
+
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(ItemID, ItemData) || ItemData.ItemType != EItemType::Weapon)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: item is not weapon. ItemID=%s"), *ItemID.ToString());
+		return false;
+	}
+
+	FWeaponData WeaponData;
+	if (!TPSGameInstance->GetWeaponDataByID(ItemID, WeaponData))
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: WeaponData not found. WeaponID=%s"), *ItemID.ToString());
+		return false;
+	}
+
+	if (!WeaponData.WeaponClass)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: WeaponClass is null. WeaponID=%s"), *ItemID.ToString());
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+		return false;
+
+	AWeaponBase* NewWeapon = World->SpawnActor<AWeaponBase>(WeaponData.WeaponClass);
+	if (!NewWeapon)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("EquipWeaponFromInventory failed: spawn failed. WeaponID=%s"), *ItemID.ToString());
+		return false;
+	}
+
+	NewWeapon->WeaponID = WeaponData.WeaponID.IsNone() ? ItemID : WeaponData.WeaponID;
+
+
+	if (CurrentWeapon)
+	{
+
+		if (bIsBowCharging || bIsBowAiming)
+		{
+			EndBowAim();
+			ApplyMovementStats();
+		}
+
+		AWeaponBase* OldWeapon = CurrentWeapon;
+		CurrentWeapon = nullptr;
+		OldWeapon->Destroy();
+	}
+
+
+	EquipWeapon(NewWeapon);
+
+	if (EquipmentSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			EquipmentSound,
+			GetActorLocation()
+		);
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Equipped weapon from inventory: %s"), *ItemID.ToString());
+	return true;
+}
+
 void ATPSCaptureCharacter::RemoveAttackBuffMultiplier(float Multiplier)
 {
 	if (!StatComponent)
@@ -776,18 +935,46 @@ void ATPSCaptureCharacter::HandleWeaponInteract()
 
 	if (NearbyWeapon)
 	{
-		if (!CurrentWeapon)
+		if (!InventoryComponent)
+			return;
+
+		const FName WeaponItemID = NearbyWeapon->WeaponID;
+		if (WeaponItemID.IsNone())
 		{
-			EquipWeapon(NearbyWeapon);
-			NearbyWeapon = nullptr;
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Pickup weapon failed: WeaponID is None. Weapon=%s"), *GetNameSafe(NearbyWeapon));
+			return;
 		}
-		else
+
+		UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+		FItemData ItemData;
+		if (!TPSGameInstance || !TPSGameInstance->GetItemDataByID(WeaponItemID, ItemData) || ItemData.ItemType != EItemType::Weapon)
 		{
-			AWeaponBase* WeaponToPickup = NearbyWeapon;
-			DropCurrentWeapon();
-			EquipWeapon(WeaponToPickup);
-			NearbyWeapon = nullptr;
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Pickup weapon failed: ItemData is not weapon. ItemID=%s"), *WeaponItemID.ToString());
+			return;
 		}
+
+		AWeaponBase* WeaponToPickup = NearbyWeapon;
+		NearbyWeapon = nullptr;
+
+		InventoryComponent->AddItem(WeaponItemID, 1);
+		WeaponToPickup->Destroy();
+
+		if (EquipmentSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				EquipmentSound,
+				GetActorLocation()
+			);
+		}
+
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Picked up weapon item: %s"), *WeaponItemID.ToString());
+		return;
+	}
+
+	if (CurrentWeapon)
+	{
+		DropCurrentWeapon();
 
 		if (EquipmentSound)
 		{
@@ -798,24 +985,7 @@ void ATPSCaptureCharacter::HandleWeaponInteract()
 			);
 		}
 	}
-	else
-	{
-		if (CurrentWeapon)
-		{
-			DropCurrentWeapon();
-
-			if (EquipmentSound)
-			{
-				UGameplayStatics::PlaySoundAtLocation(
-					this,
-					EquipmentSound,
-					GetActorLocation()
-				);
-			}
-		}
-	}
 }
-
 void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // 무기 장착, 이미 장착 중이면 교체
 {
 	if (!NewWeapon)
