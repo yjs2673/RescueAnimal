@@ -214,6 +214,8 @@ void ATPSCaptureCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ApplyMovementStats();
+
 	if (StatComponent)
 		StatComponent->OnDeath.AddDynamic(this, &ATPSCaptureCharacter::HandleCharacterDeath);
 
@@ -512,10 +514,69 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 		}
 
 		case EBuffType::Jump:
+		{
+			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
+				? 1.0f + (ItemData.BuffValue / 100.0f)
+				: ItemData.BuffValue;
+
+			if (AppliedMultiplier <= 0.0f)
+			{
+				UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
+				return;
+			}
+
+			StatComponent->AddJumpBuffMultiplier(AppliedMultiplier);
+			ApplyMovementStats();
+
+			FTimerHandle JumpBuffTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				JumpBuffTimerHandle,
+				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveJumpBuffMultiplier, AppliedMultiplier),
+				ItemData.BuffDuration,
+				false
+			);
+
+			bUseSucceeded = true;
+
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff used: %s | Multiplier=%.2f Duration=%.2f"),
+				*ItemID.ToString(),
+				AppliedMultiplier,
+				ItemData.BuffDuration);
+
+			break;
+		}
+
 		case EBuffType::MoveSpeed:
 		{
-			UE_LOG(LogTemplateCharacter, Warning, TEXT("Buff target is not implemented yet: %s"), *ItemID.ToString());
-			return;
+			const float AppliedMultiplier = ItemData.bBuffValueIsPercent
+				? 1.0f + (ItemData.BuffValue / 100.0f)
+				: ItemData.BuffValue;
+
+			if (AppliedMultiplier <= 0.0f)
+			{
+				UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff failed: invalid multiplier %.2f. ItemID=%s"), AppliedMultiplier, *ItemID.ToString());
+				return;
+			}
+
+			StatComponent->AddMoveSpeedBuffMultiplier(AppliedMultiplier);
+			ApplyMovementStats();
+
+			FTimerHandle MoveSpeedBuffTimerHandle;
+			GetWorldTimerManager().SetTimer(
+				MoveSpeedBuffTimerHandle,
+				FTimerDelegate::CreateUObject(this, &ATPSCaptureCharacter::RemoveMoveSpeedBuffMultiplier, AppliedMultiplier),
+				ItemData.BuffDuration,
+				false
+			);
+
+			bUseSucceeded = true;
+
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff used: %s | Multiplier=%.2f Duration=%.2f"),
+				*ItemID.ToString(),
+				AppliedMultiplier,
+				ItemData.BuffDuration);
+
+			break;
 		}
 
 		default:
@@ -582,6 +643,41 @@ void ATPSCaptureCharacter::RemoveDefenseBuffMultiplier(float Multiplier)
 	StatComponent->RemoveDefenseBuffMultiplier(Multiplier);
 
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("Defense buff expired: Multiplier=%.2f"), Multiplier);
+}
+
+void ATPSCaptureCharacter::RemoveJumpBuffMultiplier(float Multiplier)
+{
+	if (!StatComponent)
+		return;
+
+	StatComponent->RemoveJumpBuffMultiplier(Multiplier);
+	ApplyMovementStats();
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Jump buff expired: Multiplier=%.2f"), Multiplier);
+}
+
+void ATPSCaptureCharacter::RemoveMoveSpeedBuffMultiplier(float Multiplier)
+{
+	if (!StatComponent)
+		return;
+
+	StatComponent->RemoveMoveSpeedBuffMultiplier(Multiplier);
+	ApplyMovementStats();
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("MoveSpeed buff expired: Multiplier=%.2f"), Multiplier);
+}
+
+void ATPSCaptureCharacter::ApplyMovementStats()
+{
+	if (!StatComponent || !GetCharacterMovement())
+		return;
+
+	GetCharacterMovement()->JumpZVelocity = StatComponent->GetFinalJumpZVelocity();
+
+	if (!bIsBowCharging)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = StatComponent->GetFinalMoveSpeed();
+	}
 }
 bool ATPSCaptureCharacter::CanDodge() const
 {
@@ -803,7 +899,7 @@ void ATPSCaptureCharacter::DropCurrentWeapon() // ÇöÀç ÀåÂøµÈ ¹«±â¸¦ ¶³¾î¶ß¸®´Â 
 	if (bIsBowCharging || bIsBowAiming)
 	{
 		EndBowAim();
-		GetCharacterMovement()->MaxWalkSpeed = 500.f;
+		ApplyMovementStats();
 	}
 
 	AWeaponBase* WeaponToDrop = CurrentWeapon;
@@ -1316,7 +1412,7 @@ void ATPSCaptureCharacter::ReleaseBowCharge()
 	}
 
 	bIsBowCharging = false;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	ApplyMovementStats();
 
 	const float CurrentTime = GetWorld()->GetTimeSeconds();
 	const float ChargeDuration = CurrentTime - BowChargeStartTime;

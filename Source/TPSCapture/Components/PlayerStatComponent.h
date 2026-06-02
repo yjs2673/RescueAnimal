@@ -38,11 +38,23 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float LevelBonusDefense = 0.f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float LevelBonusJumpZVelocity = 0.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	float LevelBonusMoveSpeed = 0.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
 	float AttackBuffMultiplier = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
 	float DefenseBuffMultiplier = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
+	float JumpBuffMultiplier = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats|Buff")
+	float MoveSpeedBuffMultiplier = 1.0f;
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
@@ -54,11 +66,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetBonusDefense() const { return LevelBonusDefense; }
 
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetBonusJumpZVelocity() const { return LevelBonusJumpZVelocity; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetBonusMoveSpeed() const { return LevelBonusMoveSpeed; }
+
 	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
 	float GetAttackBuffMultiplier() const { return AttackBuffMultiplier; }
 
 	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
 	float GetDefenseBuffMultiplier() const { return DefenseBuffMultiplier; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	float GetJumpBuffMultiplier() const { return JumpBuffMultiplier; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats|Buff")
+	float GetMoveSpeedBuffMultiplier() const { return MoveSpeedBuffMultiplier; }
 
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void AddAttackBuffMultiplier(float Multiplier);
@@ -71,6 +95,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
 	void RemoveDefenseBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void AddJumpBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void RemoveJumpBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void AddMoveSpeedBuffMultiplier(float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Stats|Buff")
+	void RemoveMoveSpeedBuffMultiplier(float Multiplier);
 #pragma endregion Bonus Stats
 
 public:
@@ -84,6 +120,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
 	float BaseDefense = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float BaseJumpZVelocity = 400.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	float BaseMoveSpeed = 400.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float MaxHP = 100.f;
@@ -125,6 +167,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalDamageAfterDefense(float DamageAmount) const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalJumpZVelocity() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalMoveSpeed() const;
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	bool IsDead() const { return bIsDead; }

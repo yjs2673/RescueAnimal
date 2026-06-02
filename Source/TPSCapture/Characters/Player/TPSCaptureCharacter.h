@@ -375,6 +375,9 @@ protected:
 	void UseQuickSlotItem(int32 SlotIndex);
 	void RemoveAttackBuffMultiplier(float Multiplier);
 	void RemoveDefenseBuffMultiplier(float Multiplier);
+	void RemoveJumpBuffMultiplier(float Multiplier);
+	void RemoveMoveSpeedBuffMultiplier(float Multiplier);
+	void ApplyMovementStats();
 	void Dodge();
 	bool CanDodge() const;
 	void UpdateDodgeMovement(float DeltaTime);

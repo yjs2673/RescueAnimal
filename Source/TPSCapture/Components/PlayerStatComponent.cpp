@@ -79,6 +79,38 @@ void UPlayerStatComponent::RemoveDefenseBuffMultiplier(float Multiplier)
 	DefenseBuffMultiplier = FMath::Max(1.0f, DefenseBuffMultiplier / Multiplier);
 }
 
+void UPlayerStatComponent::AddJumpBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	JumpBuffMultiplier *= Multiplier;
+}
+
+void UPlayerStatComponent::RemoveJumpBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	JumpBuffMultiplier = FMath::Max(1.0f, JumpBuffMultiplier / Multiplier);
+}
+
+void UPlayerStatComponent::AddMoveSpeedBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	MoveSpeedBuffMultiplier *= Multiplier;
+}
+
+void UPlayerStatComponent::RemoveMoveSpeedBuffMultiplier(float Multiplier)
+{
+	if (Multiplier <= 0.0f)
+		return;
+
+	MoveSpeedBuffMultiplier = FMath::Max(1.0f, MoveSpeedBuffMultiplier / Multiplier);
+}
+
 #pragma region Health Stats
 float UPlayerStatComponent::ApplyDamage(float Amount)
 {
@@ -126,6 +158,18 @@ float UPlayerStatComponent::GetFinalDamageAfterDefense(float DamageAmount) const
 
 	const float DefenseReductionPercent = FMath::Clamp(GetFinalDefense(), 0.0f, 100.0f);
 	return DamageAmount * (1.0f - (DefenseReductionPercent / 100.0f));
+}
+
+float UPlayerStatComponent::GetFinalJumpZVelocity() const
+{
+	const float AdditiveJumpZVelocity = BaseJumpZVelocity + LevelBonusJumpZVelocity;
+	return FMath::Max(0.0f, AdditiveJumpZVelocity * JumpBuffMultiplier);
+}
+
+float UPlayerStatComponent::GetFinalMoveSpeed() const
+{
+	const float AdditiveMoveSpeed = BaseMoveSpeed + LevelBonusMoveSpeed;
+	return FMath::Max(0.0f, AdditiveMoveSpeed * MoveSpeedBuffMultiplier);
 }
 
 void UPlayerStatComponent::Die()
