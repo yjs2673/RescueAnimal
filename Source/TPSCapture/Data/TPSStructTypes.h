@@ -78,13 +78,26 @@ struct FItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
 	FVector PickupCollisionScale = FVector::OneVector;
 
+	// Consumable specific properties
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable")
 	EConsumableType ConsumableType = EConsumableType::None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Heal")
 	float HealAmount = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	EBuffType BuffTargetType = EBuffType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	float BuffValue = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	float BuffDuration = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	bool bBuffValueIsPercent = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Capture")
 	float CapturePower = 0.f;
 };
 

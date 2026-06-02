@@ -64,3 +64,13 @@ enum class EAnimalState : uint8
 	Captured    UMETA(DisplayName = "Captured"),
 	Dead        UMETA(DisplayName = "Dead")
 };
+
+UENUM(BlueprintType)
+enum class EBuffType : uint8
+{
+	None		UMETA(DisplayName = "None"),
+	Attack		UMETA(DisplayName = "Attack"),
+	Defense		UMETA(DisplayName = "Defense"),
+	Jump		UMETA(DisplayName = "Jump"),
+	MoveSpeed	UMETA(DisplayName = "Move Speed")
+};
