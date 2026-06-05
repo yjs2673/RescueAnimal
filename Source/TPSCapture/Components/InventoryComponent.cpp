@@ -38,7 +38,8 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Count)
 	FItemData ItemData;
 	const UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr;
 	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
-	const bool bShouldStack = !bHasItemData || (ItemData.ItemType != EItemType::Weapon && ItemData.MaxStack > 1);
+	const int32 MaxStack = bHasItemData ? FMath::Max(1, ItemData.MaxStack) : MAX_int32;
+	const bool bShouldStack = !bHasItemData || (ItemData.ItemType != EItemType::Weapon && MaxStack > 1);
 
 	if (!bShouldStack)
 	{
@@ -54,20 +55,36 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Count)
 		return;
 	}
 
-	if (FInventoryEntry* FoundEntry = FindEntry(ItemID))
-	{
-		FoundEntry->Count += Count;
+	int32 RemainingCount = Count;
 
-		OnItemChanged.Broadcast(ItemID, FoundEntry->Count);
-		return;
+	for (FInventoryEntry& Entry : Items)
+	{
+		if (Entry.ItemID != ItemID || Entry.Count >= MaxStack)
+		{
+			continue;
+		}
+
+		const int32 AddCount = FMath::Min(MaxStack - Entry.Count, RemainingCount);
+		Entry.Count += AddCount;
+		RemainingCount -= AddCount;
+
+		if (RemainingCount <= 0)
+		{
+			break;
+		}
 	}
 
-	FInventoryEntry NewEntry;
-	NewEntry.ItemID = ItemID;
-	NewEntry.Count = Count;
-	Items.Add(NewEntry);
+	while (RemainingCount > 0)
+	{
+		FInventoryEntry NewEntry;
+		NewEntry.ItemID = ItemID;
+		NewEntry.Count = FMath::Min(MaxStack, RemainingCount);
+		Items.Add(NewEntry);
 
-	OnItemChanged.Broadcast(ItemID, Count);
+		RemainingCount -= NewEntry.Count;
+	}
+
+	OnItemChanged.Broadcast(ItemID, GetItemCount(ItemID));
 }
 
 bool UInventoryComponent::RemoveItem(FName ItemID, int32 Count)

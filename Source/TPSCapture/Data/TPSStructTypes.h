@@ -109,6 +109,27 @@ struct FItemData : public FTableRowBase
 };
 
 USTRUCT(BlueprintType)
+struct FShopItemData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FText ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
+	int32 Price = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "1", ClampMax = "99"))
+	int32 MinBuyCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "1", ClampMax = "99"))
+	int32 MaxBuyCount = 99;
+};
+
+USTRUCT(BlueprintType)
 struct FDropItemData
 {
 	GENERATED_BODY()
