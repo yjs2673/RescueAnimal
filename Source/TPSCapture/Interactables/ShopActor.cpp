@@ -85,3 +85,19 @@ void AShopActor::Interact(AActor* InteractingActor)
 
 	PlayerController->OpenShop(this);
 }
+
+void AShopActor::OnShopClosed()
+{
+	if (!NPCMesh || !ShopClosedMontage)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = NPCMesh->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(ShopClosedMontage, ShopClosedMontagePlayRate);
+}

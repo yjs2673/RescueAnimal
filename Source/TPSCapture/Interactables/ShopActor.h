@@ -10,6 +10,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
 class UDataTable;
+class UAnimMontage;
 
 UCLASS()
 class TPSCAPTURE_API AShopActor : public AActor
@@ -26,6 +27,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Shop")
 	FName GetCurrencyItemID() const { return CurrencyItemID; }
+
+	UFUNCTION(BlueprintCallable, Category = "Shop")
+	void OnShopClosed();
 
 protected:
 	virtual void BeginPlay() override;
@@ -65,4 +69,10 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex
 	);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop|Animation")
+	TObjectPtr<UAnimMontage> ShopClosedMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop|Animation")
+	float ShopClosedMontagePlayRate = 1.0f;
 };

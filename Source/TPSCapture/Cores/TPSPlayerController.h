@@ -52,6 +52,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UShopWidget> ShopWidgetClass;
 
+	UPROPERTY()
+	TObjectPtr<AShopActor> CurrentShopActor;
+
 private:
 	UPROPERTY()
 	TObjectPtr<UMainHUDWidget> MainHUDWidget;

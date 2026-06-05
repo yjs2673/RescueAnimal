@@ -4,6 +4,7 @@
 #include "MainHUDWidget.h"
 #include "InventoryWidget.h"
 #include "ShopWidget.h"
+#include "ShopActor.h"
 
 void ATPSPlayerController::BeginPlay()
 {
@@ -197,6 +198,8 @@ void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
 		SetIgnoreMoveInput(true);
 		SetIgnoreLookInput(true);
 		SetUIInputMode();
+
+		CurrentShopActor = ShopActor;
 	}
 }
 
@@ -221,6 +224,12 @@ void ATPSPlayerController::CloseShop()
 	else
 	{
 		SetGameInputMode();
+	}
+
+	if (CurrentShopActor)
+	{
+		CurrentShopActor->OnShopClosed();
+		CurrentShopActor = nullptr;
 	}
 }
 
