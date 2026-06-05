@@ -12,6 +12,8 @@ class UScrollBox;
 class UTextBlock;
 class UDataTable;
 class UShopItemSlotWidget;
+class UBuyConfirmWidget;
+class UShopResultWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShopCloseRequested);
 
@@ -22,6 +24,7 @@ class TPSCAPTURE_API UShopWidget : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Shop")
 	void OpenShop(AShopActor* InShop);
@@ -51,12 +54,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
 	TSubclassOf<UShopItemSlotWidget> ShopItemSlotWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
+	TSubclassOf<UBuyConfirmWidget> BuyConfirmWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
+	TSubclassOf<UShopResultWidget> ShopResultWidgetClass;
+
 private:
 	UFUNCTION()
 	void HandleCloseButtonClicked();
 
 	UFUNCTION()
 	void HandleShopItemDoubleClicked(FShopItemData ShopItemData);
+
+	UFUNCTION()
+	void HandleBuySucceeded(FText ResultMessage);
+
+	UFUNCTION()
+	void HandleBuyFailed(FText ResultMessage);
+
+	void ShowShopResult(const FText& ResultMessage);
+	void ClearTransientShopWidgets();
 
 private:
 	UPROPERTY()
@@ -67,4 +85,10 @@ private:
 
 	UPROPERTY()
 	FName CurrencyItemID = TEXT("Coin");
+
+	UPROPERTY()
+	TObjectPtr<UBuyConfirmWidget> ActiveBuyConfirmWidget;
+
+	UPROPERTY()
+	TObjectPtr<UShopResultWidget> ActiveShopResultWidget;
 };

@@ -1,5 +1,7 @@
 #include "ShopWidget.h"
 #include "ShopActor.h"
+#include "BuyConfirmWidget.h"
+#include "ShopResultWidget.h"
 #include "ShopItemSlotWidget.h"
 #include "InventoryComponent.h"
 #include "TPSGameInstance.h"
@@ -17,6 +19,13 @@ void UShopWidget::NativeConstruct()
 	{
 		CloseButton->OnClicked.AddUniqueDynamic(this, &UShopWidget::HandleCloseButtonClicked);
 	}
+}
+
+void UShopWidget::NativeDestruct()
+{
+	ClearTransientShopWidgets();
+
+	Super::NativeDestruct();
 }
 
 void UShopWidget::OpenShop(AShopActor* InShop)
@@ -134,12 +143,92 @@ void UShopWidget::RefreshShopItems()
 
 void UShopWidget::HandleCloseButtonClicked()
 {
+	ClearTransientShopWidgets();
 	OnShopCloseRequested.Broadcast();
 }
 
 void UShopWidget::HandleShopItemDoubleClicked(FShopItemData ShopItemData)
 {
-	// Next step:
-	// Open buy confirm/count widget with ShopItemData and CurrencyItemID.
-	UE_LOG(LogTemp, Warning, TEXT("Shop item double clicked: %s"), *ShopItemData.ItemID.ToString());
+	if (!BuyConfirmWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ShopWidget: BuyConfirmWidgetClass is not assigned."));
+		return;
+	}
+
+	if (ActiveBuyConfirmWidget)
+	{
+		ActiveBuyConfirmWidget->RemoveFromParent();
+		ActiveBuyConfirmWidget = nullptr;
+	}
+
+	ActiveBuyConfirmWidget = CreateWidget<UBuyConfirmWidget>(
+		GetOwningPlayer(),
+		BuyConfirmWidgetClass
+	);
+
+	if (!ActiveBuyConfirmWidget)
+	{
+		return;
+	}
+
+	ActiveBuyConfirmWidget->SetupBuyConfirm(ShopItemData, CurrencyItemID);
+	ActiveBuyConfirmWidget->OnBuySucceeded.AddUniqueDynamic(this, &UShopWidget::HandleBuySucceeded);
+	ActiveBuyConfirmWidget->OnBuyFailed.AddUniqueDynamic(this, &UShopWidget::HandleBuyFailed);
+	ActiveBuyConfirmWidget->AddToViewport();
+}
+
+void UShopWidget::HandleBuySucceeded(FText ResultMessage)
+{
+	ActiveBuyConfirmWidget = nullptr;
+	RefreshCurrency();
+	ShowShopResult(ResultMessage);
+}
+
+void UShopWidget::HandleBuyFailed(FText ResultMessage)
+{
+	ActiveBuyConfirmWidget = nullptr;
+	ShowShopResult(ResultMessage);
+}
+
+void UShopWidget::ShowShopResult(const FText& ResultMessage)
+{
+	if (!ShopResultWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ShopWidget: ShopResultWidgetClass is not assigned."));
+		return;
+	}
+
+	if (ActiveShopResultWidget)
+	{
+		ActiveShopResultWidget->RemoveFromParent();
+		ActiveShopResultWidget = nullptr;
+	}
+
+	ActiveShopResultWidget = CreateWidget<UShopResultWidget>(
+		GetOwningPlayer(),
+		ShopResultWidgetClass
+	);
+
+	if (!ActiveShopResultWidget)
+	{
+		return;
+	}
+
+	ActiveShopResultWidget->SetupResult(ResultMessage);
+	ActiveShopResultWidget->AddToViewport();
+}
+
+void UShopWidget::ClearTransientShopWidgets()
+{
+	if (ActiveBuyConfirmWidget)
+	{
+		ActiveBuyConfirmWidget->RemoveFromParent();
+		ActiveBuyConfirmWidget = nullptr;
+	}
+
+	if (ActiveShopResultWidget)
+	{
+		ActiveShopResultWidget->RemoveFromParent();
+		ActiveShopResultWidget = nullptr;
+	}
 }

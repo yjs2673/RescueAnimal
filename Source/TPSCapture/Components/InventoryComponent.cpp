@@ -146,3 +146,59 @@ bool UInventoryComponent::HasItem(FName ItemID, int32 Count) const
 {
 	return GetItemCount(ItemID) >= Count;
 }
+
+bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const // 아이템 추가 가능한지 판단
+{
+	if (ItemID.IsNone() || Count <= 0 || MaxSlotCount <= 0)
+	{
+		return false;
+	}
+
+	FItemData ItemData;
+	const UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr;
+	const bool bHasItemData = TPSGameInstance && TPSGameInstance->GetItemDataByID(ItemID, ItemData);
+	const int32 MaxStack = bHasItemData ? FMath::Max(1, ItemData.MaxStack) : MAX_int32;
+	const bool bShouldStack = !bHasItemData || (ItemData.ItemType != EItemType::Weapon && MaxStack > 1);
+
+	int32 OccupiedSlotCount = 0;
+	for (const FInventoryEntry& Entry : Items)
+	{
+		if (!Entry.ItemID.IsNone() && Entry.Count > 0)
+		{
+			OccupiedSlotCount++;
+		}
+	}
+
+	if (OccupiedSlotCount > MaxSlotCount)
+	{
+		return false;
+	}
+
+	int32 RemainingCount = Count;
+
+	if (bShouldStack)
+	{
+		for (const FInventoryEntry& Entry : Items)
+		{
+			if (Entry.ItemID != ItemID || Entry.Count <= 0 || Entry.Count >= MaxStack)
+			{
+				continue;
+			}
+
+			const int32 AddCount = FMath::Min(MaxStack - Entry.Count, RemainingCount);
+			RemainingCount -= AddCount;
+
+			if (RemainingCount <= 0)
+			{
+				return true;
+			}
+		}
+	}
+
+	const int32 FreeSlotCount = MaxSlotCount - OccupiedSlotCount;
+	const int32 RequiredNewSlotCount = bShouldStack
+		? FMath::DivideAndRoundUp(RemainingCount, MaxStack)
+		: RemainingCount;
+
+	return RequiredNewSlotCount <= FreeSlotCount;
+}

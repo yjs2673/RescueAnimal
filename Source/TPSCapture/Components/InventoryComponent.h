@@ -22,6 +22,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TArray<FInventoryEntry> Items;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory", meta = (ClampMin = "1"))
+	int32 MaxSlotCount = 20;
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnItemChangedSignature OnItemChanged;
@@ -38,6 +41,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	bool HasItem(FName ItemID, int32 Count = 1) const;
+
+	UFUNCTION(BlueprintPure, Category = "Inventory")
+	bool CanAddItem(FName ItemID, int32 Count) const;
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	const TArray<FInventoryEntry>& GetAllItems() const { return Items; }
