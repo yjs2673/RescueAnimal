@@ -37,6 +37,7 @@ class UInventoryComponent;
 class UQuickSlotComponent;
 
 class APortalActor;
+class AShopActor;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -288,8 +289,11 @@ protected:
 	UPROPERTY(Transient)
 	UAnimMontage* CurrentDodgeMontage = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	APortalActor* CurrentPortal = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<AShopActor> CurrentShop = nullptr;
 #pragma endregion Montage & Interaction Var
 
 #pragma region SFX Var
@@ -503,6 +507,9 @@ public:
 #pragma region Interaction Function
 	void SetCurrentPortal(APortalActor* NewPortal);			// 포탈에 들어갈 때 현재 포탈 설정
 	void ClearCurrentPortal(APortalActor* PortalToClear);	// 포탈에서 나올 때 현재 포탈 해제
+
+	void SetCurrentShop(AShopActor* NewShop);				// 상점에 들어갈 때 현재 상점 설정
+	void ClearCurrentShop(AShopActor* ShopToClear);			// 상점에서 나올 때 현재 상점 해제
 #pragma endregion Interaction Func
 
 	virtual float TakeDamage(

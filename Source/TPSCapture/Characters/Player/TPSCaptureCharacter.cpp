@@ -1,6 +1,7 @@
 #include "TPSCaptureCharacter.h"
 
 #include "PortalActor.h"
+#include "ShopActor.h"
 #include "WeaponBase.h"
 #include "ArrowProjectile.h"
 
@@ -362,16 +363,22 @@ void ATPSCaptureCharacter::Interact()
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
-	if (NearbyWeapon || CurrentWeapon) // 무기 상호작용을 포탈보다 우선시
+	if (NearbyWeapon || CurrentWeapon)
 	{
 		HandleWeaponInteract();
 		return;
 	}
 
+	if (CurrentShop)
+	{
+		CurrentShop->Interact(this);
+		return;
+	}
+
 	if (CurrentPortal)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Interacting with Portal"));
 		CurrentPortal->Interact(this);
+		return;
 	}
 }
 
@@ -1970,6 +1977,19 @@ void ATPSCaptureCharacter::ClearCurrentPortal(APortalActor* PortalToClear)
 	{
 		CurrentPortal = nullptr;
 		UE_LOG(LogTemp, Warning, TEXT("Current Portal Cleared"));
+	}
+}
+
+void ATPSCaptureCharacter::SetCurrentShop(AShopActor* NewShop)
+{
+	CurrentShop = NewShop;
+}
+
+void ATPSCaptureCharacter::ClearCurrentShop(AShopActor* ShopToClear)
+{
+	if (CurrentShop == ShopToClear)
+	{
+		CurrentShop = nullptr;
 	}
 }
 #pragma endregion Interaction Function
