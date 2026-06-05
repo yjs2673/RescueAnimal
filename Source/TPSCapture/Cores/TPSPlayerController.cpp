@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "MainHUDWidget.h"
 #include "InventoryWidget.h"
+#include "ShopWidget.h"
 
 void ATPSPlayerController::BeginPlay()
 {
@@ -50,7 +51,7 @@ void ATPSPlayerController::SetupInputComponent()
 		TEXT("CloseUI"),
 		IE_Pressed,
 		this,
-		&ATPSPlayerController::CloseInventory
+		&ATPSPlayerController::CloseUI
 	);
 }
 
@@ -126,7 +127,14 @@ void ATPSPlayerController::CloseInventory()
 
 	bIsInventoryOpen = false;
 
-	SetGameInputMode();
+	if (bIsShopOpen)
+	{
+		SetUIInputMode();
+	}
+	else
+	{
+		SetGameInputMode();
+	}
 }
 
 void ATPSPlayerController::SetGameInputMode()
@@ -143,11 +151,89 @@ void ATPSPlayerController::SetUIInputMode()
 
 	FInputModeGameAndUI InputMode;
 
-	if (InventoryWidget)
+	if (bIsShopOpen && ShopWidget)
+	{
+		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
+	}
+	else if (bIsInventoryOpen && InventoryWidget)
 	{
 		InputMode.SetWidgetToFocus(InventoryWidget->TakeWidget());
 	}
 
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+}
+
+void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
+{
+	if (bIsShopOpen || !ShopActor)
+		return;
+
+	if (!ShopWidget)
+	{
+		if (!ShopWidgetClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ShopWidgetClass is not assigned."));
+			return;
+		}
+
+		ShopWidget = CreateWidget<UShopWidget>(this, ShopWidgetClass);
+
+		if (ShopWidget)
+		{
+			ShopWidget->OnShopCloseRequested.AddDynamic(
+				this,
+				&ATPSPlayerController::CloseShop
+			);
+		}
+	}
+
+	if (ShopWidget)
+	{
+		ShopWidget->OpenShop(ShopActor);
+		ShopWidget->AddToViewport();
+
+		bIsShopOpen = true;
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+		SetUIInputMode();
+	}
+}
+
+void ATPSPlayerController::CloseShop()
+{
+	if (!bIsShopOpen)
+		return;
+
+	if (ShopWidget)
+	{
+		ShopWidget->RemoveFromParent();
+	}
+
+	bIsShopOpen = false;
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
+	if (bIsInventoryOpen)
+	{
+		SetUIInputMode();
+	}
+	else
+	{
+		SetGameInputMode();
+	}
+}
+
+void ATPSPlayerController::CloseUI()
+{
+	if (bIsShopOpen)
+	{
+		CloseShop();
+		return;
+	}
+
+	if (bIsInventoryOpen)
+	{
+		CloseInventory();
+	}
 }

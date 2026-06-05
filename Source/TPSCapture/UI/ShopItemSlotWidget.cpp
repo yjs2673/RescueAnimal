@@ -93,6 +93,20 @@ void UShopItemSlotWidget::SetupShopItem(
 		PriceText->SetText(FText::AsNumber(ShopItemData.Price));
 	}
 
+	if (DescriptionText)
+	{
+		if (bHasItemData && !ItemData.Description.IsEmpty())
+		{
+			DescriptionText->SetText(ItemData.Description);
+			DescriptionText->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			DescriptionText->SetText(FText::GetEmpty());
+			DescriptionText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
 	if (CurrencyIcon)
 	{
 		UTexture2D* CurrencyTexture = nullptr;

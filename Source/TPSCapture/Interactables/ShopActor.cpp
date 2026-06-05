@@ -83,5 +83,5 @@ void AShopActor::Interact(AActor* InteractingActor)
 		return;
 	}
 
-	// PlayerController->OpenShop(this);
+	PlayerController->OpenShop(this);
 }

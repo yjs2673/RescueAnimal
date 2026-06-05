@@ -49,6 +49,9 @@ protected:
 	TObjectPtr<UTextBlock> PriceText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> DescriptionText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UImage> CurrencyIcon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")

@@ -1339,7 +1339,7 @@ void ATPSCaptureCharacter::OnAttackPressed()
 
 	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
 	{
-		if (TPSPlayerController->IsInventoryOpen())
+		if (TPSPlayerController->IsInventoryOpen() || TPSPlayerController->IsShopOpen())
 			return;
 	}
 
@@ -1365,6 +1365,12 @@ void ATPSCaptureCharacter::OnAttackReleased()
 {
 	if (StatComponent && StatComponent->IsDead())
 		return;
+
+	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		if (TPSPlayerController->IsShopOpen())
+			return;
+	}
 
 	if (bIsBowCharging)
 		ReleaseBowCharge();

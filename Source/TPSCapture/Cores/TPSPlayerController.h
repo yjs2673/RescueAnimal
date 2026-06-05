@@ -6,6 +6,8 @@
 
 class UMainHUDWidget;
 class UInventoryWidget;
+class UShopWidget;
+class AShopActor;
 
 UCLASS()
 class TPSCAPTURE_API ATPSPlayerController : public APlayerController
@@ -29,12 +31,26 @@ public:
 	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
 	bool IsInventoryOpen() const { return bIsInventoryOpen; }
 
+	UFUNCTION()
+	void OpenShop(AShopActor* ShopActor);
+
+	UFUNCTION()
+	void CloseShop();
+
+	UFUNCTION()
+	void CloseUI();
+
+	bool IsShopOpen() const { return bIsShopOpen; }
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UShopWidget> ShopWidgetClass;
 
 private:
 	UPROPERTY()
@@ -45,6 +61,12 @@ private:
 
 	UPROPERTY()
 	bool bIsInventoryOpen = false;
+
+	UPROPERTY()
+	TObjectPtr<UShopWidget> ShopWidget;
+
+	UPROPERTY()
+	bool bIsShopOpen = false;
 
 private:
 	UFUNCTION()
