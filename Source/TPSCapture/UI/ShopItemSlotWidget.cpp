@@ -40,7 +40,9 @@ void UShopItemSlotWidget::SetupShopItem(
 )
 {
 	ShopItemData = InShopItemData;
-	CurrencyItemID = InCurrencyItemID;
+	CurrencyItemID = ShopItemData.CurrencyItemID.IsNone()
+		? InCurrencyItemID
+		: ShopItemData.CurrencyItemID;
 
 	FItemData ItemData;
 	FItemData CurrencyData;

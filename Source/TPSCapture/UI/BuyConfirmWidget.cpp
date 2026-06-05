@@ -34,7 +34,9 @@ void UBuyConfirmWidget::NativeConstruct()
 void UBuyConfirmWidget::SetupBuyConfirm(const FShopItemData& InShopItemData, FName InCurrencyItemID)
 {
 	ShopItemData = InShopItemData;
-	CurrencyItemID = InCurrencyItemID;
+	CurrencyItemID = ShopItemData.CurrencyItemID.IsNone()
+		? InCurrencyItemID
+		: ShopItemData.CurrencyItemID;
 
 	MinBuyCount = FMath::Clamp(ShopItemData.MinBuyCount, 1, 99);
 	MaxBuyCount = FMath::Clamp(ShopItemData.MaxBuyCount, MinBuyCount, 99);

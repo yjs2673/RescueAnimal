@@ -122,6 +122,9 @@ struct FShopItemData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
 	int32 Price = 0;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FName CurrencyItemID = TEXT("Coin");
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "1", ClampMax = "99"))
 	int32 MinBuyCount = 1;
 
