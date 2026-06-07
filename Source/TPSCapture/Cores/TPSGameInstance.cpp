@@ -54,3 +54,44 @@ bool UTPSGameInstance::GetWeaponDataByID(FName WeaponID, FWeaponData& OutWeaponD
 	OutWeaponData = *FoundWeaponData;
 	return true;
 }
+
+bool UTPSGameInstance::UnlockAnimal(FName AnimalID)
+{
+	if (AnimalID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AnimalCollection] Unlock failed: AnimalID is None."));
+		return false;
+	}
+
+	if (UnlockedAnimalIDs.Contains(AnimalID))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AnimalCollection] Already unlocked animal species: %s"), *AnimalID.ToString());
+		return false;
+	}
+
+	UnlockedAnimalIDs.Add(AnimalID);
+
+	UE_LOG(LogTemp, Warning, TEXT("[AnimalCollection] New animal species unlocked: %s / Total=%d"),
+		*AnimalID.ToString(),
+		UnlockedAnimalIDs.Num());
+
+	return true;
+}
+
+bool UTPSGameInstance::IsAnimalUnlocked(FName AnimalID) const
+{
+	return !AnimalID.IsNone() && UnlockedAnimalIDs.Contains(AnimalID);
+}
+
+TArray<FName> UTPSGameInstance::GetUnlockedAnimalIDs() const
+{
+	TArray<FName> UnlockedIDs;
+	UnlockedIDs.Reserve(UnlockedAnimalIDs.Num());
+
+	for (const FName& AnimalID : UnlockedAnimalIDs)
+	{
+		UnlockedIDs.Add(AnimalID);
+	}
+
+	return UnlockedIDs;
+}

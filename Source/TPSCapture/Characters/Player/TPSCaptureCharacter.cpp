@@ -372,12 +372,12 @@ void ATPSCaptureCharacter::Interact()
 
 	if (TryRescueNearbyAnimal())
 		return;
-
-	if (NearbyWeapon || CurrentWeapon)
+	
+	/*if (NearbyWeapon || CurrentWeapon)
 	{
 		HandleWeaponInteract();
 		return;
-	}
+	}*/
 
 	if (CurrentShop)
 	{

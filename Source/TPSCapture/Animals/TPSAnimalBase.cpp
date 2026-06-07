@@ -1,5 +1,6 @@
 #include "TPSAnimalBase.h"
 #include "EnemyCampActor.h"
+#include "TPSGameInstance.h"
 #include "Engine/DataTable.h"
 #include "Components/WidgetComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -115,6 +116,20 @@ bool AAnimalBase::Rescue()
     }
 
     ApplyRescuedState();
+
+    if (UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>())
+    {
+        const bool bNewUnlock = TPSGameInstance->UnlockAnimal(AnimalID);
+        UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] Rescue collection result: AnimalID=%s NewUnlock=%s"),
+            *AnimalID.ToString(),
+            bNewUnlock ? TEXT("True") : TEXT("False"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] Rescue collection unlock skipped: GameInstance is not TPSGameInstance. AnimalID=%s"),
+            *AnimalID.ToString());
+    }
+
     OnAnimalRescued.Broadcast(this);
     BP_OnRescued();
 

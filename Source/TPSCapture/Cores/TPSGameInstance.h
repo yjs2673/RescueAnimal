@@ -19,12 +19,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Data")
 	bool GetWeaponDataByID(FName WeaponID, FWeaponData& OutWeaponData) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Animal Collection")
+	bool UnlockAnimal(FName AnimalID);
+
+	UFUNCTION(BlueprintPure, Category = "Animal Collection")
+	bool IsAnimalUnlocked(FName AnimalID) const;
+
+	UFUNCTION(BlueprintPure, Category = "Animal Collection")
+	TArray<FName> GetUnlockedAnimalIDs() const;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
 	UDataTable* ItemDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
 	UDataTable* WeaponDataTable;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal Collection")
+	TSet<FName> UnlockedAnimalIDs;
 
 public:
 	UFUNCTION(BlueprintPure, Category = "Data")
