@@ -62,7 +62,9 @@ enum class EAnimalState : uint8
 	Flee        UMETA(DisplayName = "Flee"),
 	Capturable  UMETA(DisplayName = "Capturable"),
 	Captured    UMETA(DisplayName = "Captured"),
-	Dead        UMETA(DisplayName = "Dead")
+	Dead        UMETA(DisplayName = "Dead"),
+	Trapped     UMETA(DisplayName = "Trapped"),
+	Rescued     UMETA(DisplayName = "Rescued")
 };
 
 UENUM(BlueprintType)

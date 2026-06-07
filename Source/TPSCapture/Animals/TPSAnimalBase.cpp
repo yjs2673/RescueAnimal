@@ -1,6 +1,7 @@
 #include "TPSAnimalBase.h"
 #include "Engine/DataTable.h"
 #include "Components/WidgetComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "EnemyHPBarWidget.h"
@@ -9,6 +10,10 @@
 #include "NavigationSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 AAnimalBase::AAnimalBase()
 {
@@ -20,6 +25,17 @@ AAnimalBase::AAnimalBase()
     HPWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
     HPWidgetComponent->SetDrawSize(FVector2D(100.0f, 20.0f));
     HPWidgetComponent->SetVisibility(false);
+
+    CageMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CageMeshComponent"));
+    CageMeshComponent->SetupAttachment(GetRootComponent());
+    CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+    SaveWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("SaveWidgetComponent"));
+    SaveWidgetComponent->SetupAttachment(GetRootComponent());
+    SaveWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f));
+    SaveWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+    SaveWidgetComponent->SetDrawSize(FVector2D(120.0f, 40.0f));
+    SaveWidgetComponent->SetVisibility(false);
 }
 
 void AAnimalBase::BeginPlay()
@@ -31,7 +47,16 @@ void AAnimalBase::BeginPlay()
     UpdateHPBar();
     HideHPBar();
 
-    StartWander();
+    HideSaveWidget();
+
+    if (bStartTrapped)
+    {
+        ApplyTrappedState();
+    }
+    else
+    {
+        StartWander();
+    }
 }
 
 void AAnimalBase::InitAnimalData()
@@ -67,7 +92,7 @@ void AAnimalBase::InitAnimalData()
     MaxHP = AnimalData.MaxHP;
     CurrentHP = MaxHP;
 
-    SetAnimalState(EAnimalState::Idle);
+    SetAnimalState(bStartTrapped ? EAnimalState::Trapped : EAnimalState::Idle);
 
     UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] Loaded AnimalData: %s / HP: %.1f / CaptureDifficulty: %.2f"),
         *AnimalID.ToString(),
@@ -79,6 +104,114 @@ void AAnimalBase::InitAnimalData()
 void AAnimalBase::SetAnimalState(EAnimalState NewState)
 {
     AnimalState = NewState;
+}
+
+bool AAnimalBase::Rescue()
+{
+    if (!IsTrapped() || bHasBeenRescued || AnimalState == EAnimalState::Dead)
+    {
+        return false;
+    }
+
+    ApplyRescuedState();
+    OnAnimalRescued.Broadcast(this);
+    BP_OnRescued();
+
+    return true;
+}
+
+void AAnimalBase::ApplyTrappedState()
+{
+    bHasBeenRescued = false;
+    SetAnimalState(EAnimalState::Trapped);
+
+    GetWorldTimerManager().ClearTimer(WanderTimerHandle);
+    GetWorldTimerManager().ClearTimer(FleeTimerHandle);
+
+    StopMovement();
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->StopMovementImmediately();
+        GetCharacterMovement()->DisableMovement();
+    }
+
+    if (CageMeshComponent)
+    {
+        CageMeshComponent->SetVisibility(true, true);
+        CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    }
+
+    HideSaveWidget();
+}
+
+void AAnimalBase::ApplyRescuedState()
+{
+    bHasBeenRescued = true;
+    SetAnimalState(EAnimalState::Rescued);
+
+    if (CageDisappearEffect)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+            GetWorld(),
+            CageDisappearEffect,
+            CageMeshComponent ? CageMeshComponent->GetComponentLocation() : GetActorLocation()
+        );
+    }
+
+    if (CageDisappearSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, CageDisappearSound, GetActorLocation());
+    }
+
+    if (RescueSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, RescueSound, GetActorLocation());
+    }
+
+    if (CageMeshComponent)
+    {
+        CageMeshComponent->SetVisibility(false, true);
+        CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+        GetCharacterMovement()->MaxWalkSpeed = WanderSpeed;
+    }
+
+    ShowSaveWidget();
+    StartWander();
+}
+
+void AAnimalBase::ShowSaveWidget()
+{
+    if (!SaveWidgetComponent)
+    {
+        return;
+    }
+
+    SaveWidgetComponent->SetVisibility(true);
+
+    GetWorldTimerManager().ClearTimer(SaveWidgetHideTimerHandle);
+    GetWorldTimerManager().SetTimer(
+        SaveWidgetHideTimerHandle,
+        this,
+        &AAnimalBase::HideSaveWidget,
+        SaveWidgetVisibleDuration,
+        false
+    );
+}
+
+void AAnimalBase::HideSaveWidget()
+{
+    if (!SaveWidgetComponent)
+    {
+        return;
+    }
+
+    SaveWidgetComponent->SetVisibility(false);
 }
 
 float AAnimalBase::TakeDamage(
@@ -163,14 +296,14 @@ void AAnimalBase::HideHPBar()
 
 void AAnimalBase::StartWander()
 {
-    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured)
+    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured || AnimalState == EAnimalState::Trapped)
     {
         return;
     }
 
     GetWorldTimerManager().ClearTimer(FleeTimerHandle);
 
-    SetAnimalState(EAnimalState::Wander);
+    SetAnimalState(bHasBeenRescued ? EAnimalState::Rescued : EAnimalState::Wander);
 
     if (GetCharacterMovement())
     {
@@ -191,7 +324,7 @@ void AAnimalBase::StartWander()
 
 void AAnimalBase::MoveToRandomLocation()
 {
-    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured)
+    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured || AnimalState == EAnimalState::Trapped)
     {
         return;
     }
@@ -231,7 +364,7 @@ void AAnimalBase::MoveToRandomLocation()
 
 void AAnimalBase::StartFlee(AActor* ThreatActor)
 {
-    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured)
+    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured || AnimalState == EAnimalState::Trapped)
     {
         return;
     }
@@ -298,7 +431,7 @@ void AAnimalBase::StartFlee(AActor* ThreatActor)
 
 void AAnimalBase::StopFlee()
 {
-    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured)
+    if (AnimalState == EAnimalState::Dead || AnimalState == EAnimalState::Captured || AnimalState == EAnimalState::Trapped)
     {
         return;
     }
@@ -330,20 +463,22 @@ void AAnimalBase::PlayAnimalDeathVisual()
 
     SetAnimalState(EAnimalState::Dead);
 
-    // 타이머 정리
+    // Clear active timers.
     GetWorldTimerManager().ClearTimer(WanderTimerHandle);
     GetWorldTimerManager().ClearTimer(FleeTimerHandle);
     GetWorldTimerManager().ClearTimer(HPBarHideTimerHandle);
+    GetWorldTimerManager().ClearTimer(SaveWidgetHideTimerHandle);
 
     HideHPBar();
+    HideSaveWidget();
 
-    // AI 이동 정지
+    // Stop AI movement.
     if (AAIController* AIController = Cast<AAIController>(GetController()))
     {
         AIController->StopMovement();
     }
 
-    // Character Movement 정지
+    // Stop character movement.
     if (GetCharacterMovement())
     {
         GetCharacterMovement()->StopMovementImmediately();
@@ -352,13 +487,13 @@ void AAnimalBase::PlayAnimalDeathVisual()
 
     if (GetMesh())
     {
-        // 현재 애니메이션 프레임에서 정지
+        // Freeze on the current animation frame.
         GetMesh()->bPauseAnims = true;
 
-        // 물리 시뮬레이션 X
+        // Do not simulate physics for the death visual.
         GetMesh()->SetSimulatePhysics(false);
 
-        // 회전 보간 준비
+        // Prepare rotation interpolation.
         DeathStartRotation = GetMesh()->GetRelativeRotation();
         DeathTargetRotation = DeathStartRotation + DeathRotationOffset;
         DeathFallElapsedTime = 0.0f;

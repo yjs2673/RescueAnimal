@@ -11,6 +11,12 @@ class UWidgetComponent;
 class UEnemyHPBarWidget;
 class AAIController;
 class UMaterialInstanceDynamic;
+class UStaticMeshComponent;
+class UNiagaraSystem;
+class USoundBase;
+class AAnimalBase;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnimalRescued, AAnimalBase*, RescuedAnimal);
 
 UCLASS()
 class TPSCAPTURE_API AAnimalBase : public ATPSCreatureBase
@@ -19,6 +25,18 @@ class TPSCAPTURE_API AAnimalBase : public ATPSCreatureBase
 
 public:
     AAnimalBase();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    bool Rescue();
+
+    UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
+    bool IsTrapped() const { return AnimalState == EAnimalState::Trapped; }
+
+    UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
+    bool IsRescued() const { return bHasBeenRescued; }
+
+    UPROPERTY(BlueprintAssignable, Category = "Animal|Rescue")
+    FOnAnimalRescued OnAnimalRescued;
 
 protected:
     virtual void BeginPlay() override;
@@ -44,6 +62,12 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|State")
     EAnimalState AnimalState = EAnimalState::Idle;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    bool bStartTrapped = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    bool bHasBeenRescued = false;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Capture")
     float CaptureDifficulty = 1.0f;
 
@@ -56,6 +80,42 @@ protected:
 
     UFUNCTION(BlueprintCallable, Category = "Animal|State")
     void SetAnimalState(EAnimalState NewState);
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    void ApplyTrappedState();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    void ApplyRescuedState();
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animal|Rescue")
+    void BP_OnRescued();
+
+protected: // Rescue Visual
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    UStaticMeshComponent* CageMeshComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    UWidgetComponent* SaveWidgetComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    UNiagaraSystem* CageDisappearEffect;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    USoundBase* CageDisappearSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    USoundBase* RescueSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    float SaveWidgetVisibleDuration = 1.0f;
+
+    FTimerHandle SaveWidgetHideTimerHandle;
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    void ShowSaveWidget();
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    void HideSaveWidget();
 
 protected: // HP Bar
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|UI")
