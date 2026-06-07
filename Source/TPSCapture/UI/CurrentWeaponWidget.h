@@ -33,6 +33,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
 	TObjectPtr<UTexture2D> BowIcon;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
+	TObjectPtr<UTexture2D> KitIcon;
+
 private:
 	UTexture2D* GetIconByWeaponType(EWeaponType WeaponType) const;
 };

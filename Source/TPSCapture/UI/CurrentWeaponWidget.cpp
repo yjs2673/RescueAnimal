@@ -38,6 +38,9 @@ UTexture2D* UCurrentWeaponWidget::GetIconByWeaponType(EWeaponType WeaponType) co
 	case EWeaponType::Bow:
 		return BowIcon ? BowIcon.Get() : FistIcon.Get();
 
+	case EWeaponType::Kit:
+		return KitIcon ? KitIcon.Get() : FistIcon.Get();
+
 	case EWeaponType::None:
 	default:
 		return FistIcon.Get();

@@ -44,6 +44,7 @@
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Animation/AnimInstance.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -224,6 +225,11 @@ void ATPSCaptureCharacter::BeginPlay()
 		StatComponent->OnMovementStatsChanged.AddUniqueDynamic(this, &ATPSCaptureCharacter::ApplyMovementStats);
 	}
 
+	if (InventoryComponent && !StarterRescueKitItemID.IsNone() && !InventoryComponent->HasItem(StarterRescueKitItemID, 1))
+	{
+		InventoryComponent->AddItem(StarterRescueKitItemID, 1);
+	}
+
 
 	if (CameraBoom)
 		DefaultArmLength = CameraBoom->TargetArmLength;
@@ -364,6 +370,9 @@ void ATPSCaptureCharacter::Interact()
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
+	if (TryRescueNearbyAnimal())
+		return;
+
 	if (NearbyWeapon || CurrentWeapon)
 	{
 		HandleWeaponInteract();
@@ -381,6 +390,71 @@ void ATPSCaptureCharacter::Interact()
 		CurrentPortal->Interact(this);
 		return;
 	}
+}
+
+bool ATPSCaptureCharacter::TryRescueNearbyAnimal()
+{
+	AAnimalBase* RescueAnimal = FindNearbyRescueAnimal();
+	if (!RescueAnimal)
+	{
+		return false;
+	}
+
+	if (!IsRescueKitEquipped())
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescue failed: rescue kit is not equipped."));
+		return true;
+	}
+
+	if (!RescueAnimal->CanBeRescued())
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescue failed: camp is not cleared or animal is not trapped."));
+		return true;
+	}
+
+	if (!RescueAnimal->Rescue())
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescue failed: Rescue() returned false."));
+		return true;
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescued: %s"), *RescueAnimal->GetName());
+	return true;
+}
+
+AAnimalBase* ATPSCaptureCharacter::FindNearbyRescueAnimal() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	AAnimalBase* BestAnimal = nullptr;
+	float BestDistanceSquared = FMath::Square(AnimalRescueInteractDistance);
+
+	for (TActorIterator<AAnimalBase> It(World); It; ++It)
+	{
+		AAnimalBase* Animal = *It;
+		if (!IsValid(Animal) || !Animal->IsTrapped())
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared(GetActorLocation(), Animal->GetActorLocation());
+		if (DistanceSquared <= BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestAnimal = Animal;
+		}
+	}
+
+	return BestAnimal;
+}
+
+bool ATPSCaptureCharacter::IsRescueKitEquipped() const
+{
+	return CurrentWeapon && CurrentWeapon->WeaponType == EWeaponType::Kit;
 }
 
 void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
@@ -648,6 +722,8 @@ bool ATPSCaptureCharacter::EquipWeaponFromInventory(FName ItemID)
 	}
 
 	NewWeapon->WeaponID = WeaponData.WeaponID.IsNone() ? ItemID : WeaponData.WeaponID;
+	NewWeapon->WeaponType = WeaponData.WeaponType;
+	NewWeapon->AttackType = WeaponData.AttackType;
 
 
 	if (CurrentWeapon)

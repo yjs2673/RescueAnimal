@@ -15,6 +15,7 @@ class UStaticMeshComponent;
 class UNiagaraSystem;
 class USoundBase;
 class AAnimalBase;
+class AEnemyCampActor;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnimalRescued, AAnimalBase*, RescuedAnimal);
 
@@ -34,6 +35,15 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
     bool IsRescued() const { return bHasBeenRescued; }
+
+    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
+    void SetOwningCamp(AEnemyCampActor* InCamp);
+
+    UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
+    AEnemyCampActor* GetOwningCamp() const { return OwningCamp; }
+
+    UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
+    bool CanBeRescued() const;
 
     UPROPERTY(BlueprintAssignable, Category = "Animal|Rescue")
     FOnAnimalRescued OnAnimalRescued;
@@ -67,6 +77,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
     bool bHasBeenRescued = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Rescue")
+    TObjectPtr<AEnemyCampActor> OwningCamp = nullptr;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Capture")
     float CaptureDifficulty = 1.0f;

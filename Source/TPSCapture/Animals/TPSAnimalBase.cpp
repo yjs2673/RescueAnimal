@@ -1,4 +1,5 @@
 #include "TPSAnimalBase.h"
+#include "EnemyCampActor.h"
 #include "Engine/DataTable.h"
 #include "Components/WidgetComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -108,7 +109,7 @@ void AAnimalBase::SetAnimalState(EAnimalState NewState)
 
 bool AAnimalBase::Rescue()
 {
-    if (!IsTrapped() || bHasBeenRescued || AnimalState == EAnimalState::Dead)
+    if (!CanBeRescued())
     {
         return false;
     }
@@ -118,6 +119,21 @@ bool AAnimalBase::Rescue()
     BP_OnRescued();
 
     return true;
+}
+
+void AAnimalBase::SetOwningCamp(AEnemyCampActor* InCamp)
+{
+    OwningCamp = InCamp;
+}
+
+bool AAnimalBase::CanBeRescued() const
+{
+    if (!IsTrapped() || bHasBeenRescued || AnimalState == EAnimalState::Dead)
+    {
+        return false;
+    }
+
+    return OwningCamp && OwningCamp->IsCampCleared();
 }
 
 void AAnimalBase::ApplyTrappedState()

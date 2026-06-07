@@ -80,6 +80,7 @@ void AEnemyCampActor::RegisterAnimal(AAnimalBase* Animal)
 	}
 
 	CampAnimals.AddUnique(Animal);
+	Animal->SetOwningCamp(this);
 }
 
 void AEnemyCampActor::RefreshCampMembers()
@@ -113,6 +114,7 @@ void AEnemyCampActor::RefreshCampMembers()
 		}
 
 		CampAnimals.AddUnique(Animal);
+		Animal->SetOwningCamp(this);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[EnemyCampActor] Refreshed members: %s / Enemies=%d Animals=%d"),

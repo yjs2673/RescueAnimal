@@ -23,7 +23,8 @@ enum class EWeaponType : uint8
 	Sword			UMETA(DisplayName = "Sword"),
 	Bow				UMETA(DisplayName = "Bow"),
 	Pickaxe			UMETA(DisplayName = "Pickaxe"),
-	Axe				UMETA(DisplayName = "Axe")
+	Axe				UMETA(DisplayName = "Axe"),
+	Kit				UMETA(DisplayName = "Kit")
 };
 
 UENUM(BlueprintType)

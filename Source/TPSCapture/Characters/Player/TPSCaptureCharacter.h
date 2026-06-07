@@ -38,6 +38,7 @@ class UQuickSlotComponent;
 
 class APortalActor;
 class AShopActor;
+class AAnimalBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -123,10 +124,10 @@ protected:
 public:
 #pragma region Anim Var
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
-	float MoveInputX = 0.0f; // ÁÂ¿ì
+	float MoveInputX = 0.0f; // ì¢Œìš°
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anim")
-	float MoveInputY = 0.0f; // ¾ÕµÚ
+	float MoveInputY = 0.0f; // ì•ë’¤
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UUserWidget> MainHUDClass;
@@ -142,19 +143,19 @@ public:
 #pragma endregion Anim Var
 
 #pragma region Equip Var
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // ¿À¸¥¼Õ ¹«±â ÀåÂø ¼ÒÄÏ
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // ì˜¤ë¥¸ì† ë¬´ê¸° ì¥ì°© ì†Œì¼“
 	FName RightWeaponSocketName = TEXT("RightHandSocket");
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // ¿Ş¼Õ ¹«±â ÀåÂø ¼ÒÄÏ
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon") // ì™¼ì† ë¬´ê¸° ì¥ì°© ì†Œì¼“
 	FName LeftWeaponSocketName = TEXT("LeftHandSocket");
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")	// ÇöÀç ÀåÂø ¹«±â
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")	// í˜„ì¬ ì¥ì°© ë¬´ê¸°
 	AWeaponBase* CurrentWeapon;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon") // ½ÃÀÛÇÒ ¶§ Áö±ŞÇÒ ¹«±â Å¬·¡½º (Å×½ºÆ®¿ë)
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon") // ì‹œì‘í•  ë•Œ ì§€ê¸‰í•  ë¬´ê¸° í´ë˜ìŠ¤ (í…ŒìŠ¤íŠ¸ìš©)
 	TSubclassOf<AWeaponBase> StarterWeaponClass;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon") // ÁÖº¯ ¹«±â ÂüÁ¶
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon") // ì£¼ë³€ ë¬´ê¸° ì°¸ì¡°
 	AWeaponBase* NearbyWeapon = nullptr;
 #pragma endregion Equip Var
 	
@@ -187,13 +188,13 @@ protected:
 	FVector DodgeDirection = FVector::ZeroVector;
 
 #pragma region Punch Var
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // ÆİÄ¡ µ¥¹ÌÁö
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // í€ì¹˜ ë°ë¯¸ì§€
 	float PunchDamage = 20.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // ¾ÕÀ¸·Î ¾ó¸¶³ª °Ë»çÇÒÁö
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // ì•ìœ¼ë¡œ ì–¼ë§ˆë‚˜ ê²€ì‚¬í• ì§€
 	float PunchRange = 150.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // ÆÇÁ¤ Å©±â
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat") // íŒì • í¬ê¸°
 	float PunchRadius = 50.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
@@ -240,7 +241,7 @@ protected:
 	float MaxBowSpeedMultiplier = 1.8f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
-	float CachedBowChargeAlpha = 0.0f;	// Â÷Â¡°ª
+	float CachedBowChargeAlpha = 0.0f;	// ì°¨ì§•ê°’
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bow|Camera")
 	float DefaultFOV = 90.0f;
@@ -294,6 +295,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<AShopActor> CurrentShop = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Rescue")
+	float AnimalRescueInteractDistance = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Rescue")
+	FName StarterRescueKitItemID = TEXT("RescueKit");
 #pragma endregion Montage & Interaction Var
 
 #pragma region SFX Var
@@ -377,6 +384,9 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Interact();
+	bool TryRescueNearbyAnimal();
+	AAnimalBase* FindNearbyRescueAnimal() const;
+	bool IsRescueKitEquipped() const;
 	void UseQuickSlotItem(int32 SlotIndex);
 
 	UFUNCTION()
@@ -388,10 +398,10 @@ protected:
 #pragma endregion Base Action Func
 
 #pragma region Equip Func
-	UFUNCTION(BlueprintCallable, Category = "Weapon") // »õ·Î¿î ¹«±â ÀåÂø, ÀÌ¹Ì ÀåÂøµÇ¾î ÀÖ´Ù¸é ±³Ã¼
+	UFUNCTION(BlueprintCallable, Category = "Weapon") // ìƒˆë¡œìš´ ë¬´ê¸° ì¥ì°©, ì´ë¯¸ ì¥ì°©ë˜ì–´ ìˆë‹¤ë©´ êµì²´
 	void EquipWeapon(AWeaponBase* NewWeapon);
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon") // ÀåÂø ÇØÁ¦
+	UFUNCTION(BlueprintCallable, Category = "Weapon") // ì¥ì°© í•´ì œ
 	void UnequipWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
@@ -410,8 +420,8 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void Attack();
 
-	void AttackUnarmed();		// ¸Ç¼Õ
-	void AttackWithWeapon();	// ¹«±â
+	void AttackUnarmed();		// ë§¨ì†
+	void AttackWithWeapon();	// ë¬´ê¸°
 	void FaceAttackDirection();
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
@@ -472,13 +482,13 @@ protected:
 	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION(BlueprintCallable)
-	void FireArrow(); // È°
+	void FireArrow(); // í™œ
 
 	void PlayBowWeaponMontageSection(FName SectionName);
 
 	void PlayHitMontage();
 
-	UFUNCTION(BlueprintCallable) // ÇÇ°İ ÈÄ ¹Ù·Î ´ÙÀ½ ¾×¼Ç: ÇÇ°İ ¸ğ¼Ç Áß´Ü
+	UFUNCTION(BlueprintCallable) // í”¼ê²© í›„ ë°”ë¡œ ë‹¤ìŒ ì•¡ì…˜: í”¼ê²© ëª¨ì…˜ ì¤‘ë‹¨
 	void StopHitMontage();
 #pragma endregion Anim Montage 
 
@@ -505,11 +515,11 @@ protected:
 
 public:
 #pragma region Interaction Function
-	void SetCurrentPortal(APortalActor* NewPortal);			// Æ÷Å»¿¡ µé¾î°¥ ¶§ ÇöÀç Æ÷Å» ¼³Á¤
-	void ClearCurrentPortal(APortalActor* PortalToClear);	// Æ÷Å»¿¡¼­ ³ª¿Ã ¶§ ÇöÀç Æ÷Å» ÇØÁ¦
+	void SetCurrentPortal(APortalActor* NewPortal);			// í¬íƒˆì— ë“¤ì–´ê°ˆ ë•Œ í˜„ì¬ í¬íƒˆ ì„¤ì •
+	void ClearCurrentPortal(APortalActor* PortalToClear);	// í¬íƒˆì—ì„œ ë‚˜ì˜¬ ë•Œ í˜„ì¬ í¬íƒˆ í•´ì œ
 
-	void SetCurrentShop(AShopActor* NewShop);				// »óÁ¡¿¡ µé¾î°¥ ¶§ ÇöÀç »óÁ¡ ¼³Á¤
-	void ClearCurrentShop(AShopActor* ShopToClear);			// »óÁ¡¿¡¼­ ³ª¿Ã ¶§ ÇöÀç »óÁ¡ ÇØÁ¦
+	void SetCurrentShop(AShopActor* NewShop);				// ìƒì ì— ë“¤ì–´ê°ˆ ë•Œ í˜„ì¬ ìƒì  ì„¤ì •
+	void ClearCurrentShop(AShopActor* ShopToClear);			// ìƒì ì—ì„œ ë‚˜ì˜¬ ë•Œ í˜„ì¬ ìƒì  í•´ì œ
 #pragma endregion Interaction Func
 
 	virtual float TakeDamage(
