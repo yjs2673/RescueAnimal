@@ -26,13 +26,14 @@ public class TPSCapture : ModuleRules
         });
 
         PublicIncludePaths.AddRange(new string[] {
+            "TPSCapture/Animals",
+            "TPSCapture/Camps",
             "TPSCapture/Characters",
             "TPSCapture/Characters/Player",
             "TPSCapture/Characters/Enemies",
             "TPSCapture/Components",
             "TPSCapture/Cores",
             "TPSCapture/Creatures",
-            "TPSCapture/Animals",
             "TPSCapture/Creatures/Animals",
             "TPSCapture/Creatures/Enemies",
             "TPSCapture/Data",
