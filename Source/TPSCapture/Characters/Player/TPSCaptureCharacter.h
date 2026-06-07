@@ -531,6 +531,9 @@ public:
 #pragma region Delicate Func
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	EWeaponType GetCurrentWeaponType() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	FName GetCurrentWeaponItemID() const;
 #pragma endregion Delicate Func
 
 	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")

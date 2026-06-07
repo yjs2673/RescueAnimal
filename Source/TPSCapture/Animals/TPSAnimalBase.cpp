@@ -133,7 +133,7 @@ bool AAnimalBase::CanBeRescued() const
         return false;
     }
 
-    return OwningCamp && OwningCamp->IsCampCleared();
+    return !OwningCamp || OwningCamp->IsCampCleared();
 }
 
 void AAnimalBase::ApplyTrappedState()

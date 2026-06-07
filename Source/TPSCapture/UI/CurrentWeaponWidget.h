@@ -7,6 +7,7 @@
 
 class UImage;
 class UTexture2D;
+class ATPSCaptureCharacter;
 
 UCLASS()
 class TPSCAPTURE_API UCurrentWeaponWidget : public UUserWidget
@@ -25,17 +26,9 @@ protected:
 	TObjectPtr<UImage> WeaponIcon;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
-	TObjectPtr<UTexture2D> FistIcon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
-	TObjectPtr<UTexture2D> SwordIcon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
-	TObjectPtr<UTexture2D> BowIcon;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Icon")
-	TObjectPtr<UTexture2D> KitIcon;
+	TObjectPtr<UTexture2D> NoneIcon;
 
 private:
-	UTexture2D* GetIconByWeaponType(EWeaponType WeaponType) const;
+	UTexture2D* GetCurrentWeaponItemIcon() const;
+	ATPSCaptureCharacter* GetPlayerCharacter() const;
 };

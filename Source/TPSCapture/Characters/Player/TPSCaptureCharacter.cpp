@@ -1969,6 +1969,11 @@ EWeaponType ATPSCaptureCharacter::GetCurrentWeaponType() const
 
 	return CurrentWeapon->WeaponType;
 }
+
+FName ATPSCaptureCharacter::GetCurrentWeaponItemID() const
+{
+	return CurrentWeapon ? CurrentWeapon->WeaponID : NAME_None;
+}
 #pragma endregion Delicate Func
 
 #pragma region VFX Func

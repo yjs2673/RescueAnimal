@@ -1,5 +1,11 @@
 #include "CurrentWeaponWidget.h"
+
 #include "Components/Image.h"
+#include "Kismet/GameplayStatics.h"
+
+#include "TPSCaptureCharacter.h"
+#include "TPSGameInstance.h"
+#include "TPSStructTypes.h"
 
 void UCurrentWeaponWidget::NativeConstruct()
 {
@@ -15,7 +21,9 @@ void UCurrentWeaponWidget::UpdateWeaponIcon(EWeaponType WeaponType)
 		return;
 	}
 
-	UTexture2D* IconTexture = GetIconByWeaponType(WeaponType);
+	UTexture2D* IconTexture = WeaponType == EWeaponType::None
+		? NoneIcon.Get()
+		: GetCurrentWeaponItemIcon();
 
 	if (IconTexture)
 	{
@@ -28,21 +36,52 @@ void UCurrentWeaponWidget::UpdateWeaponIcon(EWeaponType WeaponType)
 	}
 }
 
-UTexture2D* UCurrentWeaponWidget::GetIconByWeaponType(EWeaponType WeaponType) const
+UTexture2D* UCurrentWeaponWidget::GetCurrentWeaponItemIcon() const
 {
-	switch (WeaponType)
+	const ATPSCaptureCharacter* PlayerCharacter = GetPlayerCharacter();
+	if (!PlayerCharacter)
 	{
-	case EWeaponType::Sword:
-		return SwordIcon ? SwordIcon.Get() : FistIcon.Get();
-
-	case EWeaponType::Bow:
-		return BowIcon ? BowIcon.Get() : FistIcon.Get();
-
-	case EWeaponType::Kit:
-		return KitIcon ? KitIcon.Get() : FistIcon.Get();
-
-	case EWeaponType::None:
-	default:
-		return FistIcon.Get();
+		return NoneIcon.Get();
 	}
+
+	const FName WeaponItemID = PlayerCharacter->GetCurrentWeaponItemID();
+	if (WeaponItemID.IsNone())
+	{
+		return NoneIcon.Get();
+	}
+
+	const UTPSGameInstance* TPSGameInstance = GetWorld()
+		? GetWorld()->GetGameInstance<UTPSGameInstance>()
+		: nullptr;
+	if (!TPSGameInstance)
+	{
+		return NoneIcon.Get();
+	}
+
+	FItemData ItemData;
+	if (!TPSGameInstance->GetItemDataByID(WeaponItemID, ItemData))
+	{
+		return NoneIcon.Get();
+	}
+
+	if (ItemData.Icon)
+	{
+		return ItemData.Icon;
+	}
+
+	return ItemData.Image ? ItemData.Image : NoneIcon.Get();
+}
+
+ATPSCaptureCharacter* UCurrentWeaponWidget::GetPlayerCharacter() const
+{
+	APawn* OwningPawn = GetOwningPlayerPawn();
+
+	if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(OwningPawn))
+	{
+		return PlayerCharacter;
+	}
+
+	return Cast<ATPSCaptureCharacter>(
+		UGameplayStatics::GetPlayerCharacter(GetWorld(), 0)
+	);
 }
