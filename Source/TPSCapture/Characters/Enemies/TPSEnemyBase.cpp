@@ -17,6 +17,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Sound/SoundBase.h"
@@ -141,7 +142,10 @@ void ATPSEnemyBase::UpdateChase()
 		return;
 
 	if (!HasValidTarget())
+	{
+		UpdateCampWander();
 		return;
+	}
 
 	if (bIsAttackMovementLocked)
 	{
@@ -247,6 +251,78 @@ bool ATPSEnemyBase::CanAttack() const
 	}
 
 	return true;
+}
+
+void ATPSEnemyBase::SetCampPatrolArea(const FVector& InCenter, float InRadius)
+{
+	CampPatrolCenter = InCenter;
+	CampPatrolRadius = FMath::Max(0.0f, InRadius);
+	bUseCampPatrolArea = CampPatrolRadius > 0.0f;
+	LastCampWanderTime = -1000.0f;
+}
+
+void ATPSEnemyBase::ClearCampPatrolArea()
+{
+	bUseCampPatrolArea = false;
+	CampPatrolCenter = FVector::ZeroVector;
+	CampPatrolRadius = 0.0f;
+	LastCampWanderTime = -1000.0f;
+}
+
+void ATPSEnemyBase::UpdateCampWander()
+{
+	if (bIsDead || bIsAttacking || bIsAttackMovementLocked)
+	{
+		return;
+	}
+
+	if (!bUseCampPatrolArea || CampPatrolRadius <= 0.0f || !GetWorld())
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastCampWanderTime < CampWanderInterval)
+	{
+		return;
+	}
+
+	LastCampWanderTime = CurrentTime;
+	MoveToRandomCampLocation();
+}
+
+void ATPSEnemyBase::MoveToRandomCampLocation()
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
+	{
+		return;
+	}
+
+	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+	if (!NavSystem)
+	{
+		return;
+	}
+
+	FNavLocation RandomLocation;
+	const bool bFoundLocation = NavSystem->GetRandomReachablePointInRadius(
+		CampPatrolCenter,
+		CampPatrolRadius,
+		RandomLocation
+	);
+
+	if (!bFoundLocation)
+	{
+		return;
+	}
+
+	AIController->MoveToLocation(RandomLocation.Location, CampWanderAcceptanceRadius);
 }
 
 void ATPSEnemyBase::UpdateAttack()

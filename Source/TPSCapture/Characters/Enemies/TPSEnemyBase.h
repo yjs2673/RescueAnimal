@@ -130,6 +130,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
 	virtual bool CanAttack() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Camp")
+	void SetCampPatrolArea(const FVector& InCenter, float InRadius);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Camp")
+	void ClearCampPatrolArea();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float LastAttackTime = -1000.f;
@@ -138,6 +144,26 @@ protected:
 	UAnimMontage* AttackMontage = nullptr;
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Camp")
+	bool bUseCampPatrolArea = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Camp")
+	FVector CampPatrolCenter = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Camp")
+	float CampPatrolRadius = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Camp")
+	float CampWanderInterval = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Camp")
+	float CampWanderAcceptanceRadius = 80.0f;
+
+	float LastCampWanderTime = -1000.0f;
+
+	virtual void UpdateCampWander();
+	virtual void MoveToRandomCampLocation();
+
 	virtual void UpdateAttack();
 	virtual void EquipDefaultWeapon();
 	virtual void EquipWeapon(AWeaponBase* NewWeapon);

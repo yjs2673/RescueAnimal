@@ -1,7 +1,7 @@
 #include "EnemyCampActor.h"
 
-#include "Components/BoxComponent.h"
-#include "Engine/OverlapResult.h"
+#include "Components/SphereComponent.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
 
 #include "TPSEnemyBase.h"
@@ -11,10 +11,11 @@ AEnemyCampActor::AEnemyCampActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	CampBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("CampBounds"));
+	CampBounds = CreateDefaultSubobject<USphereComponent>(TEXT("CampBounds"));
 	RootComponent = CampBounds;
 
-	CampBounds->SetBoxExtent(FVector(1000.0f, 1000.0f, 300.0f));
+	CampBounds->SetRelativeLocation(FVector::ZeroVector);
+	CampBounds->SetSphereRadius(1500.0f);
 	CampBounds->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CampBounds->SetCollisionObjectType(ECC_WorldDynamic);
 	CampBounds->SetCollisionResponseToAllChannels(ECR_Ignore);
@@ -24,6 +25,11 @@ AEnemyCampActor::AEnemyCampActor()
 void AEnemyCampActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (CampBounds)
+	{
+		CampBounds->SetRelativeLocation(FVector::ZeroVector);
+	}
 
 	if (bAutoCollectMembersOnBeginPlay)
 	{
@@ -44,6 +50,16 @@ void AEnemyCampActor::BeginPlay()
 	}
 }
 
+void AEnemyCampActor::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	if (CampBounds)
+	{
+		CampBounds->SetRelativeLocation(FVector::ZeroVector);
+	}
+}
+
 void AEnemyCampActor::RegisterEnemy(ATPSEnemyBase* Enemy)
 {
 	if (!Enemy)
@@ -52,6 +68,7 @@ void AEnemyCampActor::RegisterEnemy(ATPSEnemyBase* Enemy)
 	}
 
 	CampEnemies.AddUnique(Enemy);
+	Enemy->SetCampPatrolArea(CampBounds ? CampBounds->GetComponentLocation() : GetActorLocation(), GetCampRadius());
 	CheckCampCleared();
 }
 
@@ -75,43 +92,33 @@ void AEnemyCampActor::RefreshCampMembers()
 		return;
 	}
 
-	TArray<FOverlapResult> OverlapResults;
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyCampActorRefresh), false, this);
-
-	const bool bHasOverlaps = GetWorld()->OverlapMultiByObjectType(
-		OverlapResults,
-		CampBounds->GetComponentLocation(),
-		CampBounds->GetComponentQuat(),
-		FCollisionObjectQueryParams(ECC_Pawn),
-		FCollisionShape::MakeBox(CampBounds->GetScaledBoxExtent()),
-		QueryParams
-	);
-
-	if (!bHasOverlaps)
+	for (TActorIterator<ATPSEnemyBase> It(GetWorld()); It; ++It)
 	{
-		return;
-	}
-
-	for (const FOverlapResult& Result : OverlapResults)
-	{
-		AActor* OverlappedActor = Result.GetActor();
-		if (!OverlappedActor)
+		ATPSEnemyBase* Enemy = *It;
+		if (!IsValid(Enemy) || !IsActorInsideCampBounds(Enemy))
 		{
 			continue;
 		}
 
-		if (ATPSEnemyBase* Enemy = Cast<ATPSEnemyBase>(OverlappedActor))
+		CampEnemies.AddUnique(Enemy);
+		Enemy->SetCampPatrolArea(CampBounds->GetComponentLocation(), GetCampRadius());
+	}
+
+	for (TActorIterator<AAnimalBase> It(GetWorld()); It; ++It)
+	{
+		AAnimalBase* Animal = *It;
+		if (!IsValid(Animal) || !IsActorInsideCampBounds(Animal))
 		{
-			CampEnemies.AddUnique(Enemy);
 			continue;
 		}
 
-		if (AAnimalBase* Animal = Cast<AAnimalBase>(OverlappedActor))
-		{
-			CampAnimals.AddUnique(Animal);
-		}
+		CampAnimals.AddUnique(Animal);
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[EnemyCampActor] Refreshed members: %s / Enemies=%d Animals=%d"),
+		*GetName(),
+		CampEnemies.Num(),
+		CampAnimals.Num());
 }
 
 void AEnemyCampActor::CheckCampCleared()
@@ -139,7 +146,7 @@ int32 AEnemyCampActor::GetAliveEnemyCount() const
 {
 	int32 AliveCount = 0;
 
-	for (ATPSEnemyBase* Enemy : CampEnemies)
+	for (const TObjectPtr<ATPSEnemyBase>& Enemy : CampEnemies)
 	{
 		if (IsValid(Enemy))
 		{
@@ -150,6 +157,43 @@ int32 AEnemyCampActor::GetAliveEnemyCount() const
 	return AliveCount;
 }
 
+TArray<ATPSEnemyBase*> AEnemyCampActor::GetCampEnemies() const
+{
+	TArray<ATPSEnemyBase*> Enemies;
+	Enemies.Reserve(CampEnemies.Num());
+
+	for (const TObjectPtr<ATPSEnemyBase>& Enemy : CampEnemies)
+	{
+		if (IsValid(Enemy))
+		{
+			Enemies.Add(Enemy.Get());
+		}
+	}
+
+	return Enemies;
+}
+
+TArray<AAnimalBase*> AEnemyCampActor::GetCampAnimals() const
+{
+	TArray<AAnimalBase*> Animals;
+	Animals.Reserve(CampAnimals.Num());
+
+	for (const TObjectPtr<AAnimalBase>& Animal : CampAnimals)
+	{
+		if (IsValid(Animal))
+		{
+			Animals.Add(Animal.Get());
+		}
+	}
+
+	return Animals;
+}
+
+float AEnemyCampActor::GetCampRadius() const
+{
+	return CampBounds ? CampBounds->GetScaledSphereRadius() : 0.0f;
+}
+
 bool AEnemyCampActor::IsActorInsideCampBounds(const AActor* Actor) const
 {
 	if (!Actor || !CampBounds)
@@ -157,13 +201,8 @@ bool AEnemyCampActor::IsActorInsideCampBounds(const AActor* Actor) const
 		return false;
 	}
 
-	const FTransform BoundsTransform = CampBounds->GetComponentTransform();
-	const FVector LocalLocation = BoundsTransform.InverseTransformPosition(Actor->GetActorLocation());
-	const FVector BoxExtent = CampBounds->GetUnscaledBoxExtent();
-
-	return FMath::Abs(LocalLocation.X) <= BoxExtent.X
-		&& FMath::Abs(LocalLocation.Y) <= BoxExtent.Y
-		&& FMath::Abs(LocalLocation.Z) <= BoxExtent.Z;
+	return FVector::DistSquared(Actor->GetActorLocation(), CampBounds->GetComponentLocation())
+		<= FMath::Square(CampBounds->GetScaledSphereRadius());
 }
 
 void AEnemyCampActor::HandleCampCleared()

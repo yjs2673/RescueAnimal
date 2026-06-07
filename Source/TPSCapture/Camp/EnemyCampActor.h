@@ -4,7 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "EnemyCampActor.generated.h"
 
-class UBoxComponent;
+class USphereComponent;
 class ATPSEnemyBase;
 class AAnimalBase;
 
@@ -20,6 +20,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Camp")
@@ -41,17 +42,20 @@ public:
 	int32 GetAliveEnemyCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Camp")
-	const TArray<ATPSEnemyBase*>& GetCampEnemies() const { return CampEnemies; }
+	TArray<ATPSEnemyBase*> GetCampEnemies() const;
 
 	UFUNCTION(BlueprintPure, Category = "Camp")
-	const TArray<AAnimalBase*>& GetCampAnimals() const { return CampAnimals; }
+	TArray<AAnimalBase*> GetCampAnimals() const;
+
+	UFUNCTION(BlueprintPure, Category = "Camp")
+	float GetCampRadius() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Camp")
 	FOnEnemyCampCleared OnEnemyCampCleared;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camp")
-	TObjectPtr<UBoxComponent> CampBounds;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camp")
+	TObjectPtr<USphereComponent> CampBounds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camp")
 	bool bAutoCollectMembersOnBeginPlay = true;
