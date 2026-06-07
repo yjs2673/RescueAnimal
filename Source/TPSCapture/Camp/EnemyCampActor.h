@@ -5,6 +5,7 @@
 #include "EnemyCampActor.generated.h"
 
 class USphereComponent;
+class USceneComponent;
 class ATPSEnemyBase;
 class AAnimalBase;
 
@@ -22,7 +23,14 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
 public:
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Camp")
+	void ApplyCampBoundsSettings();
+
 	UFUNCTION(BlueprintCallable, Category = "Camp")
 	void RegisterEnemy(ATPSEnemyBase* Enemy);
 
@@ -54,8 +62,14 @@ public:
 	FOnEnemyCampCleared OnEnemyCampCleared;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camp")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camp")
+	TObjectPtr<USceneComponent> DefaultRoot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camp")
 	TObjectPtr<USphereComponent> CampBounds;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camp", meta = (ClampMin = "0.0"))
+	float CampRadius = 1500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camp")
 	bool bAutoCollectMembersOnBeginPlay = true;

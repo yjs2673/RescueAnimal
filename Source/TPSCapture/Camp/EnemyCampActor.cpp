@@ -1,5 +1,6 @@
 #include "EnemyCampActor.h"
 
+#include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
 #include "EngineUtils.h"
 #include "TimerManager.h"
@@ -11,25 +12,27 @@ AEnemyCampActor::AEnemyCampActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	DefaultRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultRoot"));
+	RootComponent = DefaultRoot;
+
 	CampBounds = CreateDefaultSubobject<USphereComponent>(TEXT("CampBounds"));
-	RootComponent = CampBounds;
+	CampBounds->SetupAttachment(DefaultRoot);
 
 	CampBounds->SetRelativeLocation(FVector::ZeroVector);
-	CampBounds->SetSphereRadius(1500.0f);
+	CampBounds->SetSphereRadius(CampRadius);
 	CampBounds->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CampBounds->SetCollisionObjectType(ECC_WorldDynamic);
 	CampBounds->SetCollisionResponseToAllChannels(ECR_Ignore);
 	CampBounds->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	ApplyCampBoundsSettings();
 }
 
 void AEnemyCampActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (CampBounds)
-	{
-		CampBounds->SetRelativeLocation(FVector::ZeroVector);
-	}
+	ApplyCampBoundsSettings();
 
 	if (bAutoCollectMembersOnBeginPlay)
 	{
@@ -54,9 +57,26 @@ void AEnemyCampActor::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
+	ApplyCampBoundsSettings();
+}
+
+#if WITH_EDITOR
+void AEnemyCampActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	ApplyCampBoundsSettings();
+}
+#endif
+
+void AEnemyCampActor::ApplyCampBoundsSettings()
+{
 	if (CampBounds)
 	{
 		CampBounds->SetRelativeLocation(FVector::ZeroVector);
+		CampBounds->SetSphereRadius(CampRadius, true);
+		CampBounds->UpdateBounds();
+		CampBounds->MarkRenderStateDirty();
 	}
 }
 
