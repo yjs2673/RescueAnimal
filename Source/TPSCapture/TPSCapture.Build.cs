@@ -32,6 +32,7 @@ public class TPSCapture : ModuleRules
             "TPSCapture/Components",
             "TPSCapture/Cores",
             "TPSCapture/Creatures",
+            "TPSCapture/Animals",
             "TPSCapture/Creatures/Animals",
             "TPSCapture/Creatures/Enemies",
             "TPSCapture/Data",

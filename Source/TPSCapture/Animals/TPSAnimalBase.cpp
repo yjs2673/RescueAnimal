@@ -221,6 +221,14 @@ float AAnimalBase::TakeDamage(
     AActor* DamageCauser
 )
 {
+    if (IsTrapped())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[AnimalBase] Damage ignored while trapped: %s / Damage: %.1f"),
+            *GetName(),
+            DamageAmount);
+        return 0.0f;
+    }
+
     const float ActualDamage = Super::TakeDamage(
         DamageAmount,
         DamageEvent,

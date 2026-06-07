@@ -6,6 +6,7 @@
 #include "WeaponBase.h"
 #include "EnemyHPBarWidget.h"
 #include "PlayerStatComponent.h"
+#include "TPSAnimalBase.h"
 
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
@@ -733,6 +734,15 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		if (PlayerCharacter->IsDodging())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack missed because target is dodging."), *GetName());
+			return;
+		}
+	}
+
+	if (const AAnimalBase* Animal = Cast<AAnimalBase>(TargetActor))
+	{
+		if (Animal->IsTrapped())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack ignored because target animal is trapped."), *GetName());
 			return;
 		}
 	}

@@ -1,5 +1,6 @@
 #include "ArrowProjectile.h"
 #include "TPSCaptureCharacter.h"
+#include "TPSAnimalBase.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -66,6 +67,15 @@ void AArrowProjectile::OnArrowOverlap(
 			if (PlayerCharacter->IsDodging())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Arrow passed through dodging player: %s"), *OtherActor->GetName());
+				return;
+			}
+		}
+
+		if (const AAnimalBase* Animal = Cast<AAnimalBase>(OtherActor))
+		{
+			if (Animal->IsTrapped())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Arrow passed through trapped animal: %s"), *OtherActor->GetName());
 				return;
 			}
 		}
