@@ -186,22 +186,25 @@ struct FAnimalData : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	FName AnimalID; // ê³ ìœ  ID
+	FName AnimalID; // °íÀ¯ ID
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	FText DisplayName; // ì¸ê²Œì„ ì´ë¦„
+	FText DisplayName; // ÀÎ°ÔÀÓ ÀÌ¸§
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	float MaxHP = 30.0f; // ìµœëŒ€ ì²´ë ¥
+	float MaxHP = 30.0f; // ÃÖ´ë Ã¼·Â
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	float CaptureDifficulty = 1.0f; // ìº¡ì²˜ ë‚œì´ë„ (ë†’ì„ìˆ˜ë¡ ìº¡ì²˜í•˜ê¸° ì–´ë ¤ì›€)
+	float CaptureDifficulty = 1.0f; // Ä¸Ã³ ³­ÀÌµµ (³ôÀ»¼ö·Ï Ä¸Ã³ÇÏ±â ¾î·Á¿ò)
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	TArray<FName> DropItemIDs; // ë“œë¡­ ì•„ì´í…œ ID ëª©ë¡
+	TArray<FName> DropItemIDs; // µå·Ó ¾ÆÀÌÅÛ ID ¸ñ·Ï
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	UTexture2D* Icon = nullptr; // UI ì•„ì´ì½˜
+	UTexture2D* Icon = nullptr; // UI ¾ÆÀÌÄÜ
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
+	int32 CollectionOrder = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
 	FText Description;

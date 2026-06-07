@@ -4,7 +4,9 @@
 #include "MainHUDWidget.h"
 #include "InventoryWidget.h"
 #include "ShopWidget.h"
+#include "AnimalCollectionWidget.h"
 #include "ShopActor.h"
+#include "InputCoreTypes.h"
 
 void ATPSPlayerController::BeginPlay()
 {
@@ -54,6 +56,13 @@ void ATPSPlayerController::SetupInputComponent()
 		this,
 		&ATPSPlayerController::CloseUI
 	);
+
+	InputComponent->BindKey(
+		EKeys::C,
+		IE_Pressed,
+		this,
+		&ATPSPlayerController::ToggleAnimalCollection
+	);
 }
 
 void ATPSPlayerController::HandleInventoryButtonClicked()
@@ -64,6 +73,11 @@ void ATPSPlayerController::HandleInventoryButtonClicked()
 void ATPSPlayerController::HandleInventoryCloseRequested()
 {
 	CloseInventory();
+}
+
+void ATPSPlayerController::HandleAnimalCollectionCloseRequested()
+{
+	CloseAnimalCollection();
 }
 
 void ATPSPlayerController::ToggleInventory()
@@ -128,7 +142,7 @@ void ATPSPlayerController::CloseInventory()
 
 	bIsInventoryOpen = false;
 
-	if (bIsShopOpen)
+	if (bIsShopOpen || bIsAnimalCollectionOpen)
 	{
 		SetUIInputMode();
 	}
@@ -155,6 +169,10 @@ void ATPSPlayerController::SetUIInputMode()
 	if (bIsShopOpen && ShopWidget)
 	{
 		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
+	}
+	else if (bIsAnimalCollectionOpen && AnimalCollectionWidget)
+	{
+		InputMode.SetWidgetToFocus(AnimalCollectionWidget->TakeWidget());
 	}
 	else if (bIsInventoryOpen && InventoryWidget)
 	{
@@ -203,6 +221,81 @@ void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
 	}
 }
 
+void ATPSPlayerController::ToggleAnimalCollection()
+{
+	if (bIsAnimalCollectionOpen)
+	{
+		CloseAnimalCollection();
+	}
+	else
+	{
+		OpenAnimalCollection();
+	}
+}
+
+void ATPSPlayerController::OpenAnimalCollection()
+{
+	if (bIsAnimalCollectionOpen)
+	{
+		return;
+	}
+
+	if (!AnimalCollectionWidget)
+	{
+		if (!AnimalCollectionWidgetClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AnimalCollectionWidgetClass is not assigned."));
+			return;
+		}
+
+		AnimalCollectionWidget = CreateWidget<UAnimalCollectionWidget>(
+			this,
+			AnimalCollectionWidgetClass
+		);
+
+		if (AnimalCollectionWidget)
+		{
+			AnimalCollectionWidget->OnAnimalCollectionCloseRequested.AddDynamic(
+				this,
+				&ATPSPlayerController::HandleAnimalCollectionCloseRequested
+			);
+		}
+	}
+
+	if (AnimalCollectionWidget)
+	{
+		AnimalCollectionWidget->RefreshCollection();
+		AnimalCollectionWidget->AddToViewport();
+
+		bIsAnimalCollectionOpen = true;
+		SetUIInputMode();
+	}
+}
+
+void ATPSPlayerController::CloseAnimalCollection()
+{
+	if (!bIsAnimalCollectionOpen)
+	{
+		return;
+	}
+
+	if (AnimalCollectionWidget)
+	{
+		AnimalCollectionWidget->RemoveFromParent();
+	}
+
+	bIsAnimalCollectionOpen = false;
+
+	if (bIsShopOpen || bIsInventoryOpen)
+	{
+		SetUIInputMode();
+	}
+	else
+	{
+		SetGameInputMode();
+	}
+}
+
 void ATPSPlayerController::CloseShop()
 {
 	if (!bIsShopOpen)
@@ -217,7 +310,7 @@ void ATPSPlayerController::CloseShop()
 	SetIgnoreMoveInput(false);
 	SetIgnoreLookInput(false);
 
-	if (bIsInventoryOpen)
+	if (bIsInventoryOpen || bIsAnimalCollectionOpen)
 	{
 		SetUIInputMode();
 	}
@@ -238,6 +331,12 @@ void ATPSPlayerController::CloseUI()
 	if (bIsShopOpen)
 	{
 		CloseShop();
+		return;
+	}
+
+	if (bIsAnimalCollectionOpen)
+	{
+		CloseAnimalCollection();
 		return;
 	}
 

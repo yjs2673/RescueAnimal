@@ -89,14 +89,14 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 #pragma endregion Base Setting
 
-	PrimaryActorTick.bCanEverTick = true; // Tick() í•¨ìˆ˜ë¥¼ ì‚¬ìš©í•˜ê¸° ìœ„í•´ trueë¡œ ì„¤ì •
-	CurrentWeapon = nullptr; // ì²˜ìŒì—ëŠ” ë¬´ê¸°ë¥¼ ë“¤ê³  ìˆì§€ ì•Šìœ¼ë¯€ë¡œ nullptrë¡œ ì´ˆê¸°í™”
+	PrimaryActorTick.bCanEverTick = true; // Tick() ÇÔ¼ö¸¦ »ç¿ëÇÏ±â À§ÇØ true·Î ¼³Á¤
+	CurrentWeapon = nullptr; // Ã³À½¿¡´Â ¹«±â¸¦ µé°í ÀÖÁö ¾ÊÀ¸¹Ç·Î nullptr·Î ÃÊ±âÈ­
 
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	QuickSlotComponent = CreateDefaultSubobject<UQuickSlotComponent>(TEXT("QuickSlotComponent"));
 
-	// ì°¨ì§• ì‹œ ë‚˜ì˜¤ëŠ” í™”ì‚´: ë¯¸ë¦¬ë³´ê¸°ìš© StaticMeshComponent ìƒì„± ë° ì„¤ì •
+	// Â÷Â¡ È­»ì: ¹Ì¸®º¸±â¿ë StaticMeshComponent »ı¼º ¹× ¼³Á¤
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
 	PreviewArrowMesh->SetupAttachment(GetMesh());
 	PreviewArrowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -184,7 +184,7 @@ void ATPSCaptureCharacter::Tick(float DeltaTime)
 
 	UpdateDodgeMovement(DeltaTime);
 
-	if (bIsBowCharging) // í™œì„ ë‹¹ê¸°ëŠ” ì¤‘ì´ë¼ë©´, í™œì˜ ë°©í–¥ê³¼ ì¶©ì „ ìƒíƒœë¥¼ ì—…ë°ì´íŠ¸
+	if (bIsBowCharging) // È°À» ´ç±â´Â ÁßÀÌ¸é, È°ÀÇ ¹æÇâ°ú ÃæÀü »óÅÂ¸¦ ¾÷µ¥ÀÌÆ®
 	{
 		UpdateBowFacing(DeltaTime);
 
@@ -244,7 +244,7 @@ void ATPSCaptureCharacter::BeginPlay()
 			EquipWeapon(SpawnedWeapon);
 	}
 
-	//if (MainHUDClass) // MainHUDInstanceë¥¼ ìƒì„±í•˜ì—¬ ë·°í¬íŠ¸ì— ì¶”ê°€
+	//if (MainHUDClass) // MainHUDInstance¸¦ »ı¼ºÇÏ¿© ºäÆ÷Æ®¿¡ Ãß°¡
 	//{
 	//	APlayerController* PC = Cast<APlayerController>(GetController());
 	//	if (PC)
@@ -281,7 +281,7 @@ void ATPSCaptureCharacter::BeginPlay()
 	}
 }
 
-void ATPSCaptureCharacter::HandleCharacterDeath() // í”Œë ˆì´ì–´ ì‚¬ë§ ì²˜ë¦¬: ê³µê²© ìƒíƒœ ì´ˆê¸°í™”, ì´ë™ ë¶ˆê°€, ì…ë ¥ ë¹„í™œì„±í™”
+void ATPSCaptureCharacter::HandleCharacterDeath() // ÇÃ·¹ÀÌ¾î »ç¸Á Ã³¸®: °ø°İ »óÅÂ ÃÊ±âÈ­, ÀÌµ¿ ºÒ°¡, ÀÔ·Â ºñÈ°¼ºÈ­
 {
 	bIsAttacking = false;
 	bIsPunching = false;
@@ -900,7 +900,7 @@ void ATPSCaptureCharacter::HandleWeaponInteract()
 		}
 	}
 }
-void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ë¬´ê¸° ì¥ì°©, ì´ë¯¸ ì¥ì°© ì¤‘ì´ë©´ êµì²´
+void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ¹«±â ÀåÂø, ÀÌ¹Ì ÀåÂø ÁßÀÌ¸é ±³Ã¼
 {
 	if (!NewWeapon)
 	{
@@ -961,7 +961,7 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ë¬´ê¸° ì¥ì°©,
 		*AttachSocketName.ToString());
 }
 
-void ATPSCaptureCharacter::UnequipWeapon() // ì¥ì°© í•´ì œ
+void ATPSCaptureCharacter::UnequipWeapon() // ÀåÂø ÇØÁ¦
 {
 	if (!CurrentWeapon)
 		return;
@@ -991,7 +991,7 @@ void ATPSCaptureCharacter::UnequipWeapon() // ì¥ì°© í•´ì œ
 	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
 }
 
-void ATPSCaptureCharacter::DropCurrentWeapon() // í˜„ì¬ ì¥ì°©ëœ ë¬´ê¸°ë¥¼ ë–¨ì–´ëœ¨ë¦¬ëŠ” í•¨ìˆ˜, ë¬´ê¸°ê°€ ë°”ë‹¥ì— ë–¨ì–´ì§ˆ ë•Œì˜ ìœ„ì¹˜ì™€ íšŒì „ì„ ê³„ì‚°í•˜ì—¬ ì„¤ì •
+void ATPSCaptureCharacter::DropCurrentWeapon() // ÇöÀç ÀåÂøÇÑ ¹«±â¸¦ ¶³¾î¶ß¸®´Â ÇÔ¼ö, ¹«±â°¡ ¹Ù´Ú¿¡ ¶³¾îÁø ÈÄÀÇ À§Ä¡¿Í È¸ÀüÀ» °è»êÇÏ¿© ¼³Á¤
 {
 	if (!CurrentWeapon)
 		return;
@@ -1434,7 +1434,7 @@ void ATPSCaptureCharacter::OnAttackPressed()
 
 	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
 	{
-		if (TPSPlayerController->IsInventoryOpen() || TPSPlayerController->IsShopOpen())
+		if (TPSPlayerController->IsInventoryOpen() || TPSPlayerController->IsShopOpen() || TPSPlayerController->IsAnimalCollectionOpen())
 			return;
 	}
 
@@ -1496,7 +1496,7 @@ void ATPSCaptureCharacter::StartBowCharge()
 
 	GetCharacterMovement()->MaxWalkSpeed = 100.f;
 
-	if (CrosshairWidgetInstance) // ì¡°ì¤€ì„  ìœ„ì ¯ì´ ìˆë‹¤ë©´ ë³´ì´ë„ë¡ ì„¤ì •í•˜ê³  ì´ˆê¸° ì•ŒíŒŒê°’ì„ 0ìœ¼ë¡œ ì„¤ì •
+	if (CrosshairWidgetInstance) // Á¶ÁØ¼± À§Á¬ÀÌ ÀÖ´Ù¸é º¸ÀÌµµ·Ï ¼³Á¤ÇÏ°í ÃÊ±â ¾ËÆÄ°ªÀ» 0À¸·Î ¼³Á¤
 	{
 		CrosshairWidgetInstance->SetCrosshairVisible(true);
 		CrosshairWidgetInstance->SetChargeAlpha(0.0f);
@@ -1660,20 +1660,20 @@ void ATPSCaptureCharacter::FireChargedArrow()
 
 	FVector SpawnLocation = FVector::ZeroVector;
 
-	// í™œ Skeletal Meshì˜ ArrowSpawnSocket
+	// ¹«±â Skeletal MeshÀÇ ArrowSpawnSocket
 	if (CurrentWeapon->UsesSkeletalMesh() &&
 		CurrentWeapon->WeaponSkeletalMesh &&
 		CurrentWeapon->WeaponSkeletalMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
 	{
 		SpawnLocation = CurrentWeapon->WeaponSkeletalMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
 	}
-	// í™œ Static Meshì˜ ArrowSpawnSocket
+	// ¹«±â Static MeshÀÇ ArrowSpawnSocket
 	else if (CurrentWeapon->WeaponMesh &&
 		CurrentWeapon->WeaponMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
 	{
 		SpawnLocation = CurrentWeapon->WeaponMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
 	}
-	// ìºë¦­í„° ì™¼ì† ì†Œì¼“
+	// Ä³¸¯ÅÍ ¿Ş¼Õ ¼ÒÄÏ
 	else if (GetMesh()->DoesSocketExist(TEXT("LeftHandSocket")))
 	{
 		SpawnLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandSocket"));
@@ -1933,7 +1933,7 @@ void ATPSCaptureCharacter::PlayHitMontage()
 	if (!AnimInstance)
 		return;
 
-	//if (AnimInstance->IsAnyMontagePlaying()) // ë‹¤ë¥¸ ëª½íƒ€ì£¼ê°€ ì¬ìƒ ì¤‘ì´ë©´ ë©ˆì¶”ê³  ìƒˆë¡œ ì¬ìƒ
+	//if (AnimInstance->IsAnyMontagePlaying()) // ´Ù¸¥ ¸ùÅ¸ÁÖ°¡ Àç»ı ÁßÀÌ¸é ¸ØÃß°í »õ·Î Àç»ı
 	//	AnimInstance->Montage_Stop(0.1f);
 
 	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);

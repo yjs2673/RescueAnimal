@@ -7,6 +7,7 @@
 class UMainHUDWidget;
 class UInventoryWidget;
 class UShopWidget;
+class UAnimalCollectionWidget;
 class AShopActor;
 
 UCLASS()
@@ -28,6 +29,15 @@ public:
 	UFUNCTION()
 	void CloseInventory();
 
+	UFUNCTION()
+	void ToggleAnimalCollection();
+
+	UFUNCTION()
+	void OpenAnimalCollection();
+
+	UFUNCTION()
+	void CloseAnimalCollection();
+
 	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
 	bool IsInventoryOpen() const { return bIsInventoryOpen; }
 
@@ -41,6 +51,7 @@ public:
 	void CloseUI();
 
 	bool IsShopOpen() const { return bIsShopOpen; }
+	bool IsAnimalCollectionOpen() const { return bIsAnimalCollectionOpen; }
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
@@ -51,6 +62,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UShopWidget> ShopWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UAnimalCollectionWidget> AnimalCollectionWidgetClass;
 
 	UPROPERTY()
 	TObjectPtr<AShopActor> CurrentShopActor;
@@ -71,12 +85,21 @@ private:
 	UPROPERTY()
 	bool bIsShopOpen = false;
 
+	UPROPERTY()
+	TObjectPtr<UAnimalCollectionWidget> AnimalCollectionWidget;
+
+	UPROPERTY()
+	bool bIsAnimalCollectionOpen = false;
+
 private:
 	UFUNCTION()
 	void HandleInventoryButtonClicked();
 
 	UFUNCTION()
 	void HandleInventoryCloseRequested();
+
+	UFUNCTION()
+	void HandleAnimalCollectionCloseRequested();
 
 	void SetGameInputMode();
 	void SetUIInputMode();
