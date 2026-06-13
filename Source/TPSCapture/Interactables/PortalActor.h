@@ -5,6 +5,8 @@
 #include "PortalActor.generated.h"
 
 class UBoxComponent;
+class UMaterialInstanceDynamic;
+class USkeletalMeshComponent;
 class UStaticMeshComponent;
 
 UCLASS()
@@ -19,12 +21,16 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	USceneComponent* Root;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	UStaticMeshComponent* PortalMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
+	USkeletalMeshComponent* PortalSkeletalMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Portal")
 	UBoxComponent* TriggerBox;
@@ -35,7 +41,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
 	bool bOneShotTeleport = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
+	FLinearColor PortalColor = FLinearColor(0.f, 0.5f, 1.f, 1.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
+	FName GlowMaterialSlotName = TEXT("glow");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
+	TArray<FName> GlowColorParameterNames = { TEXT("BaseColorFactor"), TEXT("EmissiveFactor") };
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
+	FName FloorMaterialSlotName = TEXT("floor");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
+	TArray<FName> FloorColorParameterNames = { TEXT("BaseColorFactor") };
+
 	bool bIsTeleporting = false;
+
+	UPROPERTY(Transient)
+	TArray<UMaterialInstanceDynamic*> PortalMaterialInstances;
 
 	UFUNCTION()
 	void OnOverlapBegin(
@@ -56,4 +80,8 @@ protected:
 	);
 
 	void TeleportPlayer(AActor* OverlappingActor);
+	void ApplyPortalColor();
+	void ApplyPortalColorToMaterial(FName MaterialSlotName, const TArray<FName>& ParameterNames);
+	int32 FindPortalMaterialIndex(FName MaterialSlotName) const;
+	void HideLegacyPortalSkeletalMeshes();
 };
