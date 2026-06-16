@@ -177,6 +177,16 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 }
 #pragma endregion Input Binding Func
 
+bool ATPSCaptureCharacter::IsPortalTransitionInputLocked() const
+{
+	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		return TPSPlayerController->IsPortalTransitionInputLocked();
+	}
+
+	return false;
+}
+
 /* Tick */
 void ATPSCaptureCharacter::Tick(float DeltaTime)
 {
@@ -310,6 +320,9 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 #pragma region Base Action Func
 void ATPSCaptureCharacter::StartJump()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (bIsDodging)
 		return;
 
@@ -317,6 +330,9 @@ void ATPSCaptureCharacter::StartJump()
 }
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
@@ -354,6 +370,9 @@ void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
 
 void ATPSCaptureCharacter::Look(const FInputActionValue& Value)
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
@@ -367,6 +386,9 @@ void ATPSCaptureCharacter::Look(const FInputActionValue& Value)
 
 void ATPSCaptureCharacter::Interact()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
@@ -459,6 +481,9 @@ bool ATPSCaptureCharacter::IsRescueKitEquipped() const
 
 void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (!QuickSlotComponent)
 		return;
 
@@ -474,6 +499,9 @@ void ATPSCaptureCharacter::UseQuickSlotItem(int32 SlotIndex)
 
 bool ATPSCaptureCharacter::UseInventoryItem(FName ItemID)
 {
+	if (IsPortalTransitionInputLocked())
+		return false;
+
 	if (ItemID.IsNone())
 		return false;
 
@@ -500,6 +528,9 @@ bool ATPSCaptureCharacter::UseInventoryItem(FName ItemID)
 
 bool ATPSCaptureCharacter::UseConsumableItem(FName ItemID)
 {
+	if (IsPortalTransitionInputLocked())
+		return false;
+
 	if (StatComponent && StatComponent->IsDead())
 		return false;
 
@@ -784,6 +815,9 @@ bool ATPSCaptureCharacter::CanDodge() const
 
 void ATPSCaptureCharacter::Dodge()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	UE_LOG(LogTemp, Warning, TEXT("Action Dodge"));
 
 	if (!CanDodge())
@@ -1062,6 +1096,9 @@ void ATPSCaptureCharacter::ClearNearbyWeapon(AWeaponBase* WeaponToClear)
 #pragma region Base Combat Func
 void ATPSCaptureCharacter::Attack()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
@@ -1429,6 +1466,9 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 #pragma region Bow Attack Func
 void ATPSCaptureCharacter::OnAttackPressed()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (StatComponent && StatComponent->IsDead())
 		return;
 
@@ -1458,6 +1498,9 @@ void ATPSCaptureCharacter::OnAttackPressed()
 
 void ATPSCaptureCharacter::OnAttackReleased()
 {
+	if (IsPortalTransitionInputLocked())
+		return;
+
 	if (StatComponent && StatComponent->IsDead())
 		return;
 

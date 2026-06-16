@@ -39,6 +39,9 @@ protected:
 	TSet<FName> UnlockedAnimalIDs;
 
 public:
+	UPROPERTY()
+	bool bPendingPortalTransition = false;
+
 	UFUNCTION(BlueprintPure, Category = "Data")
 	UDataTable* GetItemDataTable() const { return ItemDataTable; }
 

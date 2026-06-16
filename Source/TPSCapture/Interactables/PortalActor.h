@@ -2,10 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "PortalActor.generated.h"
 
 class UBoxComponent;
 class UMaterialInstanceDynamic;
+class USoundBase;
 class USkeletalMeshComponent;
 class UStaticMeshComponent;
 
@@ -41,6 +43,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal")
 	bool bOneShotTeleport = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
+	float FadeOutDuration = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
+	USoundBase* PortalEnterSound = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Visual")
 	FLinearColor PortalColor = FLinearColor(0.f, 0.5f, 1.f, 1.f);
 
@@ -57,6 +65,9 @@ protected:
 	TArray<FName> FloorColorParameterNames = { TEXT("BaseColorFactor") };
 
 	bool bIsTeleporting = false;
+	bool bIsTransitioning = false;
+
+	FTimerHandle TransitionTimerHandle;
 
 	UPROPERTY(Transient)
 	TArray<UMaterialInstanceDynamic*> PortalMaterialInstances;
@@ -80,6 +91,7 @@ protected:
 	);
 
 	void TeleportPlayer(AActor* OverlappingActor);
+	void TravelToTargetLevel();
 	void ApplyPortalColor();
 	void ApplyPortalColorToMaterial(FName MaterialSlotName, const TArray<FName>& ParameterNames);
 	int32 FindPortalMaterialIndex(FName MaterialSlotName) const;

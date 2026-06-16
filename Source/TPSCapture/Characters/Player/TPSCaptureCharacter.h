@@ -388,6 +388,7 @@ protected:
 	AAnimalBase* FindNearbyRescueAnimal() const;
 	bool IsRescueKitEquipped() const;
 	void UseQuickSlotItem(int32 SlotIndex);
+	bool IsPortalTransitionInputLocked() const;
 
 	UFUNCTION()
 	void ApplyMovementStats();

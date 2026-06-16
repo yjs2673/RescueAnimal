@@ -1,12 +1,15 @@
 #include "TPSPlayerController.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Camera/PlayerCameraManager.h"
 #include "MainHUDWidget.h"
 #include "InventoryWidget.h"
 #include "ShopWidget.h"
 #include "AnimalCollectionWidget.h"
 #include "ShopActor.h"
+#include "TPSGameInstance.h"
 #include "InputCoreTypes.h"
+#include "Kismet/GameplayStatics.h"
 
 void ATPSPlayerController::BeginPlay()
 {
@@ -31,6 +34,17 @@ void ATPSPlayerController::BeginPlay()
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MainHUDWidgetClass is not assigned."));
+	}
+
+	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		if (TPSGameInstance->bPendingPortalTransition)
+		{
+			TPSGameInstance->bPendingPortalTransition = false;
+			SetPortalTransitionInputLocked(true);
+			HideMainHUD();
+			StartLevelFadeIn();
+		}
 	}
 }
 
@@ -67,21 +81,41 @@ void ATPSPlayerController::SetupInputComponent()
 
 void ATPSPlayerController::HandleInventoryButtonClicked()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	ToggleInventory();
 }
 
 void ATPSPlayerController::HandleInventoryCloseRequested()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	CloseInventory();
 }
 
 void ATPSPlayerController::HandleAnimalCollectionCloseRequested()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	CloseAnimalCollection();
 }
 
 void ATPSPlayerController::ToggleInventory()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsInventoryOpen)
 	{
 		CloseInventory();
@@ -94,6 +128,11 @@ void ATPSPlayerController::ToggleInventory()
 
 void ATPSPlayerController::OpenInventory()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsInventoryOpen)
 	{
 		return;
@@ -183,8 +222,67 @@ void ATPSPlayerController::SetUIInputMode()
 	SetInputMode(InputMode);
 }
 
+void ATPSPlayerController::HideMainHUD()
+{
+	if (MainHUDWidget)
+	{
+		MainHUDWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+}
+
+void ATPSPlayerController::ShowMainHUD()
+{
+	if (MainHUDWidget)
+	{
+		MainHUDWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void ATPSPlayerController::SetPortalTransitionInputLocked(bool bLocked)
+{
+	bIsPortalTransitionInputLocked = bLocked;
+	SetIgnoreMoveInput(bLocked);
+	SetIgnoreLookInput(bLocked);
+}
+
+void ATPSPlayerController::StartLevelFadeIn()
+{
+	const float FadeDelay = FMath::Max(KINDA_SMALL_NUMBER, FadeInDuration);
+
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->StartCameraFade(
+			1.f,
+			0.f,
+			FMath::Max(0.f, FadeInDuration),
+			FLinearColor::Black,
+			false,
+			false
+		);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		FadeInTimerHandle,
+		this,
+		&ATPSPlayerController::FinishLevelFadeIn,
+		FadeDelay,
+		false
+	);
+}
+
+void ATPSPlayerController::FinishLevelFadeIn()
+{
+	SetPortalTransitionInputLocked(false);
+	ShowMainHUD();
+}
+
 void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsShopOpen || !ShopActor)
 		return;
 
@@ -223,6 +321,11 @@ void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
 
 void ATPSPlayerController::ToggleAnimalCollection()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsAnimalCollectionOpen)
 	{
 		CloseAnimalCollection();
@@ -235,6 +338,11 @@ void ATPSPlayerController::ToggleAnimalCollection()
 
 void ATPSPlayerController::OpenAnimalCollection()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsAnimalCollectionOpen)
 	{
 		return;
@@ -298,6 +406,11 @@ void ATPSPlayerController::CloseAnimalCollection()
 
 void ATPSPlayerController::CloseShop()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (!bIsShopOpen)
 		return;
 
@@ -328,6 +441,11 @@ void ATPSPlayerController::CloseShop()
 
 void ATPSPlayerController::CloseUI()
 {
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
 	if (bIsShopOpen)
 	{
 		CloseShop();

@@ -1,13 +1,18 @@
 #include "PortalActor.h"
 #include "Animation/AnimationAsset.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "TPSCaptureCharacter.h"
+#include "TPSGameInstance.h"
+#include "TPSPlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 
 APortalActor::APortalActor()
@@ -119,7 +124,7 @@ void APortalActor::OnOverlapEnd(
 
 void APortalActor::Interact(AActor* InteractingActor)
 {
-	if (!InteractingActor || bIsTeleporting)
+	if (!InteractingActor || bIsTeleporting || bIsTransitioning)
 	{
 		return;
 	}
@@ -135,9 +140,80 @@ void APortalActor::TeleportPlayer(AActor* OverlappingActor)
 		return;
 	}
 
+	APlayerController* PlayerController = nullptr;
+	if (APawn* PlayerPawn = Cast<APawn>(OverlappingActor))
+	{
+		PlayerController = Cast<APlayerController>(PlayerPawn->GetController());
+	}
+
+	if (!PlayerController)
+	{
+		PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	}
+
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PortalActor: PlayerController is null."));
+		return;
+	}
+
+	bIsTransitioning = true;
+
 	if (bOneShotTeleport)
 	{
 		bIsTeleporting = true;
+	}
+
+	if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(PlayerController))
+	{
+		TPSPlayerController->SetPortalTransitionInputLocked(true);
+		TPSPlayerController->HideMainHUD();
+	}
+	else
+	{
+		PlayerController->SetIgnoreMoveInput(true);
+		PlayerController->SetIgnoreLookInput(true);
+	}
+
+	if (PortalEnterSound)
+	{
+		UGameplayStatics::PlaySound2D(this, PortalEnterSound);
+	}
+
+	if (PlayerController->PlayerCameraManager)
+	{
+		PlayerController->PlayerCameraManager->StartCameraFade(
+			0.f,
+			1.f,
+			FMath::Max(0.f, FadeOutDuration),
+			FLinearColor::Black,
+			false,
+			true
+		);
+	}
+
+	const float TransitionDelay = FMath::Max(KINDA_SMALL_NUMBER, FadeOutDuration);
+	GetWorldTimerManager().SetTimer(
+		TransitionTimerHandle,
+		this,
+		&APortalActor::TravelToTargetLevel,
+		TransitionDelay,
+		false
+	);
+}
+
+void APortalActor::TravelToTargetLevel()
+{
+	if (DestinationLevelName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PortalActor: DestinationLevelName is None."));
+		bIsTransitioning = false;
+		return;
+	}
+
+	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		TPSGameInstance->bPendingPortalTransition = true;
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Teleporting to level: %s"), *DestinationLevelName.ToString());

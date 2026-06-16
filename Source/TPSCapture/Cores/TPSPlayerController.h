@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
 #include "TPSPlayerController.generated.h"
 
 class UMainHUDWidget;
@@ -52,6 +53,10 @@ public:
 
 	bool IsShopOpen() const { return bIsShopOpen; }
 	bool IsAnimalCollectionOpen() const { return bIsAnimalCollectionOpen; }
+	void HideMainHUD();
+	void ShowMainHUD();
+	void SetPortalTransitionInputLocked(bool bLocked);
+	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked; }
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
@@ -65,6 +70,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UAnimalCollectionWidget> AnimalCollectionWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
+	float FadeInDuration = 1.0f;
 
 	UPROPERTY()
 	TObjectPtr<AShopActor> CurrentShopActor;
@@ -91,6 +99,11 @@ private:
 	UPROPERTY()
 	bool bIsAnimalCollectionOpen = false;
 
+	UPROPERTY()
+	bool bIsPortalTransitionInputLocked = false;
+
+	FTimerHandle FadeInTimerHandle;
+
 private:
 	UFUNCTION()
 	void HandleInventoryButtonClicked();
@@ -103,4 +116,6 @@ private:
 
 	void SetGameInputMode();
 	void SetUIInputMode();
+	void StartLevelFadeIn();
+	void FinishLevelFadeIn();
 };
