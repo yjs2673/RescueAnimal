@@ -35,6 +35,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	FName ItemID = NAME_None;
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
+	FName ItemSaveID = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 Count = 1;
 

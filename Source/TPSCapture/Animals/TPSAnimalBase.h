@@ -63,6 +63,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Data")
     FName AnimalID;
 
+    UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
+    FName AnimalSaveID = NAME_None;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Data")
     UDataTable* AnimalDataTable;
 

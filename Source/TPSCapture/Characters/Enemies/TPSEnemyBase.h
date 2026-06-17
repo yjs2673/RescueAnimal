@@ -8,7 +8,6 @@
 
 class USphereComponent;
 
-
 class ADropItemActor;
 class AController;
 class UAnimMontage;
@@ -49,6 +48,9 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Detection")
 	TObjectPtr<USphereComponent> DetectionSphere;
+
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
+	FName ActorSaveID = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	EEnemyAttackType AttackType = EEnemyAttackType::Punch;
