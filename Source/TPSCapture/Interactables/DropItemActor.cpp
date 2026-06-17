@@ -5,9 +5,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TPSGameInstance.h"
+#include "TPSWorldStateManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "InventoryComponent.h"
 #include "Sound/SoundBase.h"
+#include "EngineUtils.h"
 
 ADropItemActor::ADropItemActor()
 {
@@ -115,6 +117,14 @@ void ADropItemActor::OnPickupCollisionBeginOverlap(
 		*OtherActor->GetName(),
 		*ItemID.ToString(),
 		SafeCount);
+
+#pragma region Runtime World State
+	for (TActorIterator<ATPSWorldStateManager> It(GetWorld()); It; ++It)
+	{
+		It->NotifyItemPicked(ItemSaveID);
+		break;
+	}
+#pragma endregion Runtime World State
 
 	Destroy();
 }

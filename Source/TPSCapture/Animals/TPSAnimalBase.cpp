@@ -1,6 +1,7 @@
 #include "TPSAnimalBase.h"
 #include "EnemyCampActor.h"
 #include "TPSGameInstance.h"
+#include "TPSWorldStateManager.h"
 #include "Engine/DataTable.h"
 #include "Components/WidgetComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -16,6 +17,7 @@
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "EngineUtils.h"
 
 AAnimalBase::AAnimalBase()
 {
@@ -133,6 +135,14 @@ bool AAnimalBase::Rescue()
     OnAnimalRescued.Broadcast(this);
     BP_OnRescued();
 
+#pragma region Runtime World State
+    for (TActorIterator<ATPSWorldStateManager> It(GetWorld()); It; ++It)
+    {
+        It->NotifyAnimalRescued(AnimalSaveID);
+        break;
+    }
+#pragma endregion Runtime World State
+
     return true;
 }
 
@@ -215,6 +225,36 @@ void AAnimalBase::ApplyRescuedState()
     ShowSaveWidget();
     StartWander();
 }
+
+#pragma region Runtime World State
+void AAnimalBase::ApplyRuntimeRescuedState()
+{
+    bStartTrapped = false;
+    bHasBeenRescued = true;
+    SetAnimalState(EAnimalState::Rescued);
+
+    GetWorldTimerManager().ClearTimer(WanderTimerHandle);
+    GetWorldTimerManager().ClearTimer(FleeTimerHandle);
+    GetWorldTimerManager().ClearTimer(SaveWidgetHideTimerHandle);
+
+    if (CageMeshComponent)
+    {
+        CageMeshComponent->SetVisibility(false, true);
+        CageMeshComponent->SetHiddenInGame(true);
+        CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+
+    HideSaveWidget();
+
+    if (GetCharacterMovement())
+    {
+        GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+        GetCharacterMovement()->MaxWalkSpeed = WanderSpeed;
+    }
+
+    StartWander();
+}
+#pragma endregion Runtime World State
 
 void AAnimalBase::ShowSaveWidget()
 {

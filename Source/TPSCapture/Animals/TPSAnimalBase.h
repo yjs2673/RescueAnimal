@@ -30,6 +30,11 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
     bool Rescue();
 
+#pragma region Runtime World State
+    UFUNCTION(BlueprintCallable, Category = "World State")
+    void ApplyRuntimeRescuedState();
+#pragma endregion Runtime World State
+
     UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
     bool IsTrapped() const { return AnimalState == EAnimalState::Trapped; }
 
@@ -63,8 +68,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Data")
     FName AnimalID;
 
+#pragma region Runtime World State
     UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
     FName AnimalSaveID = NAME_None;
+#pragma endregion Runtime World State
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Data")
     UDataTable* AnimalDataTable;

@@ -87,7 +87,9 @@ void ATPSWorldStateManager::ApplySavedWorldState()
 
 		if (TPSGameInstance->IsAnimalRescued(MapID, AnimalSaveID))
 		{
-			Animal->Destroy();
+#pragma region Runtime Animal Restore
+			Animal->ApplyRuntimeRescuedState();
+#pragma endregion Runtime Animal Restore
 			continue;
 		}
 

@@ -7,6 +7,7 @@
 #include "EnemyHPBarWidget.h"
 #include "PlayerStatComponent.h"
 #include "TPSAnimalBase.h"
+#include "TPSWorldStateManager.h"
 
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
@@ -22,6 +23,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 
 ATPSEnemyBase::ATPSEnemyBase()
 {
@@ -962,6 +964,15 @@ void ATPSEnemyBase::Die()
 {
 	GrantEXPToKiller();
 	SpawnDropItems();
+
+#pragma region Runtime World State
+	for (TActorIterator<ATPSWorldStateManager> It(GetWorld()); It; ++It)
+	{
+		It->NotifyEnemyDefeated(ActorSaveID);
+		break;
+	}
+#pragma endregion Runtime World State
+
 	Super::Die();
 }
 

@@ -35,8 +35,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	FName ItemID = NAME_None;
 
+#pragma region Runtime World State
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
 	FName ItemSaveID = NAME_None;
+#pragma endregion Runtime World State
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
 	int32 Count = 1;

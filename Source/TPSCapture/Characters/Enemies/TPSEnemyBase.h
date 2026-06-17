@@ -49,8 +49,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Detection")
 	TObjectPtr<USphereComponent> DetectionSphere;
 
+#pragma region Runtime World State
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "World State")
 	FName ActorSaveID = NAME_None;
+#pragma endregion Runtime World State
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	EEnemyAttackType AttackType = EEnemyAttackType::Punch;
