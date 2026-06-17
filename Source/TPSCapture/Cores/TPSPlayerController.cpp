@@ -241,6 +241,13 @@ void ATPSPlayerController::ShowMainHUD()
 void ATPSPlayerController::SetPortalTransitionInputLocked(bool bLocked)
 {
 	bIsPortalTransitionInputLocked = bLocked;
+
+	if (bLocked)
+	{
+		CloseInventory();
+		CloseAnimalCollection();
+	}
+
 	SetIgnoreMoveInput(bLocked);
 	SetIgnoreLookInput(bLocked);
 }
