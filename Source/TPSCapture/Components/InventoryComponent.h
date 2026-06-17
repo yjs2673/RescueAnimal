@@ -48,6 +48,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	const TArray<FInventoryEntry>& GetAllItems() const { return Items; }
 
+#pragma region Runtime Data
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void SetItems(const TArray<FInventoryEntry>& NewItems);
+#pragma endregion Runtime Data
+
 protected:
 	FInventoryEntry* FindEntry(FName ItemID);
 	const FInventoryEntry* FindEntry(FName ItemID) const;

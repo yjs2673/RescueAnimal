@@ -1,5 +1,10 @@
 #include "TPSGameInstance.h"
 
+#include "InventoryComponent.h"
+#include "PlayerStatComponent.h"
+#include "QuickSlotComponent.h"
+#include "TPSCaptureCharacter.h"
+
 bool UTPSGameInstance::GetItemDataByID(FName ItemID, FItemData& OutItemData) const
 {
 	if (!ItemDataTable || ItemID.IsNone())
@@ -97,6 +102,161 @@ TArray<FName> UTPSGameInstance::GetUnlockedAnimalIDs() const
 }
 
 #pragma region Runtime Data Functions
+void UTPSGameInstance::SavePlayerRuntimeData(ATPSCaptureCharacter* PlayerCharacter)
+{
+	if (!PlayerCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] SavePlayerRuntimeData failed: PlayerCharacter is null."));
+		return;
+	}
+
+	PlayerRuntimeData.bHasValidData = true;
+
+	if (const UPlayerStatComponent* StatComponent = PlayerCharacter->GetPlayerStatComponent())
+	{
+		PlayerRuntimeData.CurrentHP = StatComponent->GetCurrentHP();
+		PlayerRuntimeData.Level = StatComponent->GetLevel();
+		PlayerRuntimeData.CurrentExp = StatComponent->GetCurrentEXP();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: PlayerStatComponent is missing during save."));
+	}
+
+	if (const UInventoryComponent* InventoryComponent = PlayerCharacter->GetInventoryComponent())
+	{
+		PlayerRuntimeData.InventoryItems = InventoryComponent->GetAllItems();
+		PlayerRuntimeData.Coin = InventoryComponent->GetItemCount(TEXT("Coin"));
+		PlayerRuntimeData.SpecialCurrency = InventoryComponent->GetItemCount(TEXT("SpecialCurrency"));
+	}
+	else
+	{
+		PlayerRuntimeData.InventoryItems.Reset();
+		PlayerRuntimeData.Coin = 0;
+		PlayerRuntimeData.SpecialCurrency = 0;
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: InventoryComponent is missing during save."));
+	}
+
+	PlayerRuntimeData.EquippedWeaponID = PlayerCharacter->GetCurrentWeaponItemID();
+	PlayerRuntimeData.QuickSlotItemIDs.Reset();
+
+	if (const UQuickSlotComponent* QuickSlotComponent = PlayerCharacter->GetQuickSlotComponent())
+	{
+		const int32 SlotCount = QuickSlotComponent->GetSlotCount();
+		PlayerRuntimeData.QuickSlotItemIDs.Reserve(SlotCount);
+
+		for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+		{
+			PlayerRuntimeData.QuickSlotItemIDs.Add(QuickSlotComponent->GetSlotItem(SlotIndex));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: QuickSlotComponent is missing during save."));
+	}
+}
+
+void UTPSGameInstance::LoadPlayerRuntimeData(ATPSCaptureCharacter* PlayerCharacter)
+{
+	if (!PlayerCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] LoadPlayerRuntimeData failed: PlayerCharacter is null."));
+		return;
+	}
+
+	if (!HasValidPlayerRuntimeData())
+	{
+		return;
+	}
+
+	if (UPlayerStatComponent* StatComponent = PlayerCharacter->GetPlayerStatComponent())
+	{
+		StatComponent->SetRuntimeStats(
+			PlayerRuntimeData.CurrentHP,
+			PlayerRuntimeData.Level,
+			PlayerRuntimeData.CurrentExp
+		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: PlayerStatComponent is missing during load."));
+	}
+
+	if (UInventoryComponent* InventoryComponent = PlayerCharacter->GetInventoryComponent())
+	{
+		InventoryComponent->SetItems(PlayerRuntimeData.InventoryItems);
+
+		const FName CoinItemID = TEXT("Coin");
+		const int32 CurrentCoin = InventoryComponent->GetItemCount(CoinItemID);
+		if (PlayerRuntimeData.Coin > CurrentCoin)
+		{
+			InventoryComponent->AddItem(CoinItemID, PlayerRuntimeData.Coin - CurrentCoin);
+		}
+		else if (PlayerRuntimeData.Coin < CurrentCoin)
+		{
+			InventoryComponent->RemoveItem(CoinItemID, CurrentCoin - PlayerRuntimeData.Coin);
+		}
+
+		const FName SpecialCurrencyItemID = TEXT("SpecialCurrency");
+		const int32 CurrentSpecialCurrency = InventoryComponent->GetItemCount(SpecialCurrencyItemID);
+		if (PlayerRuntimeData.SpecialCurrency > CurrentSpecialCurrency)
+		{
+			InventoryComponent->AddItem(SpecialCurrencyItemID, PlayerRuntimeData.SpecialCurrency - CurrentSpecialCurrency);
+		}
+		else if (PlayerRuntimeData.SpecialCurrency < CurrentSpecialCurrency)
+		{
+			InventoryComponent->RemoveItem(SpecialCurrencyItemID, CurrentSpecialCurrency - PlayerRuntimeData.SpecialCurrency);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: InventoryComponent is missing during load."));
+	}
+
+	if (UQuickSlotComponent* QuickSlotComponent = PlayerCharacter->GetQuickSlotComponent())
+	{
+		const int32 SlotCount = QuickSlotComponent->GetSlotCount();
+		for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+		{
+			const FName ItemID = PlayerRuntimeData.QuickSlotItemIDs.IsValidIndex(SlotIndex)
+				? PlayerRuntimeData.QuickSlotItemIDs[SlotIndex]
+				: NAME_None;
+
+			QuickSlotComponent->SetSlotItem(SlotIndex, ItemID);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: QuickSlotComponent is missing during load."));
+	}
+
+	if (!PlayerRuntimeData.EquippedWeaponID.IsNone())
+	{
+		if (UInventoryComponent* InventoryComponent = PlayerCharacter->GetInventoryComponent())
+		{
+			if (!InventoryComponent->HasItem(PlayerRuntimeData.EquippedWeaponID, 1))
+			{
+				InventoryComponent->AddItem(PlayerRuntimeData.EquippedWeaponID, 1);
+			}
+		}
+
+		if (!PlayerCharacter->EquipWeaponFromInventory(PlayerRuntimeData.EquippedWeaponID))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: Failed to restore equipped weapon. WeaponID=%s"),
+				*PlayerRuntimeData.EquippedWeaponID.ToString());
+		}
+	}
+	else
+	{
+		PlayerCharacter->OnWeaponChanged.Broadcast(PlayerCharacter->GetCurrentWeaponType());
+	}
+}
+
+bool UTPSGameInstance::HasValidPlayerRuntimeData() const
+{
+	return PlayerRuntimeData.bHasValidData;
+}
+
 void UTPSGameInstance::RegisterDefeatedEnemy(FName MapID, FName EnemyID)
 {
 	if (MapID.IsNone() || EnemyID.IsNone())

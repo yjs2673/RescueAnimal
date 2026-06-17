@@ -220,6 +220,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Stats")
 	void RecalculateStats();
 
+#pragma region Runtime Data
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void SetRuntimeStats(float NewCurrentHP, int32 NewLevel, int32 NewCurrentEXP);
+#pragma endregion Runtime Data
+
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetCurrentHP() const { return CurrentHP; }
 

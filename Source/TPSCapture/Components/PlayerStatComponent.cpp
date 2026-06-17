@@ -315,6 +315,27 @@ void UPlayerStatComponent::Heal(float Amount)
 	OnHPChanged.Broadcast(CurrentHP, MaxHP);
 }
 
+#pragma region Runtime Data
+void UPlayerStatComponent::SetRuntimeStats(float NewCurrentHP, int32 NewLevel, int32 NewCurrentEXP)
+{
+	Level = FMath::Clamp(NewLevel, 1, MaxLevel);
+	CurrentEXP = FMath::Max(0, NewCurrentEXP);
+
+	const int32 EarnedLevelCount = FMath::Max(0, Level - 1);
+	LevelBonusMaxHP = EarnedLevelCount * 10.0f;
+	LevelBonusAttack = EarnedLevelCount * 2.0f;
+
+	RecalculateStats();
+	CurrentHP = FMath::Clamp(NewCurrentHP, 0.0f, MaxHP);
+	bIsDead = CurrentHP <= 0.0f;
+
+	OnHPChanged.Broadcast(CurrentHP, MaxHP);
+	OnLevelChanged.Broadcast(Level);
+	OnEXPChanged.Broadcast(CurrentEXP, GetRequiredEXP());
+	OnMovementStatsChanged.Broadcast();
+}
+#pragma endregion Runtime Data
+
 float UPlayerStatComponent::GetHPPercent() const
 {
 	if (MaxHP <= 0.f)

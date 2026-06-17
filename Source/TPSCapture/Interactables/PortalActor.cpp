@@ -216,6 +216,17 @@ void APortalActor::TravelToTargetLevel()
 		TPSGameInstance->bPendingPortalTransition = true;
 	}
 
+#pragma region Runtime Data
+	if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+	{
+		PlayerCharacter->SaveRuntimeDataToGameInstance();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PortalActor: Runtime data save skipped because player character is null."));
+	}
+#pragma endregion Runtime Data
+
 	UE_LOG(LogTemp, Warning, TEXT("Teleporting to level: %s"), *DestinationLevelName.ToString());
 	UGameplayStatics::OpenLevel(this, DestinationLevelName);
 }

@@ -537,6 +537,14 @@ public:
 	FName GetCurrentWeaponItemID() const;
 #pragma endregion Delicate Func
 
+#pragma region Runtime Data Func
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void SaveRuntimeDataToGameInstance();
+
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void LoadRuntimeDataFromGameInstance();
+#pragma endregion Runtime Data Func
+
 	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
 	void TestTakeDamage(float DamageAmount);
 
@@ -572,6 +580,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Components")
 	UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	UPlayerStatComponent* GetPlayerStatComponent() const { return StatComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "Components")
 	FORCEINLINE UQuickSlotComponent* GetQuickSlotComponent() const { return QuickSlotComponent; }

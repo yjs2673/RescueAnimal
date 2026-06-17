@@ -202,3 +202,36 @@ bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const // æ∆¿Ã≈€ 
 
 	return RequiredNewSlotCount <= FreeSlotCount;
 }
+
+#pragma region Runtime Data
+void UInventoryComponent::SetItems(const TArray<FInventoryEntry>& NewItems)
+{
+	TSet<FName> ChangedItemIDs;
+
+	for (const FInventoryEntry& Entry : Items)
+	{
+		if (!Entry.ItemID.IsNone())
+		{
+			ChangedItemIDs.Add(Entry.ItemID);
+		}
+	}
+
+	Items.Reset();
+
+	for (const FInventoryEntry& Entry : NewItems)
+	{
+		if (Entry.ItemID.IsNone() || Entry.Count <= 0)
+		{
+			continue;
+		}
+
+		Items.Add(Entry);
+		ChangedItemIDs.Add(Entry.ItemID);
+	}
+
+	for (const FName& ItemID : ChangedItemIDs)
+	{
+		OnItemChanged.Broadcast(ItemID, GetItemCount(ItemID));
+	}
+}
+#pragma endregion Runtime Data

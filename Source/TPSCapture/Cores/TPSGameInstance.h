@@ -6,12 +6,40 @@
 #include "TPSGameInstance.generated.h"
 
 class UDataTable;
+class ATPSCaptureCharacter;
 
 #pragma region Runtime Data Structs
 USTRUCT(BlueprintType)
 struct FPlayerRuntimeData
 {
 	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	bool bHasValidData = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	float CurrentHP = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	int32 Level = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	int32 CurrentExp = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	TArray<FInventoryEntry> InventoryItems;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	int32 Coin = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	int32 SpecialCurrency = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	FName EquippedWeaponID = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	TArray<FName> QuickSlotItemIDs;
 };
 
 USTRUCT(BlueprintType)
@@ -55,6 +83,15 @@ public:
 	TArray<FName> GetUnlockedAnimalIDs() const;
 
 #pragma region Runtime Data Functions
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void SavePlayerRuntimeData(ATPSCaptureCharacter* PlayerCharacter);
+
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void LoadPlayerRuntimeData(ATPSCaptureCharacter* PlayerCharacter);
+
+	UFUNCTION(BlueprintPure, Category = "Runtime")
+	bool HasValidPlayerRuntimeData() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Runtime")
 	void RegisterDefeatedEnemy(FName MapID, FName EnemyID);
 

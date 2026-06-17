@@ -235,7 +235,12 @@ void ATPSCaptureCharacter::BeginPlay()
 		StatComponent->OnMovementStatsChanged.AddUniqueDynamic(this, &ATPSCaptureCharacter::ApplyMovementStats);
 	}
 
-	if (InventoryComponent && !StarterRescueKitItemID.IsNone() && !InventoryComponent->HasItem(StarterRescueKitItemID, 1))
+#pragma region Runtime Data BeginPlay
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	const bool bShouldLoadPlayerRuntimeData = TPSGameInstance && TPSGameInstance->HasValidPlayerRuntimeData();
+#pragma endregion Runtime Data BeginPlay
+
+	if (!bShouldLoadPlayerRuntimeData && InventoryComponent && !StarterRescueKitItemID.IsNone() && !InventoryComponent->HasItem(StarterRescueKitItemID, 1))
 	{
 		InventoryComponent->AddItem(StarterRescueKitItemID, 1);
 	}
@@ -247,7 +252,7 @@ void ATPSCaptureCharacter::BeginPlay()
 	if (FollowCamera)
 		DefaultFOV = FollowCamera->FieldOfView;
 
-	if (StarterWeaponClass)
+	if (!bShouldLoadPlayerRuntimeData && StarterWeaponClass)
 	{
 		AWeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(StarterWeaponClass);
 		if (SpawnedWeapon)
@@ -289,6 +294,13 @@ void ATPSCaptureCharacter::BeginPlay()
 			}
 		}
 	}
+
+#pragma region Runtime Data BeginPlay
+	if (bShouldLoadPlayerRuntimeData)
+	{
+		LoadRuntimeDataFromGameInstance();
+	}
+#pragma endregion Runtime Data BeginPlay
 }
 
 void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상태 초기화, 이동 불가, 입력 비활성화
@@ -2018,6 +2030,35 @@ FName ATPSCaptureCharacter::GetCurrentWeaponItemID() const
 	return CurrentWeapon ? CurrentWeapon->WeaponID : NAME_None;
 }
 #pragma endregion Delicate Func
+#pragma region Runtime Data Func
+void ATPSCaptureCharacter::SaveRuntimeDataToGameInstance()
+{
+	if (UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>())
+	{
+		TPSGameInstance->SavePlayerRuntimeData(this);
+		return;
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("SaveRuntimeDataToGameInstance failed: TPSGameInstance is null"));
+}
+
+void ATPSCaptureCharacter::LoadRuntimeDataFromGameInstance()
+{
+	UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("LoadRuntimeDataFromGameInstance failed: TPSGameInstance is null"));
+		return;
+	}
+
+	if (!TPSGameInstance->HasValidPlayerRuntimeData())
+	{
+		return;
+	}
+
+	TPSGameInstance->LoadPlayerRuntimeData(this);
+}
+#pragma endregion Runtime Data Func
 
 #pragma region VFX Func
 void ATPSCaptureCharacter::SpawnHitVFX(
