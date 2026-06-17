@@ -95,3 +95,93 @@ TArray<FName> UTPSGameInstance::GetUnlockedAnimalIDs() const
 
 	return UnlockedIDs;
 }
+
+#pragma region Runtime Data Functions
+void UTPSGameInstance::RegisterDefeatedEnemy(FName MapID, FName EnemyID)
+{
+	if (MapID.IsNone() || EnemyID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] RegisterDefeatedEnemy failed: MapID or EnemyID is None."));
+		return;
+	}
+
+	MapRuntimeDataMap.FindOrAdd(MapID).DefeatedEnemyIDs.AddUnique(EnemyID);
+}
+
+void UTPSGameInstance::RegisterRescuedAnimal(FName MapID, FName AnimalID)
+{
+	if (MapID.IsNone() || AnimalID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] RegisterRescuedAnimal failed: MapID or AnimalID is None."));
+		return;
+	}
+
+	MapRuntimeDataMap.FindOrAdd(MapID).RescuedAnimalIDs.AddUnique(AnimalID);
+}
+
+void UTPSGameInstance::RegisterPickedItem(FName MapID, FName ItemID)
+{
+	if (MapID.IsNone() || ItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] RegisterPickedItem failed: MapID or ItemID is None."));
+		return;
+	}
+
+	MapRuntimeDataMap.FindOrAdd(MapID).PickedItemIDs.AddUnique(ItemID);
+}
+
+bool UTPSGameInstance::IsEnemyDefeated(FName MapID, FName EnemyID) const
+{
+	if (MapID.IsNone() || EnemyID.IsNone())
+	{
+		return false;
+	}
+
+	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
+	return MapRuntimeData && MapRuntimeData->DefeatedEnemyIDs.Contains(EnemyID);
+}
+
+bool UTPSGameInstance::IsAnimalRescued(FName MapID, FName AnimalID) const
+{
+	if (MapID.IsNone() || AnimalID.IsNone())
+	{
+		return false;
+	}
+
+	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
+	return MapRuntimeData && MapRuntimeData->RescuedAnimalIDs.Contains(AnimalID);
+}
+
+bool UTPSGameInstance::IsItemPicked(FName MapID, FName ItemID) const
+{
+	if (MapID.IsNone() || ItemID.IsNone())
+	{
+		return false;
+	}
+
+	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
+	return MapRuntimeData && MapRuntimeData->PickedItemIDs.Contains(ItemID);
+}
+
+void UTPSGameInstance::SetMapCleared(FName MapID, bool bCleared)
+{
+	if (MapID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] SetMapCleared failed: MapID is None."));
+		return;
+	}
+
+	MapRuntimeDataMap.FindOrAdd(MapID).bMapCleared = bCleared;
+}
+
+bool UTPSGameInstance::IsMapCleared(FName MapID) const
+{
+	if (MapID.IsNone())
+	{
+		return false;
+	}
+
+	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
+	return MapRuntimeData && MapRuntimeData->bMapCleared;
+}
+#pragma endregion
