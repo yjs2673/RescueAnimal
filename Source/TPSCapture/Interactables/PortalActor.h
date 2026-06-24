@@ -21,6 +21,11 @@ public:
 
 	void Interact(AActor* InteractingActor);
 
+#pragma region Game Progress
+	UFUNCTION(BlueprintCallable, Category = "Portal|Game Progress")
+	void RefreshClearedMapVisual();
+#pragma endregion Game Progress
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;

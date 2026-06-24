@@ -58,6 +58,7 @@ void APortalActor::BeginPlay()
 
 	HideLegacyPortalSkeletalMeshes();
 	ApplyPortalColor();
+	RefreshClearedMapVisual();
 	if (PortalSkeletalMesh)
 	{
 		PortalSkeletalMesh->Play(true);
@@ -69,6 +70,28 @@ void APortalActor::BeginPlay()
 		TriggerBox->OnComponentEndOverlap.AddDynamic(this, &APortalActor::OnOverlapEnd);
 	}
 }
+
+#pragma region Game Progress
+void APortalActor::RefreshClearedMapVisual()
+{
+	if (DestinationLevelName.IsNone())
+	{
+		return;
+	}
+
+	const UTPSGameInstance* TPSGameInstance = GetGameInstance<UTPSGameInstance>();
+	if (!TPSGameInstance || !TPSGameInstance->IsMapCleared(DestinationLevelName))
+	{
+		return;
+	}
+
+	PortalColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	ApplyPortalColor();
+
+	UE_LOG(LogTemp, Warning, TEXT("[GameProgress] Cleared-map portal color applied. Destination=%s Color=(1,1,1)"),
+		*DestinationLevelName.ToString());
+}
+#pragma endregion Game Progress
 
 void APortalActor::OnConstruction(const FTransform& Transform)
 {

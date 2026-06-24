@@ -305,6 +305,16 @@ void ATPSCaptureCharacter::BeginPlay()
 
 void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상태 초기화, 이동 불가, 입력 비활성화
 {
+#pragma region Game Progress
+	if (bGameOverHandled)
+	{
+		return;
+	}
+
+	bGameOverHandled = true;
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("[GameProgress] GAME OVER: Player HP reached zero."));
+#pragma endregion Game Progress
+
 	bIsAttacking = false;
 	bIsPunching = false;
 	bIsBowCharging = false;

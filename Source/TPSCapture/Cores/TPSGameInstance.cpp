@@ -376,7 +376,19 @@ void UTPSGameInstance::SetMapCleared(FName MapID, bool bCleared)
 		return;
 	}
 
-	MapRuntimeDataMap.FindOrAdd(MapID).bMapCleared = bCleared;
+	FMapRuntimeData& MapRuntimeData = MapRuntimeDataMap.FindOrAdd(MapID);
+	const bool bWasCleared = MapRuntimeData.bMapCleared;
+	MapRuntimeData.bMapCleared = bCleared;
+
+	if (bCleared && !bWasCleared)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgress] Field map cleared. MapID=%s"), *MapID.ToString());
+
+		if (IsGameCleared())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GameProgress] GAME CLEAR: Plain, Snow, and Desert are all cleared."));
+		}
+	}
 }
 
 bool UTPSGameInstance::IsMapCleared(FName MapID) const
@@ -389,4 +401,13 @@ bool UTPSGameInstance::IsMapCleared(FName MapID) const
 	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
 	return MapRuntimeData && MapRuntimeData->bMapCleared;
 }
+
+#pragma region Game Progress
+bool UTPSGameInstance::IsGameCleared() const
+{
+	return IsMapCleared(TEXT("Plain")) &&
+		IsMapCleared(TEXT("Snow")) &&
+		IsMapCleared(TEXT("Desert"));
+}
+#pragma endregion Game Progress
 #pragma endregion

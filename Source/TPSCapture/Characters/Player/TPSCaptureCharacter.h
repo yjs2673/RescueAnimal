@@ -118,6 +118,10 @@ protected:
 
 	UFUNCTION()
 	void HandleCharacterDeath();
+
+#pragma region Game Progress
+	bool bGameOverHandled = false;
+#pragma endregion Game Progress
 #pragma endregion Constructor & Tick & Begin & Death
 
 /* Variations */

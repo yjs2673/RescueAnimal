@@ -146,6 +146,11 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Runtime")
 	bool IsMapCleared(FName MapID) const;
+
+#pragma region Game Progress
+	UFUNCTION(BlueprintPure, Category = "Game Progress")
+	bool IsGameCleared() const;
+#pragma endregion Game Progress
 #pragma endregion
 
 protected:

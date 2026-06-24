@@ -257,7 +257,8 @@ void ATPSWorldStateManager::NotifyItemPicked(FName ItemSaveID)
 
 void ATPSWorldStateManager::CheckAndHandleMapClear()
 {
-	if (AliveEnemyCount > 0 || UnrescuedAnimalCount > 0)
+#pragma region Game Progress
+	if (UnrescuedAnimalCount > 0)
 	{
 		return;
 	}
@@ -268,12 +269,19 @@ void ATPSWorldStateManager::CheckAndHandleMapClear()
 		return;
 	}
 
-	if (UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr)
+	UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr;
+	if (!TPSGameInstance)
 	{
-		TPSGameInstance->SetMapCleared(MapID, true);
+		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Map clear skipped: TPSGameInstance is null."));
+		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Map cleared. MapID=%s"), *MapID.ToString());
+	if (!TPSGameInstance->IsMapCleared(MapID))
+	{
+		TPSGameInstance->SetMapCleared(MapID, true);
+		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Map cleared by rescued-animal condition. MapID=%s"), *MapID.ToString());
+	}
+#pragma endregion Game Progress
 }
 
 void ATPSWorldStateManager::ValidateDuplicateSaveIDs()
