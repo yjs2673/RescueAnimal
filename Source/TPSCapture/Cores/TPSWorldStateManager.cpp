@@ -4,6 +4,7 @@
 #include "TPSEnemyBase.h"
 #include "TPSAnimalBase.h"
 #include "TPSGameInstance.h"
+#include "TPSPlayerController.h"
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -280,6 +281,18 @@ void ATPSWorldStateManager::CheckAndHandleMapClear()
 	{
 		TPSGameInstance->SetMapCleared(MapID, true);
 		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Map cleared by rescued-animal condition. MapID=%s"), *MapID.ToString());
+
+#pragma region Game Progress Message
+		if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(
+			UGameplayStatics::GetPlayerController(this, 0)))
+		{
+			TPSPlayerController->ShowFieldClearMessage(MapID);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GameProgress] Field clear message skipped: TPSPlayerController is null."));
+		}
+#pragma endregion Game Progress Message
 	}
 #pragma endregion Game Progress
 }

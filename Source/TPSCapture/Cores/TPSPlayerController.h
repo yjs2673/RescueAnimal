@@ -9,6 +9,7 @@ class UMainHUDWidget;
 class UInventoryWidget;
 class UShopWidget;
 class UAnimalCollectionWidget;
+class UGameProgressMessageWidget;
 class AShopActor;
 
 UCLASS()
@@ -58,6 +59,14 @@ public:
 	void SetPortalTransitionInputLocked(bool bLocked);
 	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked; }
 
+#pragma region Game Progress Message
+	UFUNCTION(BlueprintCallable, Category = "Game Progress")
+	void ShowFieldClearMessage(FName MapID);
+
+	UFUNCTION(BlueprintCallable, Category = "Game Progress")
+	void ShowGameOverMessage();
+#pragma endregion Game Progress Message
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDWidgetClass;
@@ -70,6 +79,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UAnimalCollectionWidget> AnimalCollectionWidgetClass;
+
+#pragma region Game Progress Message
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Game Progress")
+	TSubclassOf<UGameProgressMessageWidget> GameProgressMessageWidgetClass;
+#pragma endregion Game Progress Message
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
 	float FadeInDuration = 1.0f;
@@ -95,6 +109,11 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAnimalCollectionWidget> AnimalCollectionWidget;
+
+#pragma region Game Progress Message
+	UPROPERTY()
+	TObjectPtr<UGameProgressMessageWidget> GameProgressMessageWidget;
+#pragma endregion Game Progress Message
 
 	UPROPERTY()
 	bool bIsAnimalCollectionOpen = false;

@@ -405,9 +405,9 @@ bool UTPSGameInstance::IsMapCleared(FName MapID) const
 #pragma region Game Progress
 bool UTPSGameInstance::IsGameCleared() const
 {
-	return IsMapCleared(TEXT("Plain")) &&
-		IsMapCleared(TEXT("Snow")) &&
-		IsMapCleared(TEXT("Desert"));
+	return IsMapCleared(TEXT("MAP_Plain")) &&
+		IsMapCleared(TEXT("MAP_Snow")) &&
+		IsMapCleared(TEXT("MAP_Desert"));
 }
 #pragma endregion Game Progress
 #pragma endregion

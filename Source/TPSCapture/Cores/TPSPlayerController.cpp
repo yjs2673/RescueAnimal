@@ -6,6 +6,7 @@
 #include "InventoryWidget.h"
 #include "ShopWidget.h"
 #include "AnimalCollectionWidget.h"
+#include "GameProgressMessageWidget.h"
 #include "ShopActor.h"
 #include "TPSGameInstance.h"
 #include "InputCoreTypes.h"
@@ -36,6 +37,26 @@ void ATPSPlayerController::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("MainHUDWidgetClass is not assigned."));
 	}
 
+#pragma region Game Progress Message
+	if (GameProgressMessageWidgetClass)
+	{
+		GameProgressMessageWidget = CreateWidget<UGameProgressMessageWidget>(
+			this,
+			GameProgressMessageWidgetClass
+		);
+
+		if (GameProgressMessageWidget)
+		{
+			GameProgressMessageWidget->AddToViewport(100);
+			GameProgressMessageWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgress] GameProgressMessageWidgetClass is not assigned."));
+	}
+#pragma endregion Game Progress Message
+
 	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
 	{
 		if (TPSGameInstance->bPendingPortalTransition)
@@ -47,6 +68,31 @@ void ATPSPlayerController::BeginPlay()
 		}
 	}
 }
+
+#pragma region Game Progress Message
+void ATPSPlayerController::ShowFieldClearMessage(FName MapID)
+{
+	if (!GameProgressMessageWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgress] Field clear message skipped: widget is null. MapID=%s"),
+			*MapID.ToString());
+		return;
+	}
+
+	GameProgressMessageWidget->ShowFieldClearMessage(MapID);
+}
+
+void ATPSPlayerController::ShowGameOverMessage()
+{
+	if (!GameProgressMessageWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgress] Game over message skipped: widget is null."));
+		return;
+	}
+
+	GameProgressMessageWidget->ShowGameOverMessage();
+}
+#pragma endregion Game Progress Message
 
 void ATPSPlayerController::SetupInputComponent()
 {

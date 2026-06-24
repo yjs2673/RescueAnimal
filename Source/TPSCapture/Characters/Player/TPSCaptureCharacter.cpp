@@ -313,6 +313,15 @@ void ATPSCaptureCharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상
 
 	bGameOverHandled = true;
 	UE_LOG(LogTemplateCharacter, Warning, TEXT("[GameProgress] GAME OVER: Player HP reached zero."));
+
+	if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		TPSPlayerController->ShowGameOverMessage();
+	}
+	else
+	{
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("[GameProgress] Game over message skipped: TPSPlayerController is null."));
+	}
 #pragma endregion Game Progress
 
 	bIsAttacking = false;
