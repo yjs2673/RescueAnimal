@@ -7,6 +7,7 @@
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/UnrealType.h"
 
 ATPSWorldStateManager::ATPSWorldStateManager()
@@ -119,7 +120,92 @@ void ATPSWorldStateManager::ApplySavedWorldState()
 			DropItem->Destroy();
 		}
 	}
+
+	RestoreSpawnedDropItems();
 }
+
+#pragma region Runtime Spawned Drop Items
+void ATPSWorldStateManager::RestoreSpawnedDropItems()
+{
+	if (MapID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Runtime drop restore skipped: MapID is None."));
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	UTPSGameInstance* TPSGameInstance = World ? World->GetGameInstance<UTPSGameInstance>() : nullptr;
+	if (!World || !TPSGameInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Runtime drop restore skipped: World or TPSGameInstance is null."));
+		return;
+	}
+
+	TSet<FName> ExistingItemSaveIDs;
+	for (TActorIterator<ADropItemActor> It(World); It; ++It)
+	{
+		if (ADropItemActor* ExistingDropItem = *It)
+		{
+			const FName ExistingItemSaveID = ExistingDropItem->GetItemSaveID();
+			if (!ExistingItemSaveID.IsNone())
+			{
+				ExistingItemSaveIDs.Add(ExistingItemSaveID);
+			}
+		}
+	}
+
+	const TArray<FSpawnedDropItemRuntimeData> SpawnedDropItems = TPSGameInstance->GetSpawnedDropItems(MapID);
+	for (const FSpawnedDropItemRuntimeData& DropItemData : SpawnedDropItems)
+	{
+		if (DropItemData.ItemSaveID.IsNone() || DropItemData.ItemID.IsNone())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Invalid runtime drop data skipped."));
+			continue;
+		}
+
+		if (TPSGameInstance->IsItemPicked(MapID, DropItemData.ItemSaveID) ||
+			ExistingItemSaveIDs.Contains(DropItemData.ItemSaveID))
+		{
+			continue;
+		}
+
+		if (!DropItemData.DropItemActorClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Runtime drop class is null. ItemSaveID=%s"),
+				*DropItemData.ItemSaveID.ToString());
+			continue;
+		}
+
+		ADropItemActor* RestoredDropItem = World->SpawnActorDeferred<ADropItemActor>(
+			DropItemData.DropItemActorClass,
+			DropItemData.SpawnTransform,
+			nullptr,
+			nullptr,
+			ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn
+		);
+
+		if (!RestoredDropItem)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Failed to restore runtime drop. ItemSaveID=%s"),
+				*DropItemData.ItemSaveID.ToString());
+			continue;
+		}
+
+		RestoredDropItem->InitializeRuntimeDropItem(
+			DropItemData.ItemID,
+			DropItemData.Count,
+			DropItemData.ItemSaveID
+		);
+		UGameplayStatics::FinishSpawningActor(RestoredDropItem, DropItemData.SpawnTransform);
+		ExistingItemSaveIDs.Add(DropItemData.ItemSaveID);
+
+		UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Restored runtime drop. ItemSaveID=%s ItemID=%s Count=%d"),
+			*DropItemData.ItemSaveID.ToString(),
+			*DropItemData.ItemID.ToString(),
+			DropItemData.Count);
+	}
+}
+#pragma endregion Runtime Spawned Drop Items
 
 void ATPSWorldStateManager::NotifyEnemyDefeated(FName ActorSaveID)
 {

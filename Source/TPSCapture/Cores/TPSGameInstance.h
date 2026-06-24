@@ -7,6 +7,7 @@
 
 class UDataTable;
 class ATPSCaptureCharacter;
+class ADropItemActor;
 
 #pragma region Runtime Data Structs
 USTRUCT(BlueprintType)
@@ -43,6 +44,27 @@ struct FPlayerRuntimeData
 };
 
 USTRUCT(BlueprintType)
+struct FSpawnedDropItemRuntimeData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	FName ItemSaveID = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	int32 Count = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	FTransform SpawnTransform = FTransform::Identity;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	TSubclassOf<ADropItemActor> DropItemActorClass;
+};
+
+USTRUCT(BlueprintType)
 struct FMapRuntimeData
 {
 	GENERATED_BODY()
@@ -55,6 +77,9 @@ struct FMapRuntimeData
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
 	TArray<FName> PickedItemIDs;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
+	TArray<FSpawnedDropItemRuntimeData> SpawnedDropItems;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
 	bool bMapCleared = false;
@@ -100,6 +125,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Runtime")
 	void RegisterPickedItem(FName MapID, FName ItemID);
+
+	UFUNCTION(BlueprintCallable, Category = "Runtime")
+	void RegisterSpawnedDropItem(FName MapID, const FSpawnedDropItemRuntimeData& DropItemData);
+
+	UFUNCTION(BlueprintPure, Category = "Runtime")
+	TArray<FSpawnedDropItemRuntimeData> GetSpawnedDropItems(FName MapID) const;
 
 	UFUNCTION(BlueprintPure, Category = "Runtime")
 	bool IsEnemyDefeated(FName MapID, FName EnemyID) const;

@@ -44,6 +44,10 @@ public:
 protected:
 	void ApplySavedWorldState();
 
+#pragma region Runtime Spawned Drop Items
+	void RestoreSpawnedDropItems();
+#pragma endregion Runtime Spawned Drop Items
+
 	FName GetSaveIDFromActor(const AActor* Actor, FName PropertyName) const;
 
 	void ValidateDuplicateID(

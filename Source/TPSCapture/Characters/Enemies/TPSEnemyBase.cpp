@@ -7,6 +7,7 @@
 #include "EnemyHPBarWidget.h"
 #include "PlayerStatComponent.h"
 #include "TPSAnimalBase.h"
+#include "TPSGameInstance.h"
 #include "TPSWorldStateManager.h"
 
 #include "AIController.h"
@@ -1053,6 +1054,17 @@ void ATPSEnemyBase::SpawnDropItems()
 		return;
 	}
 
+#pragma region Runtime Spawned Drop Items
+	ATPSWorldStateManager* WorldStateManager = nullptr;
+	for (TActorIterator<ATPSWorldStateManager> It(World); It; ++It)
+	{
+		WorldStateManager = *It;
+		break;
+	}
+
+	int32 SpawnedDropNumber = 0;
+#pragma endregion Runtime Spawned Drop Items
+
 	for (const FDropItemData& DropItemData : DropItems)
 	{
 		if (DropItemData.ItemID.IsNone())
@@ -1101,12 +1113,49 @@ void ATPSEnemyBase::SpawnDropItems()
 			continue;
 		}
 
-		DropItemActor->InitializeDropItem(DropItemData.ItemID, DropCount);
-		UGameplayStatics::FinishSpawningActor(DropItemActor, SpawnTransform);
-
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d"),
+#pragma region Runtime Spawned Drop Items
+		++SpawnedDropNumber;
+		const FName RuntimeItemSaveID(*FString::Printf(
+			TEXT("%s_%s_%d"),
 			*GetName(),
 			*DropItemData.ItemID.ToString(),
-			DropCount);
+			SpawnedDropNumber
+		));
+
+		DropItemActor->InitializeRuntimeDropItem(
+			DropItemData.ItemID,
+			DropCount,
+			RuntimeItemSaveID
+		);
+
+		if (WorldStateManager && !WorldStateManager->MapID.IsNone())
+		{
+			if (UTPSGameInstance* TPSGameInstance = World->GetGameInstance<UTPSGameInstance>())
+			{
+				FSpawnedDropItemRuntimeData RuntimeDropData;
+				RuntimeDropData.ItemSaveID = RuntimeItemSaveID;
+				RuntimeDropData.ItemID = DropItemData.ItemID;
+				RuntimeDropData.Count = DropCount;
+				RuntimeDropData.SpawnTransform = SpawnTransform;
+				RuntimeDropData.DropItemActorClass = DropItemActor->GetClass();
+
+				TPSGameInstance->RegisterSpawnedDropItem(WorldStateManager->MapID, RuntimeDropData);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Runtime drop state was not registered: WorldStateManager or MapID is missing. ItemSaveID=%s"),
+				*GetName(),
+				*RuntimeItemSaveID.ToString());
+		}
+#pragma endregion Runtime Spawned Drop Items
+
+		UGameplayStatics::FinishSpawningActor(DropItemActor, SpawnTransform);
+
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d / ItemSaveID=%s"),
+			*GetName(),
+			*DropItemData.ItemID.ToString(),
+			DropCount,
+			*RuntimeItemSaveID.ToString());
 	}
 }

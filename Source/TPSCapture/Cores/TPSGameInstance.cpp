@@ -287,8 +287,53 @@ void UTPSGameInstance::RegisterPickedItem(FName MapID, FName ItemID)
 		return;
 	}
 
-	MapRuntimeDataMap.FindOrAdd(MapID).PickedItemIDs.AddUnique(ItemID);
+	FMapRuntimeData& MapRuntimeData = MapRuntimeDataMap.FindOrAdd(MapID);
+	MapRuntimeData.PickedItemIDs.AddUnique(ItemID);
+	MapRuntimeData.SpawnedDropItems.RemoveAll(
+		[ItemID](const FSpawnedDropItemRuntimeData& DropItemData)
+		{
+			return DropItemData.ItemSaveID == ItemID;
+		}
+	);
 }
+
+#pragma region Runtime Spawned Drop Items
+void UTPSGameInstance::RegisterSpawnedDropItem(FName MapID, const FSpawnedDropItemRuntimeData& DropItemData)
+{
+	if (MapID.IsNone() || DropItemData.ItemSaveID.IsNone() || DropItemData.ItemID.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] RegisterSpawnedDropItem failed: MapID, ItemSaveID, or ItemID is None."));
+		return;
+	}
+
+	FMapRuntimeData& MapRuntimeData = MapRuntimeDataMap.FindOrAdd(MapID);
+	FSpawnedDropItemRuntimeData* ExistingData = MapRuntimeData.SpawnedDropItems.FindByPredicate(
+		[&DropItemData](const FSpawnedDropItemRuntimeData& Existing)
+		{
+			return Existing.ItemSaveID == DropItemData.ItemSaveID;
+		}
+	);
+
+	if (ExistingData)
+	{
+		*ExistingData = DropItemData;
+		return;
+	}
+
+	MapRuntimeData.SpawnedDropItems.Add(DropItemData);
+}
+
+TArray<FSpawnedDropItemRuntimeData> UTPSGameInstance::GetSpawnedDropItems(FName MapID) const
+{
+	if (MapID.IsNone())
+	{
+		return {};
+	}
+
+	const FMapRuntimeData* MapRuntimeData = MapRuntimeDataMap.Find(MapID);
+	return MapRuntimeData ? MapRuntimeData->SpawnedDropItems : TArray<FSpawnedDropItemRuntimeData>();
+}
+#pragma endregion Runtime Spawned Drop Items
 
 bool UTPSGameInstance::IsEnemyDefeated(FName MapID, FName EnemyID) const
 {

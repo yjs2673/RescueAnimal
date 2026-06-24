@@ -73,6 +73,14 @@ void ADropItemActor::InitializeDropItem(FName InItemID, int32 InCount)
 	CacheInitialPickupMotionTransform();
 }
 
+#pragma region Runtime Spawned Drop Item
+void ADropItemActor::InitializeRuntimeDropItem(FName InItemID, int32 InCount, FName InItemSaveID)
+{
+	ItemSaveID = InItemSaveID;
+	InitializeDropItem(InItemID, InCount);
+}
+#pragma endregion Runtime Spawned Drop Item
+
 void ADropItemActor::OnPickupCollisionBeginOverlap(
 	UPrimitiveComponent* OverlappedComponent,
 	AActor* OtherActor,

@@ -82,6 +82,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeDropItem(FName InItemID, int32 InCount);
 
+#pragma region Runtime Spawned Drop Item
+	UFUNCTION(BlueprintCallable, Category = "World State")
+	void InitializeRuntimeDropItem(FName InItemID, int32 InCount, FName InItemSaveID);
+
+	UFUNCTION(BlueprintPure, Category = "World State")
+	FName GetItemSaveID() const { return ItemSaveID; }
+#pragma endregion Runtime Spawned Drop Item
+
 protected:
 	void ApplyItemDataToDropVisual();
 	void CacheInitialPickupMotionTransform();
