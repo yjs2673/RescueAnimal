@@ -38,6 +38,7 @@ class UQuickSlotComponent;
 
 class APortalActor;
 class AShopActor;
+class ALobbyNPC;
 class AAnimalBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -300,6 +301,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
 	TObjectPtr<AShopActor> CurrentShop = nullptr;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<ALobbyNPC> CurrentLobbyNPC = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Rescue")
 	float AnimalRescueInteractDistance = 250.0f;
 
@@ -525,6 +529,9 @@ public:
 
 	void SetCurrentShop(AShopActor* NewShop);				// 상점에 들어갈 때 현재 상점 설정
 	void ClearCurrentShop(AShopActor* ShopToClear);			// 상점에서 나올 때 현재 상점 해제
+
+	void SetCurrentLobbyNPC(ALobbyNPC* NewLobbyNPC);
+	void ClearCurrentLobbyNPC(ALobbyNPC* LobbyNPCToClear);
 #pragma endregion Interaction Func
 
 	virtual float TakeDamage(

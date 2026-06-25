@@ -1,7 +1,8 @@
-#include "TPSCaptureCharacter.h"
+ï»¿#include "TPSCaptureCharacter.h"
 
 #include "PortalActor.h"
 #include "ShopActor.h"
+#include "LobbyNPC.h"
 #include "WeaponBase.h"
 #include "ArrowProjectile.h"
 #include "TPSAnimalBase.h"
@@ -89,14 +90,14 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 #pragma endregion Base Setting
 
-	PrimaryActorTick.bCanEverTick = true; // Tick() ÇÔ¼ö¸¦ »ç¿ëÇÏ±â À§ÇØ true·Î ¼³Á¤
-	CurrentWeapon = nullptr; // Ã³À½¿¡´Â ¹«±â¸¦ µé°í ÀÖÁö ¾ÊÀ¸¹Ç·Î nullptr·Î ÃÊ±âÈ­
+	PrimaryActorTick.bCanEverTick = true; // Tick() í•¨ìˆ˜ë¥¼ ì‚¬ìš©í•˜ê¸° ìœ„í•´ trueë¡œ ì„¤ì •
+	CurrentWeapon = nullptr; // ì²˜ìŒì—ëŠ” ë¬´ê¸°ë¥¼ ë“¤ê³  ìˆì§€ ì•Šìœ¼ë¯€ë¡œ nullptrë¡œ ì´ˆê¸°í™”
 
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	QuickSlotComponent = CreateDefaultSubobject<UQuickSlotComponent>(TEXT("QuickSlotComponent"));
 
-	// Â÷Â¡ È­»ì: ¹Ì¸®º¸±â¿ë StaticMeshComponent »ı¼º ¹× ¼³Á¤
+	// ì°¨ì§• í™”ì‚´: ë¯¸ë¦¬ë³´ê¸°ìš© StaticMeshComponent ìƒì„± ë° ì„¤ì •
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
 	PreviewArrowMesh->SetupAttachment(GetMesh());
 	PreviewArrowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -194,7 +195,7 @@ void ATPSCaptureCharacter::Tick(float DeltaTime)
 
 	UpdateDodgeMovement(DeltaTime);
 
-	if (bIsBowCharging) // È°À» ´ç±â´Â ÁßÀÌ¸é, È°ÀÇ ¹æÇâ°ú ÃæÀü »óÅÂ¸¦ ¾÷µ¥ÀÌÆ®
+	if (bIsBowCharging) // í™œì„ ë‹¹ê¸°ëŠ” ì¤‘ì´ë©´, í™œì˜ ë°©í–¥ê³¼ ì¶©ì „ ìƒíƒœë¥¼ ì—…ë°ì´íŠ¸
 	{
 		UpdateBowFacing(DeltaTime);
 
@@ -259,7 +260,7 @@ void ATPSCaptureCharacter::BeginPlay()
 			EquipWeapon(SpawnedWeapon);
 	}
 
-	//if (MainHUDClass) // MainHUDInstance¸¦ »ı¼ºÇÏ¿© ºäÆ÷Æ®¿¡ Ãß°¡
+	//if (MainHUDClass) // MainHUDInstanceë¥¼ ìƒì„±í•˜ì—¬ ë·°í¬íŠ¸ì— ì¶”ê°€
 	//{
 	//	APlayerController* PC = Cast<APlayerController>(GetController());
 	//	if (PC)
@@ -303,7 +304,7 @@ void ATPSCaptureCharacter::BeginPlay()
 #pragma endregion Runtime Data BeginPlay
 }
 
-void ATPSCaptureCharacter::HandleCharacterDeath() // ÇÃ·¹ÀÌ¾î »ç¸Á Ã³¸®: °ø°İ »óÅÂ ÃÊ±âÈ­, ÀÌµ¿ ºÒ°¡, ÀÔ·Â ºñÈ°¼ºÈ­
+void ATPSCaptureCharacter::HandleCharacterDeath() // í”Œë ˆì´ì–´ ì‚¬ë§ ì²˜ë¦¬: ê³µê²© ìƒíƒœ ì´ˆê¸°í™”, ì´ë™ ë¶ˆê°€, ì…ë ¥ ë¹„í™œì„±í™”
 {
 #pragma region Game Progress
 	if (bGameOverHandled)
@@ -435,6 +436,12 @@ void ATPSCaptureCharacter::Interact()
 	if (CurrentShop)
 	{
 		CurrentShop->Interact(this);
+		return;
+	}
+
+	if (CurrentLobbyNPC)
+	{
+		CurrentLobbyNPC->Interact();
 		return;
 	}
 
@@ -965,7 +972,7 @@ void ATPSCaptureCharacter::HandleWeaponInteract()
 		}
 	}
 }
-void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ¹«±â ÀåÂø, ÀÌ¹Ì ÀåÂø ÁßÀÌ¸é ±³Ã¼
+void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ë¬´ê¸° ì¥ì°©, ì´ë¯¸ ì¥ì°© ì¤‘ì´ë©´ êµì²´
 {
 	if (!NewWeapon)
 	{
@@ -1026,7 +1033,7 @@ void ATPSCaptureCharacter::EquipWeapon(AWeaponBase* NewWeapon) // ¹«±â ÀåÂø, ÀÌ¹
 		*AttachSocketName.ToString());
 }
 
-void ATPSCaptureCharacter::UnequipWeapon() // ÀåÂø ÇØÁ¦
+void ATPSCaptureCharacter::UnequipWeapon() // ì¥ì°© í•´ì œ
 {
 	if (!CurrentWeapon)
 		return;
@@ -1056,7 +1063,7 @@ void ATPSCaptureCharacter::UnequipWeapon() // ÀåÂø ÇØÁ¦
 	OnWeaponChanged.Broadcast(GetCurrentWeaponType());
 }
 
-void ATPSCaptureCharacter::DropCurrentWeapon() // ÇöÀç ÀåÂøÇÑ ¹«±â¸¦ ¶³¾î¶ß¸®´Â ÇÔ¼ö, ¹«±â°¡ ¹Ù´Ú¿¡ ¶³¾îÁø ÈÄÀÇ À§Ä¡¿Í È¸ÀüÀ» °è»êÇÏ¿© ¼³Á¤
+void ATPSCaptureCharacter::DropCurrentWeapon() // í˜„ì¬ ì¥ì°©í•œ ë¬´ê¸°ë¥¼ ë–¨ì–´ëœ¨ë¦¬ëŠ” í•¨ìˆ˜, ë¬´ê¸°ê°€ ë°”ë‹¥ì— ë–¨ì–´ì§„ í›„ì˜ ìœ„ì¹˜ì™€ íšŒì „ì„ ê³„ì‚°í•˜ì—¬ ì„¤ì •
 {
 	if (!CurrentWeapon)
 		return;
@@ -1570,7 +1577,7 @@ void ATPSCaptureCharacter::StartBowCharge()
 
 	GetCharacterMovement()->MaxWalkSpeed = 100.f;
 
-	if (CrosshairWidgetInstance) // Á¶ÁØ¼± À§Á¬ÀÌ ÀÖ´Ù¸é º¸ÀÌµµ·Ï ¼³Á¤ÇÏ°í ÃÊ±â ¾ËÆÄ°ªÀ» 0À¸·Î ¼³Á¤
+	if (CrosshairWidgetInstance) // ì¡°ì¤€ì„  ìœ„ì ¯ì´ ìˆë‹¤ë©´ ë³´ì´ë„ë¡ ì„¤ì •í•˜ê³  ì´ˆê¸° ì•ŒíŒŒê°’ì„ 0ìœ¼ë¡œ ì„¤ì •
 	{
 		CrosshairWidgetInstance->SetCrosshairVisible(true);
 		CrosshairWidgetInstance->SetChargeAlpha(0.0f);
@@ -1734,20 +1741,20 @@ void ATPSCaptureCharacter::FireChargedArrow()
 
 	FVector SpawnLocation = FVector::ZeroVector;
 
-	// ¹«±â Skeletal MeshÀÇ ArrowSpawnSocket
+	// ë¬´ê¸° Skeletal Meshì˜ ArrowSpawnSocket
 	if (CurrentWeapon->UsesSkeletalMesh() &&
 		CurrentWeapon->WeaponSkeletalMesh &&
 		CurrentWeapon->WeaponSkeletalMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
 	{
 		SpawnLocation = CurrentWeapon->WeaponSkeletalMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
 	}
-	// ¹«±â Static MeshÀÇ ArrowSpawnSocket
+	// ë¬´ê¸° Static Meshì˜ ArrowSpawnSocket
 	else if (CurrentWeapon->WeaponMesh &&
 		CurrentWeapon->WeaponMesh->DoesSocketExist(TEXT("ArrowSpawnSocket")))
 	{
 		SpawnLocation = CurrentWeapon->WeaponMesh->GetSocketLocation(TEXT("ArrowSpawnSocket"));
 	}
-	// Ä³¸¯ÅÍ ¿Ş¼Õ ¼ÒÄÏ
+	// ìºë¦­í„° ì™¼ì† ì†Œì¼“
 	else if (GetMesh()->DoesSocketExist(TEXT("LeftHandSocket")))
 	{
 		SpawnLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandSocket"));
@@ -2007,7 +2014,7 @@ void ATPSCaptureCharacter::PlayHitMontage()
 	if (!AnimInstance)
 		return;
 
-	//if (AnimInstance->IsAnyMontagePlaying()) // ´Ù¸¥ ¸ùÅ¸ÁÖ°¡ Àç»ı ÁßÀÌ¸é ¸ØÃß°í »õ·Î Àç»ı
+	//if (AnimInstance->IsAnyMontagePlaying()) // ë‹¤ë¥¸ ëª½íƒ€ì£¼ê°€ ì¬ìƒ ì¤‘ì´ë©´ ë©ˆì¶”ê³  ìƒˆë¡œ ì¬ìƒ
 	//	AnimInstance->Montage_Stop(0.1f);
 
 	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);
@@ -2199,6 +2206,19 @@ void ATPSCaptureCharacter::ClearCurrentShop(AShopActor* ShopToClear)
 	if (CurrentShop == ShopToClear)
 	{
 		CurrentShop = nullptr;
+	}
+}
+
+void ATPSCaptureCharacter::SetCurrentLobbyNPC(ALobbyNPC* NewLobbyNPC)
+{
+	CurrentLobbyNPC = NewLobbyNPC;
+}
+
+void ATPSCaptureCharacter::ClearCurrentLobbyNPC(ALobbyNPC* LobbyNPCToClear)
+{
+	if (CurrentLobbyNPC == LobbyNPCToClear)
+	{
+		CurrentLobbyNPC = nullptr;
 	}
 }
 #pragma endregion Interaction Function
