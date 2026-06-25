@@ -5,6 +5,16 @@
 #include "QuickSlotComponent.h"
 #include "TPSCaptureCharacter.h"
 
+UTPSGameInstance::UTPSGameInstance()
+{
+	RequiredClearMapIDs =
+	{
+		TEXT("Plain"),
+		TEXT("Snow"),
+		TEXT("Desert")
+	};
+}
+
 bool UTPSGameInstance::GetItemDataByID(FName ItemID, FItemData& OutItemData) const
 {
 	if (!ItemDataTable || ItemID.IsNone())
@@ -386,7 +396,7 @@ void UTPSGameInstance::SetMapCleared(FName MapID, bool bCleared)
 
 		if (IsGameCleared())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[GameProgress] GAME CLEAR: Plain, Snow, and Desert are all cleared."));
+			UE_LOG(LogTemp, Warning, TEXT("[GameProgress] GAME CLEAR: All required field maps are cleared."));
 		}
 	}
 }
@@ -403,11 +413,79 @@ bool UTPSGameInstance::IsMapCleared(FName MapID) const
 }
 
 #pragma region Game Progress
+bool UTPSGameInstance::HasPlayedIntroDialogue() const
+{
+	return bHasPlayedIntroDialogue;
+}
+
+void UTPSGameInstance::SetHasPlayedIntroDialogue(bool bValue)
+{
+	if (bHasPlayedIntroDialogue == bValue)
+	{
+		return;
+	}
+
+	bHasPlayedIntroDialogue = bValue;
+	UE_LOG(LogTemp, Log, TEXT("[GameProgress] Intro dialogue state changed: %s"),
+		bHasPlayedIntroDialogue ? TEXT("true") : TEXT("false"));
+}
+
+bool UTPSGameInstance::IsGameStarted() const
+{
+	return bIsGameStarted;
+}
+
+void UTPSGameInstance::SetGameStarted(bool bValue)
+{
+	if (bIsGameStarted == bValue)
+	{
+		return;
+	}
+
+	bIsGameStarted = bValue;
+	UE_LOG(LogTemp, Log, TEXT("[GameProgress] Game started state changed: %s"),
+		bIsGameStarted ? TEXT("true") : TEXT("false"));
+}
+
+bool UTPSGameInstance::IsEndingTriggered() const
+{
+	return bIsEndingTriggered;
+}
+
+void UTPSGameInstance::SetEndingTriggered(bool bValue)
+{
+	if (bIsEndingTriggered == bValue)
+	{
+		return;
+	}
+
+	bIsEndingTriggered = bValue;
+	UE_LOG(LogTemp, Log, TEXT("[GameProgress] Ending triggered state changed: %s"),
+		bIsEndingTriggered ? TEXT("true") : TEXT("false"));
+}
+
+bool UTPSGameInstance::AreAllFieldMapsCleared() const
+{
+	if (RequiredClearMapIDs.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgress] RequiredClearMapIDs is empty."));
+		return false;
+	}
+
+	for (const FName& MapID : RequiredClearMapIDs)
+	{
+		if (!IsMapCleared(MapID))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool UTPSGameInstance::IsGameCleared() const
 {
-	return IsMapCleared(TEXT("MAP_Plain")) &&
-		IsMapCleared(TEXT("MAP_Snow")) &&
-		IsMapCleared(TEXT("MAP_Desert"));
+	return AreAllFieldMapsCleared();
 }
 #pragma endregion Game Progress
 #pragma endregion

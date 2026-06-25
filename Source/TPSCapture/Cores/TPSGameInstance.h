@@ -92,6 +92,8 @@ class TPSCAPTURE_API UTPSGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
+	UTPSGameInstance();
+
 	UFUNCTION(BlueprintCallable, Category = "Data")
 	bool GetItemDataByID(FName ItemID, FItemData& OutItemData) const;
 
@@ -149,6 +151,27 @@ public:
 
 #pragma region Game Progress
 	UFUNCTION(BlueprintPure, Category = "Game Progress")
+	bool HasPlayedIntroDialogue() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Game Progress")
+	void SetHasPlayedIntroDialogue(bool bValue);
+
+	UFUNCTION(BlueprintPure, Category = "Game Progress")
+	bool IsGameStarted() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Game Progress")
+	void SetGameStarted(bool bValue);
+
+	UFUNCTION(BlueprintPure, Category = "Game Progress")
+	bool IsEndingTriggered() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Game Progress")
+	void SetEndingTriggered(bool bValue);
+
+	UFUNCTION(BlueprintPure, Category = "Game Progress")
+	bool AreAllFieldMapsCleared() const;
+
+	UFUNCTION(BlueprintPure, Category = "Game Progress")
 	bool IsGameCleared() const;
 #pragma endregion Game Progress
 #pragma endregion
@@ -170,6 +193,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
 	TMap<FName, FMapRuntimeData> MapRuntimeDataMap;
 #pragma endregion
+
+#pragma region Game Progress Variables
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Progress")
+	bool bHasPlayedIntroDialogue = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Progress")
+	bool bIsGameStarted = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Game Progress")
+	bool bIsEndingTriggered = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game Progress")
+	TArray<FName> RequiredClearMapIDs;
+#pragma endregion Game Progress Variables
 
 public:
 	UPROPERTY()
