@@ -282,6 +282,9 @@ protected:
 	float AttackEndFallbackDelay = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float PunchHitDelay = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float SwordHitDelay = 0.35f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Drop")
@@ -309,7 +312,7 @@ protected:
 	bool bBowArrowFiredThisAttack = false;
 
 	UPROPERTY(Transient)
-	bool bSwordDamageAppliedThisAttack = false;
+	bool bMeleeDamageAppliedThisAttack = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	bool bIsBowCharging = false;
@@ -319,5 +322,5 @@ protected:
 
 	FTimerHandle BowFireTimerHandle;
 	FTimerHandle AttackEndTimerHandle;
-	FTimerHandle SwordHitTimerHandle;
+	FTimerHandle MeleeHitTimerHandle;
 };

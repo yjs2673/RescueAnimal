@@ -9,9 +9,9 @@ UTPSGameInstance::UTPSGameInstance()
 {
 	RequiredClearMapIDs =
 	{
-		TEXT("Plain"),
-		TEXT("Snow"),
-		TEXT("Desert")
+		TEXT("MAP_Plain"),
+		TEXT("MAP_Snow"),
+		TEXT("MAP_Desert")
 	};
 }
 

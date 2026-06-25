@@ -102,7 +102,7 @@ void ATPSEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
-	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
+	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -482,6 +482,8 @@ void ATPSEnemyBase::PerformAttack()
 
 void ATPSEnemyBase::PerformPunchAttack()
 {
+	bMeleeDamageAppliedThisAttack = false;
+
 	if (!PlayAttackMontage(AttackMontage))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Punch AttackMontage is missing"), *GetName());
@@ -489,12 +491,21 @@ void ATPSEnemyBase::PerformPunchAttack()
 		return;
 	}
 
-	ScheduleAttackEnd(AttackEndFallbackDelay);
+	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		MeleeHitTimerHandle,
+		this,
+		&ATPSEnemyBase::ApplyDamageToTarget,
+		FMath::Max(0.05f, PunchHitDelay),
+		false
+	);
+
+	ScheduleAttackEnd(FMath::Max(AttackEndFallbackDelay, PunchHitDelay + 0.05f));
 }
 
 void ATPSEnemyBase::PerformSwordAttack()
 {
-	bSwordDamageAppliedThisAttack = false;
+	bMeleeDamageAppliedThisAttack = false;
 
 	UAnimMontage* MontageToPlay = SwordAttackMontage ? SwordAttackMontage : AttackMontage;
 
@@ -517,16 +528,16 @@ void ATPSEnemyBase::PerformSwordAttack()
 
 	SetAttackMovementLocked(true);
 
-	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
+	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
 	GetWorldTimerManager().SetTimer(
-		SwordHitTimerHandle,
+		MeleeHitTimerHandle,
 		this,
 		&ATPSEnemyBase::ApplyDamageToTarget,
 		FMath::Max(0.05f, SwordHitDelay),
 		false
 	);
 
-	ScheduleAttackEnd(MontageDuration);
+	ScheduleAttackEnd(FMath::Max(MontageDuration, SwordHitDelay + 0.05f));
 }
 
 void ATPSEnemyBase::PerformBowAttack()
@@ -769,7 +780,7 @@ void ATPSEnemyBase::EndAttack()
 
 	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
 	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
-	GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
+	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
 	bIsAttacking = false;
 	bIsBowCharging = false;
 	if (GetCharacterMovement())
@@ -777,7 +788,7 @@ void ATPSEnemyBase::EndAttack()
 		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
 	}
 	SetAttackMovementLocked(false);
-	bSwordDamageAppliedThisAttack = false;
+	bMeleeDamageAppliedThisAttack = false;
 }
 
 void ATPSEnemyBase::ApplyDamageToTarget()
@@ -795,13 +806,10 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		return;
 	}
 
-	if (AttackType == EEnemyAttackType::Sword)
+	if (AttackType != EEnemyAttackType::Bow)
 	{
-		if (bSwordDamageAppliedThisAttack)
+		if (bMeleeDamageAppliedThisAttack)
 			return;
-
-		bSwordDamageAppliedThisAttack = true;
-		GetWorldTimerManager().ClearTimer(SwordHitTimerHandle);
 	}
 
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
@@ -826,10 +834,13 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		}
 	}
 
+	bMeleeDamageAppliedThisAttack = true;
+	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
+
 	const FVector HitLocation = TargetActor->GetActorLocation();
 	PlayMeleeHitEffects(HitLocation);
 
-	UGameplayStatics::ApplyDamage(
+	const float AppliedDamage = UGameplayStatics::ApplyDamage(
 		TargetActor,
 		AttackDamage,
 		GetController(),
@@ -837,10 +848,11 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 		UDamageType::StaticClass()
 	);
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Applied %.1f damage to %s"),
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Requested %.1f damage to %s / Applied=%.1f"),
 		*GetName(),
 		AttackDamage,
-		*TargetActor->GetName());
+		*TargetActor->GetName(),
+		AppliedDamage);
 }
 
 void ATPSEnemyBase::TriggerMeleeHit()

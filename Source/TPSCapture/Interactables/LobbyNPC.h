@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "TimerManager.h"
 #include "LobbyNPC.generated.h"
 
 class UBoxComponent;
@@ -40,8 +41,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
 	void StartEndingDialogue();
 
+	void TryAutoStartIntroDialogue();
+
+	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
+	void OnIntroDialogueFinished();
+
+	void DisablePlayerControlForDialogue();
+	void EnablePlayerControlAfterDialogue();
+
 protected:
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialogue", meta = (ClampMin = "0.0"))
+	float AutoIntroDelay = 0.2f;
+
+	FTimerHandle AutoIntroTimerHandle;
+	FTimerHandle IntroDialogueFinishTimerHandle;
+
+	bool bIsIntroDialogueActive = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lobby NPC")
 	TObjectPtr<USceneComponent> SceneRoot;
