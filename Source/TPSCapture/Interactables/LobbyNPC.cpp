@@ -1,5 +1,6 @@
 #include "LobbyNPC.h"
 
+#include "Blueprint/UserWidget.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -110,23 +111,36 @@ void ALobbyNPC::ShowProgressDialogue()
 {
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Started"));
 
-	const UWorld* World = GetWorld();
-	const UTPSGameInstance* TPSGameInstance = World
-		? Cast<UTPSGameInstance>(World->GetGameInstance())
-		: nullptr;
+	const FString ProgressText = BuildProgressText();
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC]\n%s"), *ProgressText);
 
-	if (!TPSGameInstance)
+	if (ProgressWidgetClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] GameInstance is unavailable. Map clear states cannot be read."));
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+		if (!PlayerController)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Progress widget was not created: PlayerController is unavailable."));
+		}
+		else
+		{
+			if (ProgressWidget)
+			{
+				ProgressWidget->RemoveFromParent();
+			}
+
+			ProgressWidget = CreateWidget<UUserWidget>(PlayerController, ProgressWidgetClass);
+			if (ProgressWidget)
+			{
+				ProgressWidget->AddToViewport();
+				UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget displayed."));
+
+				// TODO: WBP_MapProgress 전용 API가 추가되면 ProgressText를 위젯에 전달한다.
+			}
+		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Plain Cleared: %s"),
-			TPSGameInstance->IsMapCleared(TEXT("Plain")) ? TEXT("true") : TEXT("false"));
-		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Snow Cleared: %s"),
-			TPSGameInstance->IsMapCleared(TEXT("Snow")) ? TEXT("true") : TEXT("false"));
-		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Desert Cleared: %s"),
-			TPSGameInstance->IsMapCleared(TEXT("Desert")) ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] ProgressWidgetClass is not assigned. Progress was shown by log only."));
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] TODO: Remaining animal count function is not implemented."));
@@ -134,8 +148,175 @@ void ALobbyNPC::ShowProgressDialogue()
 
 void ALobbyNPC::StartEndingDialogue()
 {
+	if (bIsEndingDialogueActive)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue start skipped: Dialogue is already active."));
+		return;
+	}
+
+	UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
+		UGameplayStatics::GetGameInstance(this)
+	);
+
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending dialogue skipped: TPSGameInstance is unavailable."));
+		return;
+	}
+
+	if (TPSGameInstance->IsEndingTriggered())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue skipped: Ending was already triggered."));
+		return;
+	}
+
+	if (!TPSGameInstance->AreAllFieldMapsCleared())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending dialogue skipped: Not all field maps are cleared."));
+		return;
+	}
+
+	bIsEndingDialogueActive = true;
+	DisablePlayerControlForDialogue();
+
+	if (ProgressWidget)
+	{
+		ProgressWidget->RemoveFromParent();
+		ProgressWidget = nullptr;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Started"));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 정말 해냈군요. 모든 동물들이 자유를 되찾았습니다."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 정말 해냈군요."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 덕분에 모든 동물들이 자유를 되찾았습니다."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 이제 구조 작전은 끝났습니다."));
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (DialogueWidgetClass && PlayerController)
+	{
+		if (DialogueWidget)
+		{
+			DialogueWidget->RemoveFromParent();
+		}
+
+		DialogueWidget = CreateWidget<UUserWidget>(PlayerController, DialogueWidgetClass);
+		if (DialogueWidget)
+		{
+			DialogueWidget->AddToViewport();
+			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue widget displayed."));
+
+			// TODO: WBP_Dialogue 종료 콜백에서 OnEndingDialogueFinished()를 호출하도록 연결한다.
+		}
+	}
+	else if (!DialogueWidgetClass)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] DialogueWidgetClass is not assigned. Ending dialogue was shown by log only."));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending dialogue widget was not created: PlayerController is unavailable."));
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending finish timer was not started: World is null."));
+		bIsEndingDialogueActive = false;
+		if (DialogueWidget)
+		{
+			DialogueWidget->RemoveFromParent();
+			DialogueWidget = nullptr;
+		}
+		EnablePlayerControlAfterDialogue();
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(
+		EndingDialogueFinishTimerHandle,
+		this,
+		&ALobbyNPC::OnEndingDialogueFinished,
+		1.5f,
+		false
+	);
+}
+
+void ALobbyNPC::OnEndingDialogueFinished()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EndingDialogueFinishTimerHandle);
+	}
+
+	if (!bIsEndingDialogueActive)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending finish ignored: Ending dialogue is not active."));
+		return;
+	}
+
+	bIsEndingDialogueActive = false;
+
+	if (DialogueWidget)
+	{
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
+	}
+
+	UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
+		UGameplayStatics::GetGameInstance(this)
+	);
+
+	if (!TPSGameInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending was not completed: TPSGameInstance is unavailable."));
+		EnablePlayerControlAfterDialogue();
+		return;
+	}
+
+	if (TPSGameInstance->IsEndingTriggered())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending finish ignored: Ending was already triggered."));
+		EnablePlayerControlAfterDialogue();
+		return;
+	}
+
+	if (EndingMapName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending level travel skipped: EndingMapName is None."));
+		EnablePlayerControlAfterDialogue();
+		return;
+	}
+
+	TPSGameInstance->SetEndingTriggered(true);
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Finished. Opening level: %s"), *EndingMapName.ToString());
+	UGameplayStatics::OpenLevel(this, EndingMapName);
+}
+
+FString ALobbyNPC::BuildProgressText() const
+{
+	const UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
+		UGameplayStatics::GetGameInstance(this)
+	);
+
+	if (!TPSGameInstance)
+	{
+		return TEXT("현재 구조 진행 상황을 불러올 수 없습니다.");
+	}
+
+	const FString PlainStatus = TPSGameInstance->IsMapCleared(TEXT("MAP_Plain"))
+		? TEXT("클리어 완료")
+		: TEXT("진행 중");
+	const FString SnowStatus = TPSGameInstance->IsMapCleared(TEXT("MAP_Snow"))
+		? TEXT("클리어 완료")
+		: TEXT("진행 중");
+	const FString DesertStatus = TPSGameInstance->IsMapCleared(TEXT("MAP_Desert"))
+		? TEXT("클리어 완료")
+		: TEXT("진행 중");
+
+	return FString::Printf(
+		TEXT("현재 구조 진행 상황입니다.\n평원 섬: %s\n설원 섬: %s\n사막 섬: %s"),
+		*PlainStatus,
+		*SnowStatus,
+		*DesertStatus
+	);
 }
 
 void ALobbyNPC::BeginPlay()

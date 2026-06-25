@@ -9,6 +9,7 @@ class UBoxComponent;
 class UPrimitiveComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
+class UUserWidget;
 
 UENUM(BlueprintType)
 enum class ENPCDialogueState : uint8
@@ -41,6 +42,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
 	void StartEndingDialogue();
 
+	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
+	void OnEndingDialogueFinished();
+
+	UFUNCTION(BlueprintPure, Category = "Lobby NPC|Dialogue")
+	FString BuildProgressText() const;
+
 	void TryAutoStartIntroDialogue();
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
@@ -55,10 +62,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dialogue", meta = (ClampMin = "0.0"))
 	float AutoIntroDelay = 0.2f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Game Flow")
+	FName EndingMapName = TEXT("MAP_Ending");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> DialogueWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> ProgressWidgetClass;
+
 	FTimerHandle AutoIntroTimerHandle;
 	FTimerHandle IntroDialogueFinishTimerHandle;
+	FTimerHandle EndingDialogueFinishTimerHandle;
 
 	bool bIsIntroDialogueActive = false;
+	bool bIsEndingDialogueActive = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> DialogueWidget;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> ProgressWidget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lobby NPC")
 	TObjectPtr<USceneComponent> SceneRoot;
