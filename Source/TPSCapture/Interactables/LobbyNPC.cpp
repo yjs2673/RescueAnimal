@@ -1,6 +1,7 @@
 #include "LobbyNPC.h"
 
-#include "Blueprint/UserWidget.h"
+#include "DialogueWidget.h"
+#include "MapProgressWidget.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -87,6 +88,36 @@ void ALobbyNPC::StartIntroDialogue()
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 안녕하세요. 이곳은 구조 작전의 거점입니다."));
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 각 섬에 갇힌 동물들을 구조해 주세요."));
 
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (DialogueWidgetClass && PlayerController)
+	{
+		if (DialogueWidget)
+		{
+			DialogueWidget->RemoveFromParent();
+		}
+
+		DialogueWidget = CreateWidget<UDialogueWidget>(PlayerController, DialogueWidgetClass);
+		if (DialogueWidget)
+		{
+			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnIntroDialogueFinished);
+			DialogueWidget->AddToViewport();
+
+			TArray<FText> IntroDialogueLines;
+			IntroDialogueLines.Add(FText::FromString(TEXT("안녕하세요. 이곳은 구조 작전의 거점입니다.")));
+			IntroDialogueLines.Add(FText::FromString(TEXT("각 섬에 갇힌 동물들을 구조해 주세요.")));
+			DialogueWidget->BeginDialogue(IntroDialogueLines);
+
+			PlayerController->bShowMouseCursor = true;
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputMode);
+
+			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Intro dialogue widget displayed."));
+			return;
+		}
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -96,8 +127,7 @@ void ALobbyNPC::StartIntroDialogue()
 		return;
 	}
 
-	// TODO: WBP_Dialogue가 연결되면 임시 타이머 대신 대화 UI 종료 콜백에서
-	// OnIntroDialogueFinished()를 호출하도록 교체한다.
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Dialogue widget is unavailable. Using intro fallback timer."));
 	World->GetTimerManager().SetTimer(
 		IntroDialogueFinishTimerHandle,
 		this,
@@ -125,16 +155,30 @@ void ALobbyNPC::ShowProgressDialogue()
 		{
 			if (ProgressWidget)
 			{
+				ProgressWidget->OnCloseRequested.RemoveDynamic(
+					this,
+					&ALobbyNPC::HandleProgressWidgetCloseRequested
+				);
 				ProgressWidget->RemoveFromParent();
 			}
 
-			ProgressWidget = CreateWidget<UUserWidget>(PlayerController, ProgressWidgetClass);
+			ProgressWidget = CreateWidget<UMapProgressWidget>(PlayerController, ProgressWidgetClass);
 			if (ProgressWidget)
 			{
+				ProgressWidget->OnCloseRequested.AddUniqueDynamic(
+					this,
+					&ALobbyNPC::HandleProgressWidgetCloseRequested
+				);
 				ProgressWidget->AddToViewport();
-				UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget displayed."));
+				ProgressWidget->SetProgressText(FText::FromString(ProgressText));
 
-				// TODO: WBP_MapProgress 전용 API가 추가되면 ProgressText를 위젯에 전달한다.
+				PlayerController->bShowMouseCursor = true;
+				FInputModeGameAndUI InputMode;
+				InputMode.SetWidgetToFocus(ProgressWidget->TakeWidget());
+				InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+				PlayerController->SetInputMode(InputMode);
+
+				UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget displayed."));
 			}
 		}
 	}
@@ -181,6 +225,10 @@ void ALobbyNPC::StartEndingDialogue()
 
 	if (ProgressWidget)
 	{
+		ProgressWidget->OnCloseRequested.RemoveDynamic(
+			this,
+			&ALobbyNPC::HandleProgressWidgetCloseRequested
+		);
 		ProgressWidget->RemoveFromParent();
 		ProgressWidget = nullptr;
 	}
@@ -195,16 +243,30 @@ void ALobbyNPC::StartEndingDialogue()
 	{
 		if (DialogueWidget)
 		{
+			DialogueWidget->OnDialogueFinished.RemoveAll(this);
 			DialogueWidget->RemoveFromParent();
 		}
 
-		DialogueWidget = CreateWidget<UUserWidget>(PlayerController, DialogueWidgetClass);
+		DialogueWidget = CreateWidget<UDialogueWidget>(PlayerController, DialogueWidgetClass);
 		if (DialogueWidget)
 		{
+			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnEndingDialogueFinished);
 			DialogueWidget->AddToViewport();
-			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue widget displayed."));
 
-			// TODO: WBP_Dialogue 종료 콜백에서 OnEndingDialogueFinished()를 호출하도록 연결한다.
+			TArray<FText> EndingDialogueLines;
+			EndingDialogueLines.Add(FText::FromString(TEXT("정말 해냈군요.")));
+			EndingDialogueLines.Add(FText::FromString(TEXT("덕분에 모든 동물들이 자유를 되찾았습니다.")));
+			EndingDialogueLines.Add(FText::FromString(TEXT("이제 구조 작전은 끝났습니다.")));
+			DialogueWidget->BeginDialogue(EndingDialogueLines);
+
+			PlayerController->bShowMouseCursor = true;
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputMode);
+
+			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue widget displayed."));
+			return;
 		}
 	}
 	else if (!DialogueWidgetClass)
@@ -256,6 +318,7 @@ void ALobbyNPC::OnEndingDialogueFinished()
 
 	if (DialogueWidget)
 	{
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
 		DialogueWidget->RemoveFromParent();
 		DialogueWidget = nullptr;
 	}
@@ -382,6 +445,13 @@ void ALobbyNPC::OnIntroDialogueFinished()
 
 	bIsIntroDialogueActive = false;
 
+	if (DialogueWidget)
+	{
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
+	}
+
 	UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
 		UGameplayStatics::GetGameInstance(this)
 	);
@@ -398,6 +468,28 @@ void ALobbyNPC::OnIntroDialogueFinished()
 
 	EnablePlayerControlAfterDialogue();
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Intro Dialogue Finished"));
+}
+
+void ALobbyNPC::HandleProgressWidgetCloseRequested()
+{
+	if (ProgressWidget)
+	{
+		ProgressWidget->OnCloseRequested.RemoveDynamic(
+			this,
+			&ALobbyNPC::HandleProgressWidgetCloseRequested
+		);
+		ProgressWidget->RemoveFromParent();
+		ProgressWidget = nullptr;
+	}
+
+	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
+	{
+		PlayerController->bShowMouseCursor = false;
+		FInputModeGameOnly InputMode;
+		PlayerController->SetInputMode(InputMode);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget closed."));
 }
 
 void ALobbyNPC::DisablePlayerControlForDialogue()
