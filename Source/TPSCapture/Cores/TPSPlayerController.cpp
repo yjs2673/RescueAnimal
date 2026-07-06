@@ -115,6 +115,7 @@ void ATPSPlayerController::TryCreateMapProgressWidget()
 
 	MapProgressWidget->AddToViewport(10);
 	MapProgressWidget->InitializeForWorldStateManager(WorldStateManager);
+	MapProgressWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 
 	UE_LOG(LogTemp, Log, TEXT("[MapProgress] Field progress widget displayed. MapID=%s"),
 		*MapID.ToString());
@@ -341,7 +342,7 @@ void ATPSPlayerController::ShowMainHUD()
 
 	if (MapProgressWidget)
 	{
-		MapProgressWidget->SetVisibility(ESlateVisibility::Visible);
+		MapProgressWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 

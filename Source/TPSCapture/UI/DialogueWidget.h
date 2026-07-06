@@ -15,8 +15,14 @@ class TPSCAPTURE_API UDialogueWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UDialogueWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnPreviewKeyDown(
+		const FGeometry& InGeometry,
+		const FKeyEvent& InKeyEvent
+	) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Dialogue")
 	void BeginDialogue(const TArray<FText>& InDialogueLines);

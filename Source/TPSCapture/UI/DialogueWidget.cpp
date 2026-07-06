@@ -2,6 +2,14 @@
 
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Input/Reply.h"
+#include "InputCoreTypes.h"
+
+UDialogueWidget::UDialogueWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bIsFocusable = true;
+}
 
 void UDialogueWidget::NativeConstruct()
 {
@@ -41,6 +49,23 @@ void UDialogueWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+FReply UDialogueWidget::NativeOnPreviewKeyDown(
+	const FGeometry& InGeometry,
+	const FKeyEvent& InKeyEvent)
+{
+	if (bDialogueActive && InKeyEvent.GetKey() == EKeys::SpaceBar)
+	{
+		if (!InKeyEvent.IsRepeat())
+		{
+			AdvanceDialogue();
+		}
+
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
 void UDialogueWidget::BeginDialogue(const TArray<FText>& InDialogueLines)
 {
 	DialogueLines = InDialogueLines;
@@ -56,6 +81,7 @@ void UDialogueWidget::BeginDialogue(const TArray<FText>& InDialogueLines)
 
 	SetVisibility(ESlateVisibility::Visible);
 	RefreshDialogueText();
+	SetKeyboardFocus();
 }
 
 void UDialogueWidget::AdvanceDialogue()

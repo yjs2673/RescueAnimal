@@ -113,7 +113,7 @@ void ALobbyNPC::StartIntroDialogue()
 			DialogueWidget->BeginDialogue(IntroDialogueLines);
 
 			PlayerController->bShowMouseCursor = true;
-			FInputModeGameAndUI InputMode;
+			FInputModeUIOnly InputMode;
 			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
 			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			PlayerController->SetInputMode(InputMode);
@@ -185,7 +185,7 @@ void ALobbyNPC::ShowProgressDialogue()
 			DialogueWidget->BeginDialogue(ProgressDialogueLines);
 
 			PlayerController->bShowMouseCursor = true;
-			FInputModeGameAndUI InputMode;
+			FInputModeUIOnly InputMode;
 			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
 			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			PlayerController->SetInputMode(InputMode);
@@ -261,7 +261,7 @@ void ALobbyNPC::StartEndingDialogue()
 			DialogueWidget->BeginDialogue(EndingDialogueLines);
 
 			PlayerController->bShowMouseCursor = true;
-			FInputModeGameAndUI InputMode;
+			FInputModeUIOnly InputMode;
 			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
 			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			PlayerController->SetInputMode(InputMode);
