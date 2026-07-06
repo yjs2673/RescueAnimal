@@ -10,7 +10,6 @@ class UPrimitiveComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
 class UDialogueWidget;
-class UMapProgressWidget;
 
 UENUM(BlueprintType)
 enum class ENPCDialogueState : uint8
@@ -54,11 +53,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
 	void OnIntroDialogueFinished();
 
+	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
+	void OnProgressDialogueFinished();
+
 	void DisablePlayerControlForDialogue();
 	void EnablePlayerControlAfterDialogue();
-
-	UFUNCTION()
-	void HandleProgressWidgetCloseRequested();
 
 protected:
 	virtual void BeginPlay() override;
@@ -72,21 +71,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UDialogueWidget> DialogueWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UMapProgressWidget> ProgressWidgetClass;
-
 	FTimerHandle AutoIntroTimerHandle;
 	FTimerHandle IntroDialogueFinishTimerHandle;
 	FTimerHandle EndingDialogueFinishTimerHandle;
 
 	bool bIsIntroDialogueActive = false;
+	bool bIsProgressDialogueActive = false;
 	bool bIsEndingDialogueActive = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UDialogueWidget> DialogueWidget;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMapProgressWidget> ProgressWidget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lobby NPC")
 	TObjectPtr<USceneComponent> SceneRoot;

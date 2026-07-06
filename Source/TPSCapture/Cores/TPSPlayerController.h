@@ -10,7 +10,9 @@ class UInventoryWidget;
 class UShopWidget;
 class UAnimalCollectionWidget;
 class UGameProgressMessageWidget;
+class UMapProgressWidget;
 class AShopActor;
+class ATPSWorldStateManager;
 
 UCLASS()
 class TPSCAPTURE_API ATPSPlayerController : public APlayerController
@@ -67,6 +69,9 @@ public:
 	void ShowGameOverMessage();
 #pragma endregion Game Progress Message
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Map Progress")
+	TSubclassOf<UMapProgressWidget> MapProgressWidgetClass;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDWidgetClass;
@@ -84,6 +89,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Game Progress")
 	TSubclassOf<UGameProgressMessageWidget> GameProgressMessageWidgetClass;
 #pragma endregion Game Progress Message
+
+	UPROPERTY()
+	TObjectPtr<UMapProgressWidget> MapProgressWidget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
 	float FadeInDuration = 1.0f;
@@ -137,4 +145,5 @@ private:
 	void SetUIInputMode();
 	void StartLevelFadeIn();
 	void FinishLevelFadeIn();
+	void TryCreateMapProgressWidget();
 };

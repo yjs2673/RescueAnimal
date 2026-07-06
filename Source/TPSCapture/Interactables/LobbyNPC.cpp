@@ -1,7 +1,6 @@
 #include "LobbyNPC.h"
 
 #include "DialogueWidget.h"
-#include "MapProgressWidget.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -56,6 +55,12 @@ ENPCDialogueState ALobbyNPC::GetCurrentDialogueState() const
 
 void ALobbyNPC::Interact()
 {
+	if (bIsIntroDialogueActive || bIsProgressDialogueActive || bIsEndingDialogueActive)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Interaction skipped: Dialogue is already active."));
+		return;
+	}
+
 	switch (GetCurrentDialogueState())
 	{
 	case ENPCDialogueState::Intro:
@@ -139,55 +144,59 @@ void ALobbyNPC::StartIntroDialogue()
 
 void ALobbyNPC::ShowProgressDialogue()
 {
+	if (bIsProgressDialogueActive)
+	{
+		return;
+	}
+
+	bIsProgressDialogueActive = true;
+	DisablePlayerControlForDialogue();
+
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Started"));
 
 	const FString ProgressText = BuildProgressText();
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC]\n%s"), *ProgressText);
 
-	if (ProgressWidgetClass)
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (DialogueWidgetClass && PlayerController)
 	{
-		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-		if (!PlayerController)
+		if (DialogueWidget)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Progress widget was not created: PlayerController is unavailable."));
+			DialogueWidget->OnDialogueFinished.RemoveAll(this);
+			DialogueWidget->RemoveFromParent();
 		}
-		else
+
+		DialogueWidget = CreateWidget<UDialogueWidget>(PlayerController, DialogueWidgetClass);
+		if (DialogueWidget)
 		{
-			if (ProgressWidget)
+			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnProgressDialogueFinished);
+			DialogueWidget->AddToViewport();
+
+			TArray<FString> ProgressStringLines;
+			ProgressText.ParseIntoArrayLines(ProgressStringLines, true);
+
+			TArray<FText> ProgressDialogueLines;
+			ProgressDialogueLines.Reserve(ProgressStringLines.Num());
+			for (const FString& ProgressLine : ProgressStringLines)
 			{
-				ProgressWidget->OnCloseRequested.RemoveDynamic(
-					this,
-					&ALobbyNPC::HandleProgressWidgetCloseRequested
-				);
-				ProgressWidget->RemoveFromParent();
+				ProgressDialogueLines.Add(FText::FromString(ProgressLine));
 			}
 
-			ProgressWidget = CreateWidget<UMapProgressWidget>(PlayerController, ProgressWidgetClass);
-			if (ProgressWidget)
-			{
-				ProgressWidget->OnCloseRequested.AddUniqueDynamic(
-					this,
-					&ALobbyNPC::HandleProgressWidgetCloseRequested
-				);
-				ProgressWidget->AddToViewport();
-				ProgressWidget->SetProgressText(FText::FromString(ProgressText));
+			DialogueWidget->BeginDialogue(ProgressDialogueLines);
 
-				PlayerController->bShowMouseCursor = true;
-				FInputModeGameAndUI InputMode;
-				InputMode.SetWidgetToFocus(ProgressWidget->TakeWidget());
-				InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-				PlayerController->SetInputMode(InputMode);
+			PlayerController->bShowMouseCursor = true;
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputMode);
 
-				UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget displayed."));
-			}
+			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress dialogue widget displayed."));
+			return;
 		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] ProgressWidgetClass is not assigned. Progress was shown by log only."));
-	}
 
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] TODO: Remaining animal count function is not implemented."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Dialogue widget is unavailable. Progress was shown by log only."));
+	OnProgressDialogueFinished();
 }
 
 void ALobbyNPC::StartEndingDialogue()
@@ -223,17 +232,8 @@ void ALobbyNPC::StartEndingDialogue()
 	bIsEndingDialogueActive = true;
 	DisablePlayerControlForDialogue();
 
-	if (ProgressWidget)
-	{
-		ProgressWidget->OnCloseRequested.RemoveDynamic(
-			this,
-			&ALobbyNPC::HandleProgressWidgetCloseRequested
-		);
-		ProgressWidget->RemoveFromParent();
-		ProgressWidget = nullptr;
-	}
-
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Started"));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 모든 지역의 구조가 완료되었습니다."));
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 정말 해냈군요."));
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 덕분에 모든 동물들이 자유를 되찾았습니다."));
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 이제 구조 작전은 끝났습니다."));
@@ -254,6 +254,7 @@ void ALobbyNPC::StartEndingDialogue()
 			DialogueWidget->AddToViewport();
 
 			TArray<FText> EndingDialogueLines;
+			EndingDialogueLines.Add(FText::FromString(TEXT("모든 지역의 구조가 완료되었습니다.")));
 			EndingDialogueLines.Add(FText::FromString(TEXT("정말 해냈군요.")));
 			EndingDialogueLines.Add(FText::FromString(TEXT("덕분에 모든 동물들이 자유를 되찾았습니다.")));
 			EndingDialogueLines.Add(FText::FromString(TEXT("이제 구조 작전은 끝났습니다.")));
@@ -375,7 +376,7 @@ FString ALobbyNPC::BuildProgressText() const
 		: TEXT("진행 중");
 
 	return FString::Printf(
-		TEXT("현재 구조 진행 상황입니다.\n평원 섬: %s\n설원 섬: %s\n사막 섬: %s"),
+		TEXT("현재 구조 진행 상황입니다.\n초원 섬: %s\n설원 섬: %s\n사막 섬: %s"),
 		*PlainStatus,
 		*SnowStatus,
 		*DesertStatus
@@ -470,26 +471,19 @@ void ALobbyNPC::OnIntroDialogueFinished()
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Intro Dialogue Finished"));
 }
 
-void ALobbyNPC::HandleProgressWidgetCloseRequested()
+void ALobbyNPC::OnProgressDialogueFinished()
 {
-	if (ProgressWidget)
+	bIsProgressDialogueActive = false;
+
+	if (DialogueWidget)
 	{
-		ProgressWidget->OnCloseRequested.RemoveDynamic(
-			this,
-			&ALobbyNPC::HandleProgressWidgetCloseRequested
-		);
-		ProgressWidget->RemoveFromParent();
-		ProgressWidget = nullptr;
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
 	}
 
-	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0))
-	{
-		PlayerController->bShowMouseCursor = false;
-		FInputModeGameOnly InputMode;
-		PlayerController->SetInputMode(InputMode);
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress widget closed."));
+	EnablePlayerControlAfterDialogue();
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Finished"));
 }
 
 void ALobbyNPC::DisablePlayerControlForDialogue()

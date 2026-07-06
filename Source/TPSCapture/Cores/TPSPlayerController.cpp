@@ -7,9 +7,12 @@
 #include "ShopWidget.h"
 #include "AnimalCollectionWidget.h"
 #include "GameProgressMessageWidget.h"
+#include "MapProgressWidget.h"
 #include "ShopActor.h"
 #include "TPSGameInstance.h"
+#include "TPSWorldStateManager.h"
 #include "InputCoreTypes.h"
+#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
 void ATPSPlayerController::BeginPlay()
@@ -57,6 +60,8 @@ void ATPSPlayerController::BeginPlay()
 	}
 #pragma endregion Game Progress Message
 
+	TryCreateMapProgressWidget();
+
 	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
 	{
 		if (TPSGameInstance->bPendingPortalTransition)
@@ -67,6 +72,52 @@ void ATPSPlayerController::BeginPlay()
 			StartLevelFadeIn();
 		}
 	}
+}
+
+void ATPSPlayerController::TryCreateMapProgressWidget()
+{
+	ATPSWorldStateManager* WorldStateManager = nullptr;
+	for (TActorIterator<ATPSWorldStateManager> It(GetWorld()); It; ++It)
+	{
+		WorldStateManager = *It;
+		break;
+	}
+
+	if (!WorldStateManager)
+	{
+		return;
+	}
+
+	const FName MapID = WorldStateManager->MapID;
+	const bool bIsFieldMap = MapID == TEXT("MAP_Plain") ||
+		MapID == TEXT("MAP_Snow") ||
+		MapID == TEXT("MAP_Desert");
+
+	if (!bIsFieldMap)
+	{
+		return;
+	}
+
+	if (!MapProgressWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MapProgress] MapProgressWidgetClass is not assigned. MapID=%s"),
+			*MapID.ToString());
+		return;
+	}
+
+	MapProgressWidget = CreateWidget<UMapProgressWidget>(this, MapProgressWidgetClass);
+	if (!MapProgressWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MapProgress] Failed to create MapProgressWidget. MapID=%s"),
+			*MapID.ToString());
+		return;
+	}
+
+	MapProgressWidget->AddToViewport(10);
+	MapProgressWidget->InitializeForWorldStateManager(WorldStateManager);
+
+	UE_LOG(LogTemp, Log, TEXT("[MapProgress] Field progress widget displayed. MapID=%s"),
+		*MapID.ToString());
 }
 
 #pragma region Game Progress Message
@@ -274,6 +325,11 @@ void ATPSPlayerController::HideMainHUD()
 	{
 		MainHUDWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
+
+	if (MapProgressWidget)
+	{
+		MapProgressWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void ATPSPlayerController::ShowMainHUD()
@@ -281,6 +337,11 @@ void ATPSPlayerController::ShowMainHUD()
 	if (MainHUDWidget)
 	{
 		MainHUDWidget->SetVisibility(ESlateVisibility::Visible);
+	}
+
+	if (MapProgressWidget)
+	{
+		MapProgressWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 

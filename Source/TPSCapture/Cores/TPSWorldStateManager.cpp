@@ -34,6 +34,7 @@ void ATPSWorldStateManager::ApplySavedWorldState()
 {
 	AliveEnemyCount = 0;
 	UnrescuedAnimalCount = 0;
+	TotalAnimalCount = 0;
 
 	UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr;
 	if (!TPSGameInstance)
@@ -74,6 +75,8 @@ void ATPSWorldStateManager::ApplySavedWorldState()
 		{
 			continue;
 		}
+
+		TotalAnimalCount++;
 
 		const FName AnimalSaveID = GetSaveIDFromActor(Animal, TEXT("AnimalSaveID"));
 		if (AnimalSaveID.IsNone())
@@ -123,6 +126,7 @@ void ATPSWorldStateManager::ApplySavedWorldState()
 	}
 
 	RestoreSpawnedDropItems();
+	OnWorldProgressChanged.Broadcast();
 }
 
 #pragma region Runtime Spawned Drop Items
@@ -233,12 +237,19 @@ void ATPSWorldStateManager::NotifyAnimalRescued(FName AnimalSaveID)
 		return;
 	}
 
+	bool bWasAlreadyRescued = false;
 	if (UTPSGameInstance* TPSGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UTPSGameInstance>() : nullptr)
 	{
+		bWasAlreadyRescued = TPSGameInstance->IsAnimalRescued(MapID, AnimalSaveID);
 		TPSGameInstance->RegisterRescuedAnimal(MapID, AnimalSaveID);
 	}
 
-	UnrescuedAnimalCount = FMath::Max(0, UnrescuedAnimalCount - 1);
+	if (!bWasAlreadyRescued)
+	{
+		UnrescuedAnimalCount = FMath::Max(0, UnrescuedAnimalCount - 1);
+	}
+
+	OnWorldProgressChanged.Broadcast();
 	CheckAndHandleMapClear();
 }
 

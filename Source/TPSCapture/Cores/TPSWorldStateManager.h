@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "TPSWorldStateManager.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWorldProgressChanged);
+
 UCLASS()
 class TPSCAPTURE_API ATPSWorldStateManager : public AActor
 {
@@ -24,6 +26,18 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World State")
 	int32 UnrescuedAnimalCount = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World State")
+	int32 TotalAnimalCount = 0;
+
+	UPROPERTY(BlueprintAssignable, Category = "World State")
+	FOnWorldProgressChanged OnWorldProgressChanged;
+
+	UFUNCTION(BlueprintPure, Category = "World State")
+	int32 GetRescuedAnimalCount() const
+	{
+		return FMath::Clamp(TotalAnimalCount - UnrescuedAnimalCount, 0, TotalAnimalCount);
+	}
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "World State")
