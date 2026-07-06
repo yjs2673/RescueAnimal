@@ -55,27 +55,98 @@ ENPCDialogueState ALobbyNPC::GetCurrentDialogueState() const
 
 void ALobbyNPC::Interact()
 {
-	if (bIsIntroDialogueActive || bIsProgressDialogueActive || bIsEndingDialogueActive)
+	if (bIsIntroDialogueActive || bIsChoiceMenuActive || bIsProgressDialogueActive || bIsEndingDialogueActive)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Interaction skipped: Dialogue is already active."));
 		return;
 	}
 
-	switch (GetCurrentDialogueState())
+	UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
+		UGameplayStatics::GetGameInstance(this)
+	);
+
+	if (!TPSGameInstance)
 	{
-	case ENPCDialogueState::Intro:
-		StartIntroDialogue();
-		break;
-
-	case ENPCDialogueState::Ending:
-		StartEndingDialogue();
-		break;
-
-	case ENPCDialogueState::Progress:
-	default:
-		ShowProgressDialogue();
-		break;
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Interaction skipped: TPSGameInstance is unavailable."));
+		return;
 	}
+
+	if (!TPSGameInstance->HasPlayedIntroDialogue())
+	{
+		StartIntroDialogue();
+		return;
+	}
+
+	ShowDialogueChoices();
+}
+
+void ALobbyNPC::ShowDialogueChoices()
+{
+	if (bIsChoiceMenuActive)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (!DialogueWidgetClass || !PlayerController)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[LobbyNPC] Choice menu could not open: DialogueWidgetClass or PlayerController is unavailable.")
+		);
+		return;
+	}
+
+	if (DialogueWidget)
+	{
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
+	}
+
+	DialogueWidget = CreateWidget<UDialogueWidget>(PlayerController, DialogueWidgetClass);
+	if (!DialogueWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Choice menu widget creation failed."));
+		return;
+	}
+
+	bIsChoiceMenuActive = true;
+	DisablePlayerControlForDialogue();
+
+	DialogueWidget->OnDialogueChoiceSelected.AddUniqueDynamic(
+		this,
+		&ALobbyNPC::HandleDialogueChoiceSelected
+	);
+	DialogueWidget->OnDialogueFinished.AddUniqueDynamic(
+		this,
+		&ALobbyNPC::OnDialogueChoiceMenuClosed
+	);
+	DialogueWidget->AddToViewport();
+
+	const bool bChoicesDisplayed = DialogueWidget->ShowChoices(
+		FText::FromString(TEXT("무슨 일인가요?")),
+		FText::FromString(TEXT("다시 설명")),
+		FText::FromString(TEXT("진행 상황")),
+		FText::FromString(TEXT("엔딩 확인"))
+	);
+
+	if (!bChoicesDisplayed)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Choice menu closed because its buttons are not bound."));
+		OnDialogueChoiceMenuClosed();
+		return;
+	}
+
+	PlayerController->bShowMouseCursor = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PlayerController->SetInputMode(InputMode);
+
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Dialogue choice menu displayed."));
 }
 
 void ALobbyNPC::StartIntroDialogue()
@@ -89,15 +160,72 @@ void ALobbyNPC::StartIntroDialogue()
 	bIsIntroDialogueActive = true;
 	DisablePlayerControlForDialogue();
 
+	TArray<FText> IntroDialogueLines;
+	if (bRepeatTutorialRequested)
+	{
+		IntroDialogueLines.Add(FText::FromString(TEXT("다시 설명드리겠습니다.")));
+	}
+	else
+	{
+		IntroDialogueLines.Add(FText::FromString(TEXT("안녕하세요. 이곳은 구조 작전의 거점입니다.")));
+	}
+
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("각 섬에 갇힌 동물들을 모두 구조하는 것이 이번 작전의 목표입니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("정면의 포탈을 통해 섬으로 이동하실 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("각 섬에는 납포 조직의 캠프들이 있으며, 캠프에 동물들이 붙잡혀있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("캠프의 모든 조직원들을 처치하고, 구조 키트를 통해 동물들을 구조하실 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("구조 키트는 인벤토리에 지급해드리겠습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("정면을 기준으로 왼쪽이 평원 섬, 가운데가 설원 섬, 오른쪽이 사막 섬입니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("섬마다 조직원들의 체력과 공격력이 다릅니다. 왼쪽부터 차례대로 진행하시는걸 추천드립니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("이동은 W, A, S, D 키, 시점 조작은 마우스를 사용합니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("Space Bar로 점프하고, Left Shift로 회피할 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("마우스 왼쪽 버튼으로 공격하고, E 키로 상호작용하실 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("I 키로 인벤토리를 열 수 있고, C 키로 구조한 동물들의 컬렉션을 확인할 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("인벤토리에서 드래그를 통해 아이템을 단축키에 등록 후 숫자 키를 통해 사용하실 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("거점의 상점 NPC를 통해 무기와 아이템을 구매하실 수 있습니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
+		TEXT("준비가 끝나면 포탈을 통해 구조 지역으로 이동해 주세요.")
+	));
+
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Intro Dialogue Started"));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 안녕하세요. 이곳은 구조 작전의 거점입니다."));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 각 섬에 갇힌 동물들을 구조해 주세요."));
+	for (const FText& DialogueLine : IntroDialogueLines)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] %s"), *DialogueLine.ToString());
+	}
 
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	if (DialogueWidgetClass && PlayerController)
 	{
 		if (DialogueWidget)
 		{
+			DialogueWidget->OnDialogueFinished.RemoveAll(this);
+			DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 			DialogueWidget->RemoveFromParent();
 		}
 
@@ -106,10 +234,6 @@ void ALobbyNPC::StartIntroDialogue()
 		{
 			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnIntroDialogueFinished);
 			DialogueWidget->AddToViewport();
-
-			TArray<FText> IntroDialogueLines;
-			IntroDialogueLines.Add(FText::FromString(TEXT("안녕하세요. 이곳은 구조 작전의 거점입니다.")));
-			IntroDialogueLines.Add(FText::FromString(TEXT("각 섬에 갇힌 동물들을 구조해 주세요.")));
 			DialogueWidget->BeginDialogue(IntroDialogueLines);
 
 			PlayerController->bShowMouseCursor = true;
@@ -128,6 +252,7 @@ void ALobbyNPC::StartIntroDialogue()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Intro finish timer was not started: World is null."));
 		bIsIntroDialogueActive = false;
+		bRepeatTutorialRequested = false;
 		EnablePlayerControlAfterDialogue();
 		return;
 	}
@@ -152,9 +277,8 @@ void ALobbyNPC::ShowProgressDialogue()
 	bIsProgressDialogueActive = true;
 	DisablePlayerControlForDialogue();
 
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Started"));
-
 	const FString ProgressText = BuildProgressText();
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Started"));
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC]\n%s"), *ProgressText);
 
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
@@ -163,6 +287,7 @@ void ALobbyNPC::ShowProgressDialogue()
 		if (DialogueWidget)
 		{
 			DialogueWidget->OnDialogueFinished.RemoveAll(this);
+			DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 			DialogueWidget->RemoveFromParent();
 		}
 
@@ -199,6 +324,52 @@ void ALobbyNPC::ShowProgressDialogue()
 	OnProgressDialogueFinished();
 }
 
+void ALobbyNPC::ShowEndingLockedDialogue()
+{
+	if (bIsProgressDialogueActive)
+	{
+		return;
+	}
+
+	bIsProgressDialogueActive = true;
+	DisablePlayerControlForDialogue();
+
+	const FText EndingLockedText = FText::FromString(TEXT("아직 모든 섬이 클리어되지 않았습니다. 모든 동물을 구조해주세요."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending condition is not met."));
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] %s"), *EndingLockedText.ToString());
+
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	if (DialogueWidgetClass && PlayerController)
+	{
+		if (DialogueWidget)
+		{
+			DialogueWidget->OnDialogueFinished.RemoveAll(this);
+			DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
+			DialogueWidget->RemoveFromParent();
+		}
+
+		DialogueWidget = CreateWidget<UDialogueWidget>(PlayerController, DialogueWidgetClass);
+		if (DialogueWidget)
+		{
+			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnProgressDialogueFinished);
+			DialogueWidget->AddToViewport();
+
+			TArray<FText> EndingLockedDialogueLines;
+			EndingLockedDialogueLines.Add(EndingLockedText);
+			DialogueWidget->BeginDialogue(EndingLockedDialogueLines);
+
+			PlayerController->bShowMouseCursor = true;
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputMode);
+			return;
+		}
+	}
+
+	OnProgressDialogueFinished();
+}
+
 void ALobbyNPC::StartEndingDialogue()
 {
 	if (bIsEndingDialogueActive)
@@ -226,17 +397,25 @@ void ALobbyNPC::StartEndingDialogue()
 	if (!TPSGameInstance->AreAllFieldMapsCleared())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending dialogue skipped: Not all field maps are cleared."));
+		ShowEndingLockedDialogue();
 		return;
 	}
 
 	bIsEndingDialogueActive = true;
 	DisablePlayerControlForDialogue();
 
+	TArray<FText> EndingDialogueLines;
+	EndingDialogueLines.Add(FText::FromString(TEXT("3개의 섬을 모두 클리어하셨군요!")));
+	EndingDialogueLines.Add(FText::FromString(
+		TEXT("모든 동물들이 자유를 되찾았습니다.")
+	));
+	EndingDialogueLines.Add(FText::FromString(TEXT("구조 작전이 끝났으니 이곳에서 철수하겠습니다. 돌아가시죠!")));
+
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Started"));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 모든 지역의 구조가 완료되었습니다."));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 정말 해냈군요."));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 덕분에 모든 동물들이 자유를 되찾았습니다."));
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] 이제 구조 작전은 끝났습니다."));
+	for (const FText& DialogueLine : EndingDialogueLines)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] %s"), *DialogueLine.ToString());
+	}
 
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
 	if (DialogueWidgetClass && PlayerController)
@@ -244,6 +423,7 @@ void ALobbyNPC::StartEndingDialogue()
 		if (DialogueWidget)
 		{
 			DialogueWidget->OnDialogueFinished.RemoveAll(this);
+			DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 			DialogueWidget->RemoveFromParent();
 		}
 
@@ -252,12 +432,6 @@ void ALobbyNPC::StartEndingDialogue()
 		{
 			DialogueWidget->OnDialogueFinished.AddUniqueDynamic(this, &ALobbyNPC::OnEndingDialogueFinished);
 			DialogueWidget->AddToViewport();
-
-			TArray<FText> EndingDialogueLines;
-			EndingDialogueLines.Add(FText::FromString(TEXT("모든 지역의 구조가 완료되었습니다.")));
-			EndingDialogueLines.Add(FText::FromString(TEXT("정말 해냈군요.")));
-			EndingDialogueLines.Add(FText::FromString(TEXT("덕분에 모든 동물들이 자유를 되찾았습니다.")));
-			EndingDialogueLines.Add(FText::FromString(TEXT("이제 구조 작전은 끝났습니다.")));
 			DialogueWidget->BeginDialogue(EndingDialogueLines);
 
 			PlayerController->bShowMouseCursor = true;
@@ -320,6 +494,7 @@ void ALobbyNPC::OnEndingDialogueFinished()
 	if (DialogueWidget)
 	{
 		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 		DialogueWidget->RemoveFromParent();
 		DialogueWidget = nullptr;
 	}
@@ -444,11 +619,18 @@ void ALobbyNPC::OnIntroDialogueFinished()
 		World->GetTimerManager().ClearTimer(IntroDialogueFinishTimerHandle);
 	}
 
+	if (!bIsIntroDialogueActive)
+	{
+		return;
+	}
+
 	bIsIntroDialogueActive = false;
+	bRepeatTutorialRequested = false;
 
 	if (DialogueWidget)
 	{
 		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 		DialogueWidget->RemoveFromParent();
 		DialogueWidget = nullptr;
 	}
@@ -473,17 +655,103 @@ void ALobbyNPC::OnIntroDialogueFinished()
 
 void ALobbyNPC::OnProgressDialogueFinished()
 {
+	if (!bIsProgressDialogueActive)
+	{
+		return;
+	}
+
 	bIsProgressDialogueActive = false;
 
 	if (DialogueWidget)
 	{
 		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
 		DialogueWidget->RemoveFromParent();
 		DialogueWidget = nullptr;
 	}
 
 	EnablePlayerControlAfterDialogue();
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress Dialogue Finished"));
+}
+
+void ALobbyNPC::HandleDialogueChoiceSelected(EDialogueChoice SelectedChoice)
+{
+	if (!bIsChoiceMenuActive)
+	{
+		return;
+	}
+
+	if (DialogueWidget)
+	{
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
+	}
+
+	bIsChoiceMenuActive = false;
+	EnablePlayerControlAfterDialogue();
+
+	switch (SelectedChoice)
+	{
+	case EDialogueChoice::Tutorial:
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Tutorial choice selected."));
+		bRepeatTutorialRequested = true;
+		StartIntroDialogue();
+		break;
+
+	case EDialogueChoice::Progress:
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress choice selected."));
+		ShowProgressDialogue();
+		break;
+
+	case EDialogueChoice::Ending:
+	default:
+		UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending choice selected."));
+
+		if (const UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(
+			UGameplayStatics::GetGameInstance(this)))
+		{
+			if (TPSGameInstance->AreAllFieldMapsCleared() && !TPSGameInstance->IsEndingTriggered())
+			{
+				StartEndingDialogue();
+			}
+			else if (!TPSGameInstance->AreAllFieldMapsCleared())
+			{
+				ShowEndingLockedDialogue();
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending choice ignored: Ending was already triggered."));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Ending choice failed: TPSGameInstance is unavailable."));
+		}
+		break;
+	}
+}
+
+void ALobbyNPC::OnDialogueChoiceMenuClosed()
+{
+	if (!bIsChoiceMenuActive)
+	{
+		return;
+	}
+
+	bIsChoiceMenuActive = false;
+
+	if (DialogueWidget)
+	{
+		DialogueWidget->OnDialogueFinished.RemoveAll(this);
+		DialogueWidget->OnDialogueChoiceSelected.RemoveAll(this);
+		DialogueWidget->RemoveFromParent();
+		DialogueWidget = nullptr;
+	}
+
+	EnablePlayerControlAfterDialogue();
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Dialogue choice menu closed."));
 }
 
 void ALobbyNPC::DisablePlayerControlForDialogue()
@@ -551,4 +819,3 @@ void ALobbyNPC::OnInteractionEndOverlap(
 
 	PlayerCharacter->ClearCurrentLobbyNPC(this);
 }
-

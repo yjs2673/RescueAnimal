@@ -1,6 +1,7 @@
 #include "DialogueWidget.h"
 
 #include "Components/Button.h"
+#include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Input/Reply.h"
 #include "InputCoreTypes.h"
@@ -8,7 +9,7 @@
 UDialogueWidget::UDialogueWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bIsFocusable = true;
+	SetIsFocusable(true);
 }
 
 void UDialogueWidget::NativeConstruct()
@@ -25,11 +26,27 @@ void UDialogueWidget::NativeConstruct()
 		CloseButton->OnClicked.AddUniqueDynamic(this, &UDialogueWidget::HandleCloseButtonClicked);
 	}
 
+	if (ChoiceAButton)
+	{
+		ChoiceAButton->OnClicked.AddUniqueDynamic(this, &UDialogueWidget::HandleChoiceAButtonClicked);
+	}
+
+	if (ChoiceBButton)
+	{
+		ChoiceBButton->OnClicked.AddUniqueDynamic(this, &UDialogueWidget::HandleChoiceBButtonClicked);
+	}
+
+	if (ChoiceCButton)
+	{
+		ChoiceCButton->OnClicked.AddUniqueDynamic(this, &UDialogueWidget::HandleChoiceCButtonClicked);
+	}
+
 	if (!DialogueText)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[DialogueWidget] DialogueText is not bound."));
 	}
 
+	HideChoices();
 	RefreshDialogueText();
 }
 
@@ -45,7 +62,23 @@ void UDialogueWidget::NativeDestruct()
 		CloseButton->OnClicked.RemoveDynamic(this, &UDialogueWidget::HandleCloseButtonClicked);
 	}
 
+	if (ChoiceAButton)
+	{
+		ChoiceAButton->OnClicked.RemoveDynamic(this, &UDialogueWidget::HandleChoiceAButtonClicked);
+	}
+
+	if (ChoiceBButton)
+	{
+		ChoiceBButton->OnClicked.RemoveDynamic(this, &UDialogueWidget::HandleChoiceBButtonClicked);
+	}
+
+	if (ChoiceCButton)
+	{
+		ChoiceCButton->OnClicked.RemoveDynamic(this, &UDialogueWidget::HandleChoiceCButtonClicked);
+	}
+
 	bDialogueActive = false;
+	bWaitingForChoice = false;
 	Super::NativeDestruct();
 }
 
@@ -55,7 +88,7 @@ FReply UDialogueWidget::NativeOnPreviewKeyDown(
 {
 	if (bDialogueActive && InKeyEvent.GetKey() == EKeys::SpaceBar)
 	{
-		if (!InKeyEvent.IsRepeat())
+		if (!bWaitingForChoice && !InKeyEvent.IsRepeat())
 		{
 			AdvanceDialogue();
 		}
@@ -68,6 +101,7 @@ FReply UDialogueWidget::NativeOnPreviewKeyDown(
 
 void UDialogueWidget::BeginDialogue(const TArray<FText>& InDialogueLines)
 {
+	HideChoices();
 	DialogueLines = InDialogueLines;
 	CurrentDialogueIndex = DialogueLines.IsEmpty() ? INDEX_NONE : 0;
 	bDialogueActive = CurrentDialogueIndex != INDEX_NONE;
@@ -86,7 +120,7 @@ void UDialogueWidget::BeginDialogue(const TArray<FText>& InDialogueLines)
 
 void UDialogueWidget::AdvanceDialogue()
 {
-	if (!bDialogueActive)
+	if (!bDialogueActive || bWaitingForChoice)
 	{
 		return;
 	}
@@ -109,7 +143,66 @@ void UDialogueWidget::FinishDialogue()
 	}
 
 	bDialogueActive = false;
+	bWaitingForChoice = false;
+	HideChoices();
 	OnDialogueFinished.Broadcast();
+}
+
+bool UDialogueWidget::ShowChoices(
+	const FText& Prompt,
+	const FText& TutorialChoiceText,
+	const FText& ProgressChoiceText,
+	const FText& EndingChoiceText)
+{
+	if (!DialogueText || !ChoiceAButton || !ChoiceBButton || !ChoiceCButton)
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("[DialogueWidget] Choice UI is incomplete. Bind DialogueText and ChoiceAButton/ChoiceBButton/ChoiceCButton in the Widget Blueprint.")
+		);
+		return false;
+	}
+
+	DialogueLines.Reset();
+	CurrentDialogueIndex = INDEX_NONE;
+	bDialogueActive = true;
+	bWaitingForChoice = true;
+
+	DialogueText->SetText(Prompt);
+	if (ChoiceAText)
+	{
+		ChoiceAText->SetText(TutorialChoiceText);
+	}
+	if (ChoiceBText)
+	{
+		ChoiceBText->SetText(ProgressChoiceText);
+	}
+	if (ChoiceCText)
+	{
+		ChoiceCText->SetText(EndingChoiceText);
+	}
+
+	if (NextButton)
+	{
+		NextButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	SetChoiceControlsVisibility(ESlateVisibility::Visible);
+	SetVisibility(ESlateVisibility::Visible);
+	SetKeyboardFocus();
+
+	return true;
+}
+
+void UDialogueWidget::HideChoices()
+{
+	bWaitingForChoice = false;
+	SetChoiceControlsVisibility(ESlateVisibility::Collapsed);
+
+	if (NextButton)
+	{
+		NextButton->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void UDialogueWidget::HandleNextButtonClicked()
@@ -122,6 +215,21 @@ void UDialogueWidget::HandleCloseButtonClicked()
 	FinishDialogue();
 }
 
+void UDialogueWidget::HandleChoiceAButtonClicked()
+{
+	SelectChoice(EDialogueChoice::Tutorial);
+}
+
+void UDialogueWidget::HandleChoiceBButtonClicked()
+{
+	SelectChoice(EDialogueChoice::Progress);
+}
+
+void UDialogueWidget::HandleChoiceCButtonClicked()
+{
+	SelectChoice(EDialogueChoice::Ending);
+}
+
 void UDialogueWidget::RefreshDialogueText()
 {
 	if (!DialogueText || !DialogueLines.IsValidIndex(CurrentDialogueIndex))
@@ -130,4 +238,37 @@ void UDialogueWidget::RefreshDialogueText()
 	}
 
 	DialogueText->SetText(DialogueLines[CurrentDialogueIndex]);
+}
+
+void UDialogueWidget::SelectChoice(EDialogueChoice SelectedChoice)
+{
+	if (!bDialogueActive || !bWaitingForChoice)
+	{
+		return;
+	}
+
+	bDialogueActive = false;
+	HideChoices();
+	OnDialogueChoiceSelected.Broadcast(SelectedChoice);
+}
+
+void UDialogueWidget::SetChoiceControlsVisibility(ESlateVisibility InVisibility)
+{
+	if (ChoiceContainer)
+	{
+		ChoiceContainer->SetVisibility(InVisibility);
+	}
+
+	if (ChoiceAButton)
+	{
+		ChoiceAButton->SetVisibility(InVisibility);
+	}
+	if (ChoiceBButton)
+	{
+		ChoiceBButton->SetVisibility(InVisibility);
+	}
+	if (ChoiceCButton)
+	{
+		ChoiceCButton->SetVisibility(InVisibility);
+	}
 }

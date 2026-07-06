@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DialogueWidget.h"
 #include "GameFramework/Actor.h"
 #include "TimerManager.h"
 #include "LobbyNPC.generated.h"
@@ -9,7 +10,6 @@ class UBoxComponent;
 class UPrimitiveComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
-class UDialogueWidget;
 
 UENUM(BlueprintType)
 enum class ENPCDialogueState : uint8
@@ -35,6 +35,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
 	void StartIntroDialogue();
+
+	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
+	void ShowDialogueChoices();
 
 	UFUNCTION(BlueprintCallable, Category = "Lobby NPC|Dialogue")
 	void ShowProgressDialogue();
@@ -76,8 +79,10 @@ protected:
 	FTimerHandle EndingDialogueFinishTimerHandle;
 
 	bool bIsIntroDialogueActive = false;
+	bool bIsChoiceMenuActive = false;
 	bool bIsProgressDialogueActive = false;
 	bool bIsEndingDialogueActive = false;
+	bool bRepeatTutorialRequested = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UDialogueWidget> DialogueWidget;
@@ -108,4 +113,12 @@ protected:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex
 	);
+
+	UFUNCTION()
+	void HandleDialogueChoiceSelected(EDialogueChoice SelectedChoice);
+
+	UFUNCTION()
+	void OnDialogueChoiceMenuClosed();
+
+	void ShowEndingLockedDialogue();
 };
