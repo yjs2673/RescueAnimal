@@ -5,6 +5,7 @@
 #include "GameProgressMessageWidget.generated.h"
 
 class UTextBlock;
+class UButton;
 class USoundBase;
 
 UCLASS()
@@ -14,6 +15,8 @@ class TPSCAPTURE_API UGameProgressMessageWidget : public UUserWidget
 
 public:
 	UGameProgressMessageWidget(const FObjectInitializer& ObjectInitializer);
+
+	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Game Progress")
 	void ShowFieldClearMessage(FName MapID);
@@ -27,6 +30,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> MessageText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> ReturnToTitleButton;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Game Progress|Text")
 	FText PlainClearText;
@@ -68,9 +74,13 @@ protected:
 #pragma endregion SFX
 
 private:
-	void ShowMessage(const FText& Message, const FLinearColor& TextColor, USoundBase* Sound);
+	UFUNCTION()
+	void HandleReturnToTitleButtonClicked();
+
+	void ShowMessage(const FText& Message, const FLinearColor& TextColor, USoundBase* Sound, bool bAutoHide);
 	void HideMessage();
 
 	float MessageElapsedTime = 0.0f;
 	bool bMessageActive = false;
+	bool bAutoHideMessage = true;
 };

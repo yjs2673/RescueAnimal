@@ -177,7 +177,31 @@ void ATPSPlayerController::ShowGameOverMessage()
 		return;
 	}
 
+	if (ShopWidget)
+	{
+		ShopWidget->RemoveFromParent();
+	}
+	if (InventoryWidget)
+	{
+		InventoryWidget->RemoveFromParent();
+	}
+	if (AnimalCollectionWidget)
+	{
+		AnimalCollectionWidget->RemoveFromParent();
+	}
+
+	bIsShopOpen = false;
+	bIsInventoryOpen = false;
+	bIsAnimalCollectionOpen = false;
+	CurrentShopActor = nullptr;
+
+	HideMainHUD();
+	SetPortalTransitionInputLocked(true);
+	SetMenuInputMode();
+
 	GameProgressMessageWidget->ShowGameOverMessage();
+
+	UE_LOG(LogTemp, Log, TEXT("[GameProgress] Game over UI displayed. Player input locked."));
 }
 #pragma endregion Game Progress Message
 
@@ -682,6 +706,18 @@ void ATPSPlayerController::TravelToLevelWithFade(FName TargetLevelName, float Fa
 		FMath::Max(KINDA_SMALL_NUMBER, SafeFadeOutDuration),
 		false
 	);
+}
+
+void ATPSPlayerController::ReturnToTitleWithFade()
+{
+	if (TitleMapName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Return to title skipped: TitleMapName is None."));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Return to title with fade. Target=%s"), *TitleMapName.ToString());
+	TravelToLevelWithFade(TitleMapName);
 }
 
 void ATPSPlayerController::QuitGame()

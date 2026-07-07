@@ -1,8 +1,10 @@
 #include "GameProgressMessageWidget.h"
 
+#include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "TPSPlayerController.h"
 
 UGameProgressMessageWidget::UGameProgressMessageWidget(
 	const FObjectInitializer& ObjectInitializer)
@@ -14,19 +16,33 @@ UGameProgressMessageWidget::UGameProgressMessageWidget(
 	GameOverText = FText::FromString(TEXT("Game Over"));
 }
 
+void UGameProgressMessageWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	if (ReturnToTitleButton)
+	{
+		ReturnToTitleButton->OnClicked.AddUniqueDynamic(
+			this,
+			&UGameProgressMessageWidget::HandleReturnToTitleButtonClicked
+		);
+		ReturnToTitleButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
 void UGameProgressMessageWidget::ShowFieldClearMessage(FName MapID)
 {
 	if (MapID == TEXT("MAP_Plain"))
 	{
-		ShowMessage(PlainClearText, FieldClearTextColor, MapClearSound);
+		ShowMessage(PlainClearText, FieldClearTextColor, MapClearSound, true);
 	}
 	else if (MapID == TEXT("MAP_Snow"))
 	{
-		ShowMessage(SnowClearText, FieldClearTextColor, MapClearSound);
+		ShowMessage(SnowClearText, FieldClearTextColor, MapClearSound, true);
 	}
 	else if (MapID == TEXT("MAP_Desert"))
 	{
-		ShowMessage(DesertClearText, FieldClearTextColor, MapClearSound);
+		ShowMessage(DesertClearText, FieldClearTextColor, MapClearSound, true);
 	}
 	else
 	{
@@ -38,13 +54,23 @@ void UGameProgressMessageWidget::ShowFieldClearMessage(FName MapID)
 
 void UGameProgressMessageWidget::ShowGameOverMessage()
 {
-	ShowMessage(GameOverText, GameOverTextColor, GameOverSound);
+	ShowMessage(GameOverText, GameOverTextColor, GameOverSound, false);
+
+	if (ReturnToTitleButton)
+	{
+		ReturnToTitleButton->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgressWidget] ReturnToTitleButton is not bound."));
+	}
 }
 
 void UGameProgressMessageWidget::ShowMessage(
 	const FText& Message,
 	const FLinearColor& TextColor,
-	USoundBase* Sound)
+	USoundBase* Sound,
+	bool bAutoHide)
 {
 	if (!MessageText)
 	{
@@ -58,8 +84,14 @@ void UGameProgressMessageWidget::ShowMessage(
 
 	MessageElapsedTime = 0.0f;
 	bMessageActive = true;
+	bAutoHideMessage = bAutoHide;
 	SetRenderOpacity(FadeInDuration > 0.0f ? 0.0f : 1.0f);
-	SetVisibility(ESlateVisibility::HitTestInvisible);
+	SetVisibility(bAutoHideMessage ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Visible);
+
+	if (ReturnToTitleButton)
+	{
+		ReturnToTitleButton->SetVisibility(bAutoHideMessage ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
 
 	if (Sound)
 	{
@@ -78,6 +110,17 @@ void UGameProgressMessageWidget::NativeTick(const FGeometry& MyGeometry, float I
 	}
 
 	MessageElapsedTime += InDeltaTime;
+
+	if (!bAutoHideMessage)
+	{
+		const float SafeFadeInDuration = FMath::Max(0.0f, FadeInDuration);
+		const float Opacity = SafeFadeInDuration > 0.0f && MessageElapsedTime < SafeFadeInDuration
+			? MessageElapsedTime / SafeFadeInDuration
+			: 1.0f;
+
+		SetRenderOpacity(FMath::Clamp(Opacity, 0.0f, 1.0f));
+		return;
+	}
 
 	const float TotalDuration = FMath::Max(0.1f, MessageDuration);
 	const float SafeFadeInDuration = FMath::Clamp(FadeInDuration, 0.0f, TotalDuration);
@@ -111,13 +154,40 @@ void UGameProgressMessageWidget::NativeTick(const FGeometry& MyGeometry, float I
 void UGameProgressMessageWidget::HideMessage()
 {
 	bMessageActive = false;
+	bAutoHideMessage = true;
 	MessageElapsedTime = 0.0f;
 	SetRenderOpacity(0.0f);
 	SetVisibility(ESlateVisibility::Collapsed);
+
+	if (ReturnToTitleButton)
+	{
+		ReturnToTitleButton->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
 void UGameProgressMessageWidget::NativeDestruct()
 {
+	if (ReturnToTitleButton)
+	{
+		ReturnToTitleButton->OnClicked.RemoveDynamic(
+			this,
+			&UGameProgressMessageWidget::HandleReturnToTitleButtonClicked
+		);
+	}
+
 	bMessageActive = false;
 	Super::NativeDestruct();
+}
+
+void UGameProgressMessageWidget::HandleReturnToTitleButtonClicked()
+{
+	ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetOwningPlayer());
+	if (!TPSPlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameProgressWidget] Return to title skipped: owning TPSPlayerController is unavailable."));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GameProgressWidget] Return to title requested from game over."));
+	TPSPlayerController->ReturnToTitleWithFade();
 }

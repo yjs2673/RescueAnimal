@@ -67,6 +67,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
 	void TravelToLevelWithFade(FName TargetLevelName, float FadeOutDuration = -1.0f);
 
+	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
+	void ReturnToTitleWithFade();
+
 	UFUNCTION(BlueprintCallable, Category = "Game Flow")
 	void QuitGame();
 
