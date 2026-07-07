@@ -11,8 +11,11 @@ class UShopWidget;
 class UAnimalCollectionWidget;
 class UGameProgressMessageWidget;
 class UMapProgressWidget;
+class UGameFlowMenuWidget;
 class AShopActor;
 class ATPSWorldStateManager;
+class SBorder;
+class SWidget;
 
 UCLASS()
 class TPSCAPTURE_API ATPSPlayerController : public APlayerController
@@ -61,6 +64,12 @@ public:
 	void SetPortalTransitionInputLocked(bool bLocked);
 	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked; }
 
+	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
+	void TravelToLevelWithFade(FName TargetLevelName, float FadeOutDuration = -1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "Game Flow")
+	void QuitGame();
+
 #pragma region Game Progress Message
 	UFUNCTION(BlueprintCallable, Category = "Game Progress")
 	void ShowFieldClearMessage(FName MapID);
@@ -96,6 +105,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition")
 	float FadeInDuration = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Portal|Transition", meta = (ClampMin = "0.0"))
+	float FadeInStartDelay = 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Game Flow|Transition", meta = (ClampMin = "0.0"))
+	float DefaultFadeOutDuration = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Game Flow|Maps")
+	FName TitleMapName = TEXT("MAP_Title");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Game Flow|Maps")
+	FName EndingMapName = TEXT("MAP_Ending");
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Game Flow")
+	TSubclassOf<UGameFlowMenuWidget> TitleMenuWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Game Flow")
+	TSubclassOf<UGameFlowMenuWidget> EndingMenuWidgetClass;
+
 	UPROPERTY()
 	TObjectPtr<AShopActor> CurrentShopActor;
 
@@ -130,6 +157,22 @@ private:
 	bool bIsPortalTransitionInputLocked = false;
 
 	FTimerHandle FadeInTimerHandle;
+	FTimerHandle FadeInStartTimerHandle;
+	FTimerHandle FadeOutTimerHandle;
+	FTimerHandle ViewportFadeOverlayTimerHandle;
+
+	FName PendingFadeTravelLevelName;
+
+	UPROPERTY()
+	TObjectPtr<UGameFlowMenuWidget> ActiveGameFlowMenuWidget;
+
+	TSharedPtr<SWidget> ViewportFadeOverlayRootWidget;
+	TSharedPtr<SBorder> ViewportFadeOverlayBorderWidget;
+	float ViewportFadeOverlayStartOpacity = 0.0f;
+	float ViewportFadeOverlayTargetOpacity = 0.0f;
+	float ViewportFadeOverlayDuration = 0.0f;
+	float ViewportFadeOverlayElapsedTime = 0.0f;
+	bool bRemoveViewportFadeOverlayWhenFinished = false;
 
 private:
 	UFUNCTION()
@@ -143,7 +186,19 @@ private:
 
 	void SetGameInputMode();
 	void SetUIInputMode();
+	void SetMenuInputMode();
 	void StartLevelFadeIn();
+	void PlayLevelFadeIn();
 	void FinishLevelFadeIn();
+	void OpenPendingFadeTravelLevel();
+	void StartViewportFadeOverlay(float FromOpacity, float ToOpacity, float Duration, bool bRemoveWhenFinished);
+	void TickViewportFadeOverlay();
+	void EnsureViewportFadeOverlay(float InitialOpacity);
+	void SetViewportFadeOverlayOpacity(float Opacity);
+	void RemoveViewportFadeOverlay();
 	void TryCreateMapProgressWidget();
+	void TryCreateGameFlowMenuWidget();
+	bool IsTitleLevelName(const FString& LevelName) const;
+	bool IsEndingLevelName(const FString& LevelName) const;
+	bool IsGameFlowMenuLevel() const;
 };

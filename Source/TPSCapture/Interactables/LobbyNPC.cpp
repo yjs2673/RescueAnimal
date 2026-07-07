@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "TPSCaptureCharacter.h"
 #include "TPSGameInstance.h"
+#include "TPSPlayerController.h"
 
 ALobbyNPC::ALobbyNPC()
 {
@@ -525,7 +526,15 @@ void ALobbyNPC::OnEndingDialogueFinished()
 	}
 
 	TPSGameInstance->SetEndingTriggered(true);
-	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Finished. Opening level: %s"), *EndingMapName.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending Dialogue Finished. Opening level with fade: %s"), *EndingMapName.ToString());
+
+	if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
+	{
+		TPSPlayerController->TravelToLevelWithFade(EndingMapName);
+		return;
+	}
+
+	TPSGameInstance->bPendingPortalTransition = true;
 	UGameplayStatics::OpenLevel(this, EndingMapName);
 }
 

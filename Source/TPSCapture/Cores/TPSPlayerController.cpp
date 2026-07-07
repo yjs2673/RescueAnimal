@@ -7,19 +7,34 @@
 #include "ShopWidget.h"
 #include "AnimalCollectionWidget.h"
 #include "GameProgressMessageWidget.h"
+#include "GameFlowMenuWidget.h"
 #include "MapProgressWidget.h"
 #include "ShopActor.h"
 #include "TPSGameInstance.h"
 #include "TPSWorldStateManager.h"
 #include "InputCoreTypes.h"
 #include "EngineUtils.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SOverlay.h"
+
+namespace
+{
+	TSharedPtr<SWidget> GViewportFadeOverlayRootWidget;
+	TSharedPtr<SBorder> GViewportFadeOverlayBorderWidget;
+}
 
 void ATPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
 	SetGameInputMode();
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	const bool bIsGameFlowMenuLevel = IsTitleLevelName(CurrentLevelName) || IsEndingLevelName(CurrentLevelName);
 
 	if (MainHUDWidgetClass)
 	{
@@ -61,16 +76,36 @@ void ATPSPlayerController::BeginPlay()
 #pragma endregion Game Progress Message
 
 	TryCreateMapProgressWidget();
+	TryCreateGameFlowMenuWidget();
 
+	bool bShouldStartFadeIn = bIsGameFlowMenuLevel;
 	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
 	{
+		UE_LOG(LogTemp, Log, TEXT("[GameFlow] BeginPlay transition check. Level=%s PendingTransition=%s MenuLevel=%s"),
+			*CurrentLevelName,
+			TPSGameInstance->bPendingPortalTransition ? TEXT("true") : TEXT("false"),
+			bIsGameFlowMenuLevel ? TEXT("true") : TEXT("false"));
+
 		if (TPSGameInstance->bPendingPortalTransition)
 		{
 			TPSGameInstance->bPendingPortalTransition = false;
-			SetPortalTransitionInputLocked(true);
-			HideMainHUD();
-			StartLevelFadeIn();
+			bShouldStartFadeIn = true;
 		}
+	}
+
+	if (bIsGameFlowMenuLevel)
+	{
+		HideMainHUD();
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+		SetMenuInputMode();
+	}
+
+	if (bShouldStartFadeIn)
+	{
+		SetPortalTransitionInputLocked(true);
+		HideMainHUD();
+		StartLevelFadeIn();
 	}
 }
 
@@ -320,6 +355,15 @@ void ATPSPlayerController::SetUIInputMode()
 	SetInputMode(InputMode);
 }
 
+void ATPSPlayerController::SetMenuInputMode()
+{
+	bShowMouseCursor = true;
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
 void ATPSPlayerController::HideMainHUD()
 {
 	if (MainHUDWidget)
@@ -362,16 +406,36 @@ void ATPSPlayerController::SetPortalTransitionInputLocked(bool bLocked)
 
 void ATPSPlayerController::StartLevelFadeIn()
 {
-	const float FadeDelay = FMath::Max(KINDA_SMALL_NUMBER, FadeInDuration);
+	const float SafeFadeInDuration = FMath::Max(0.0f, FadeInDuration);
+	const float SafeFadeInStartDelay = FMath::Max(0.0f, FadeInStartDelay);
+	const float FinishDelay = FMath::Max(KINDA_SMALL_NUMBER, SafeFadeInStartDelay + SafeFadeInDuration);
+
+	EnsureViewportFadeOverlay(1.0f);
+	SetViewportFadeOverlayOpacity(1.0f);
 
 	if (PlayerCameraManager)
 	{
 		PlayerCameraManager->StartCameraFade(
 			1.f,
 			0.f,
-			FMath::Max(0.f, FadeInDuration),
+			SafeFadeInDuration,
 			FLinearColor::Black,
 			false,
+			false
+		);
+	}
+
+	if (SafeFadeInStartDelay <= KINDA_SMALL_NUMBER)
+	{
+		PlayLevelFadeIn();
+	}
+	else
+	{
+		GetWorldTimerManager().SetTimer(
+			FadeInStartTimerHandle,
+			this,
+			&ATPSPlayerController::PlayLevelFadeIn,
+			SafeFadeInStartDelay,
 			false
 		);
 	}
@@ -380,15 +444,326 @@ void ATPSPlayerController::StartLevelFadeIn()
 		FadeInTimerHandle,
 		this,
 		&ATPSPlayerController::FinishLevelFadeIn,
-		FadeDelay,
+		FinishDelay,
 		false
 	);
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Fade-in prepared. Duration=%.2f StartDelay=%.2f"),
+		SafeFadeInDuration,
+		SafeFadeInStartDelay);
+}
+
+void ATPSPlayerController::PlayLevelFadeIn()
+{
+	GetWorldTimerManager().ClearTimer(FadeInStartTimerHandle);
+
+	StartViewportFadeOverlay(1.0f, 0.0f, FadeInDuration, true);
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Viewport fade-in started. Duration=%.2f"), FadeInDuration);
 }
 
 void ATPSPlayerController::FinishLevelFadeIn()
 {
+	if (IsGameFlowMenuLevel())
+	{
+		bIsPortalTransitionInputLocked = false;
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+		HideMainHUD();
+		SetMenuInputMode();
+		return;
+	}
+
 	SetPortalTransitionInputLocked(false);
 	ShowMainHUD();
+}
+
+void ATPSPlayerController::StartViewportFadeOverlay(float FromOpacity, float ToOpacity, float Duration, bool bRemoveWhenFinished)
+{
+	ViewportFadeOverlayStartOpacity = FMath::Clamp(FromOpacity, 0.0f, 1.0f);
+	ViewportFadeOverlayTargetOpacity = FMath::Clamp(ToOpacity, 0.0f, 1.0f);
+	ViewportFadeOverlayDuration = FMath::Max(0.0f, Duration);
+	ViewportFadeOverlayElapsedTime = 0.0f;
+	bRemoveViewportFadeOverlayWhenFinished = bRemoveWhenFinished;
+
+	EnsureViewportFadeOverlay(ViewportFadeOverlayStartOpacity);
+	SetViewportFadeOverlayOpacity(ViewportFadeOverlayStartOpacity);
+
+	if (!GetWorld())
+	{
+		if (bRemoveViewportFadeOverlayWhenFinished)
+		{
+			RemoveViewportFadeOverlay();
+		}
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(ViewportFadeOverlayTimerHandle);
+
+	if (ViewportFadeOverlayDuration <= KINDA_SMALL_NUMBER)
+	{
+		SetViewportFadeOverlayOpacity(ViewportFadeOverlayTargetOpacity);
+		if (bRemoveViewportFadeOverlayWhenFinished)
+		{
+			RemoveViewportFadeOverlay();
+		}
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		ViewportFadeOverlayTimerHandle,
+		this,
+		&ATPSPlayerController::TickViewportFadeOverlay,
+		1.0f / 60.0f,
+		true
+	);
+}
+
+void ATPSPlayerController::TickViewportFadeOverlay()
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	ViewportFadeOverlayElapsedTime += GetWorld()->GetDeltaSeconds();
+
+	const float Alpha = ViewportFadeOverlayDuration <= KINDA_SMALL_NUMBER
+		? 1.0f
+		: FMath::Clamp(ViewportFadeOverlayElapsedTime / ViewportFadeOverlayDuration, 0.0f, 1.0f);
+	const float NewOpacity = FMath::Lerp(
+		ViewportFadeOverlayStartOpacity,
+		ViewportFadeOverlayTargetOpacity,
+		Alpha
+	);
+
+	SetViewportFadeOverlayOpacity(NewOpacity);
+
+	if (Alpha >= 1.0f)
+	{
+		GetWorldTimerManager().ClearTimer(ViewportFadeOverlayTimerHandle);
+
+		if (bRemoveViewportFadeOverlayWhenFinished)
+		{
+			RemoveViewportFadeOverlay();
+		}
+	}
+}
+
+void ATPSPlayerController::EnsureViewportFadeOverlay(float InitialOpacity)
+{
+	if (GViewportFadeOverlayRootWidget.IsValid())
+	{
+		ViewportFadeOverlayRootWidget = GViewportFadeOverlayRootWidget;
+		ViewportFadeOverlayBorderWidget = GViewportFadeOverlayBorderWidget;
+		SetViewportFadeOverlayOpacity(InitialOpacity);
+		return;
+	}
+
+	if (ViewportFadeOverlayRootWidget.IsValid())
+	{
+		SetViewportFadeOverlayOpacity(InitialOpacity);
+		return;
+	}
+
+	if (!GEngine || !GEngine->GameViewport)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Viewport fade overlay skipped: GameViewport is unavailable."));
+		return;
+	}
+
+	ViewportFadeOverlayRootWidget =
+		SNew(SOverlay)
+		.Visibility(EVisibility::HitTestInvisible)
+		.RenderOpacity(InitialOpacity)
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill)
+		[
+			SAssignNew(ViewportFadeOverlayBorderWidget, SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush(TEXT("WhiteBrush")))
+			.BorderBackgroundColor(FLinearColor::Black)
+		];
+
+	GEngine->GameViewport->AddViewportWidgetContent(
+		ViewportFadeOverlayRootWidget.ToSharedRef(),
+		10000
+	);
+
+	GViewportFadeOverlayRootWidget = ViewportFadeOverlayRootWidget;
+	GViewportFadeOverlayBorderWidget = ViewportFadeOverlayBorderWidget;
+}
+
+void ATPSPlayerController::SetViewportFadeOverlayOpacity(float Opacity)
+{
+	if (ViewportFadeOverlayRootWidget.IsValid())
+	{
+		ViewportFadeOverlayRootWidget->SetRenderOpacity(FMath::Clamp(Opacity, 0.0f, 1.0f));
+	}
+}
+
+void ATPSPlayerController::RemoveViewportFadeOverlay()
+{
+	if (GetWorld())
+	{
+		GetWorldTimerManager().ClearTimer(ViewportFadeOverlayTimerHandle);
+	}
+
+	if (GEngine && GEngine->GameViewport && ViewportFadeOverlayRootWidget.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(ViewportFadeOverlayRootWidget.ToSharedRef());
+	}
+
+	ViewportFadeOverlayRootWidget.Reset();
+	ViewportFadeOverlayBorderWidget.Reset();
+	GViewportFadeOverlayRootWidget.Reset();
+	GViewportFadeOverlayBorderWidget.Reset();
+}
+
+void ATPSPlayerController::TravelToLevelWithFade(FName TargetLevelName, float FadeOutDuration)
+{
+	if (TargetLevelName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Travel skipped: TargetLevelName is None."));
+		return;
+	}
+
+	if (!GetWorld())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Travel skipped: World is null. Target=%s"),
+			*TargetLevelName.ToString());
+		return;
+	}
+
+	if (PendingFadeTravelLevelName != NAME_None)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[GameFlow] Travel skipped: another fade travel is already pending. Target=%s"),
+			*PendingFadeTravelLevelName.ToString());
+		return;
+	}
+
+	PendingFadeTravelLevelName = TargetLevelName;
+
+	if (ActiveGameFlowMenuWidget)
+	{
+		ActiveGameFlowMenuWidget->SetIsEnabled(false);
+	}
+
+	SetPortalTransitionInputLocked(true);
+	HideMainHUD();
+	bShowMouseCursor = false;
+
+	FInputModeGameOnly InputMode;
+	SetInputMode(InputMode);
+
+	const float SafeFadeOutDuration = FadeOutDuration >= 0.0f ? FadeOutDuration : DefaultFadeOutDuration;
+	StartViewportFadeOverlay(0.0f, 1.0f, SafeFadeOutDuration, false);
+
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->StartCameraFade(
+			0.f,
+			1.f,
+			FMath::Max(0.f, SafeFadeOutDuration),
+			FLinearColor::Black,
+			false,
+			true
+		);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Fade-out travel started. Target=%s Duration=%.2f"),
+		*TargetLevelName.ToString(),
+		SafeFadeOutDuration);
+
+	GetWorldTimerManager().SetTimer(
+		FadeOutTimerHandle,
+		this,
+		&ATPSPlayerController::OpenPendingFadeTravelLevel,
+		FMath::Max(KINDA_SMALL_NUMBER, SafeFadeOutDuration),
+		false
+	);
+}
+
+void ATPSPlayerController::QuitGame()
+{
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Quit game requested from PlayerController."));
+	UKismetSystemLibrary::QuitGame(this, this, EQuitPreference::Quit, false);
+}
+
+void ATPSPlayerController::OpenPendingFadeTravelLevel()
+{
+	if (PendingFadeTravelLevelName.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Pending travel cancelled: target level is None."));
+		SetPortalTransitionInputLocked(false);
+		return;
+	}
+
+	if (UTPSGameInstance* TPSGameInstance = Cast<UTPSGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		TPSGameInstance->bPendingPortalTransition = true;
+	}
+
+	const FName TargetLevelName = PendingFadeTravelLevelName;
+	PendingFadeTravelLevelName = NAME_None;
+
+	SetViewportFadeOverlayOpacity(1.0f);
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Opening level after fade-out: %s"), *TargetLevelName.ToString());
+	UGameplayStatics::OpenLevel(this, TargetLevelName);
+}
+
+void ATPSPlayerController::TryCreateGameFlowMenuWidget()
+{
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	TSubclassOf<UGameFlowMenuWidget> MenuWidgetClass = nullptr;
+
+	if (IsTitleLevelName(CurrentLevelName))
+	{
+		MenuWidgetClass = TitleMenuWidgetClass;
+	}
+	else if (IsEndingLevelName(CurrentLevelName))
+	{
+		MenuWidgetClass = EndingMenuWidgetClass;
+	}
+	else
+	{
+		return;
+	}
+
+	if (!MenuWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Menu widget class is not assigned. Level=%s"), *CurrentLevelName);
+		return;
+	}
+
+	ActiveGameFlowMenuWidget = CreateWidget<UGameFlowMenuWidget>(this, MenuWidgetClass);
+	if (!ActiveGameFlowMenuWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Failed to create menu widget. Level=%s"), *CurrentLevelName);
+		return;
+	}
+
+	ActiveGameFlowMenuWidget->AddToViewport(200);
+	SetMenuInputMode();
+
+	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Menu widget displayed. Level=%s"), *CurrentLevelName);
+}
+
+bool ATPSPlayerController::IsTitleLevelName(const FString& LevelName) const
+{
+	return LevelName == TitleMapName.ToString();
+}
+
+bool ATPSPlayerController::IsEndingLevelName(const FString& LevelName) const
+{
+	return LevelName == EndingMapName.ToString();
+}
+
+bool ATPSPlayerController::IsGameFlowMenuLevel() const
+{
+	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+	return IsTitleLevelName(CurrentLevelName) || IsEndingLevelName(CurrentLevelName);
 }
 
 void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
