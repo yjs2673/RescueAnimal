@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "TPSWorldStateManager.generated.h"
 
+class USoundBase;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWorldProgressChanged);
 
 UCLASS()
@@ -20,6 +22,15 @@ protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "World State")
 	FName MapID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> MapBGM = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.0"))
+	float BGMFadeInTime = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.0"))
+	float BGMFadeOutTime = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "World State")
 	int32 AliveEnemyCount = 0;

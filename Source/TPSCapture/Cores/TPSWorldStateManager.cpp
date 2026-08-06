@@ -6,6 +6,9 @@
 #include "TPSGameInstance.h"
 #include "TPSPlayerController.h"
 
+#include "TPSAudioSubsystem.h"
+#include "Sound/SoundBase.h"
+
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -28,6 +31,14 @@ void ATPSWorldStateManager::BeginPlay()
 	ValidateDuplicateSaveIDs();
 	ApplySavedWorldState();
 	CheckAndHandleMapClear();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UTPSAudioSubsystem* AudioSubsystem = GameInstance->GetSubsystem<UTPSAudioSubsystem>())
+		{
+			AudioSubsystem->PlayBGM(MapBGM, BGMFadeInTime, BGMFadeOutTime);
+		}
+	}
 }
 
 void ATPSWorldStateManager::ApplySavedWorldState()
