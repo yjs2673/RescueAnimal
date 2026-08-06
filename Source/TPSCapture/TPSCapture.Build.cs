@@ -17,7 +17,8 @@ public class TPSCapture : ModuleRules
             "UMG",
             "Niagara",
             "AIModule",
-            "NavigationSystem"
+            "NavigationSystem",
+            "DeveloperSettings"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] {
