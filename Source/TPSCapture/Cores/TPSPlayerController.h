@@ -72,7 +72,7 @@ public:
 	void HideMainHUD();
 	void ShowMainHUD();
 	void SetPortalTransitionInputLocked(bool bLocked);
-	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked; }
+	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked || bIsSettingOpen; }
 
 	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
 	void TravelToLevelWithFade(FName TargetLevelName, float FadeOutDuration = -1.0f);
@@ -214,6 +214,7 @@ private:
 
 	void SetGameInputMode();
 	void SetUIInputMode();
+	void SetSettingInputMode();
 	void SetMenuInputMode();
 	void StartLevelFadeIn();
 	void PlayLevelFadeIn();

@@ -30,6 +30,15 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Sound Classes")
 	TSoftObjectPtr<USoundClass> SFXSoundClass;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Display", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MaxDimOpacity = 0.75f;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MinMasterVolume = 0.05f;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Audio", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MinBGMVolume = 0.05f;
 };
 
 UCLASS()
@@ -102,6 +111,10 @@ public:
 private:
 	float GetEffectiveBGMVolume() const;
 	float GetBGMComponentVolume() const;
+	float GetAppliedVolume(float Volume) const;
+	float GetAppliedMasterVolume() const;
+	float GetAppliedBGMVolume() const;
+	float GetBrightnessDimOpacity() const;
 	void ApplyCurrentBGMVolume() const;
 	void LoadSoundClassSettings();
 	void ApplySoundClassVolumes();
@@ -128,6 +141,15 @@ private:
 
 	UPROPERTY()
 	float ScreenBrightness = 1.0f;
+
+	UPROPERTY()
+	float MaxDimOpacity = 0.75f;
+
+	UPROPERTY()
+	float MinMasterVolume = 0.05f;
+
+	UPROPERTY()
+	float MinBGMVolume = 0.05f;
 
 	UPROPERTY()
 	FString SettingsSaveSlotName = TEXT("TPSAudioSettings");

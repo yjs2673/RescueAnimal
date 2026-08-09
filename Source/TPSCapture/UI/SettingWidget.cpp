@@ -2,11 +2,15 @@
 
 #include "Components/Button.h"
 #include "Components/Slider.h"
+#include "InputCoreTypes.h"
 #include "TPSAudioSubsystem.h"
 
 void USettingWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	SetIsFocusable(true);
+	SetIsEnabled(true);
 
 	if (MasterVolumeSlider)
 	{
@@ -14,6 +18,10 @@ void USettingWidget::NativeConstruct()
 			this,
 			&USettingWidget::HandleMasterVolumeChanged
 		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SettingWidget] MasterVolumeSlider is not bound."));
 	}
 
 	if (BGMVolumeSlider)
@@ -23,6 +31,10 @@ void USettingWidget::NativeConstruct()
 			&USettingWidget::HandleBGMVolumeChanged
 		);
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SettingWidget] BGMVolumeSlider is not bound."));
+	}
 
 	if (SFXVolumeSlider)
 	{
@@ -30,6 +42,10 @@ void USettingWidget::NativeConstruct()
 			this,
 			&USettingWidget::HandleSFXVolumeChanged
 		);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SettingWidget] SFXVolumeSlider is not bound."));
 	}
 
 	if (BrightnessSlider)
@@ -39,9 +55,14 @@ void USettingWidget::NativeConstruct()
 			&USettingWidget::HandleBrightnessChanged
 		);
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SettingWidget] BrightnessSlider is not bound."));
+	}
 
 	if (CloseButton)
 	{
+		CloseButton->SetIsEnabled(true);
 		CloseButton->OnClicked.AddUniqueDynamic(
 			this,
 			&USettingWidget::HandleCloseButtonClicked
@@ -96,6 +117,24 @@ void USettingWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+void USettingWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	EnsureCloseButtonEnabled();
+}
+
+FReply USettingWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::Escape)
+	{
+		OnSettingCloseRequested.Broadcast();
+		return FReply::Handled();
+	}
+
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
 void USettingWidget::HandleMasterVolumeChanged(float Value)
 {
 	if (bIsRefreshingSliders)
@@ -110,6 +149,8 @@ void USettingWidget::HandleMasterVolumeChanged(float Value)
 			AudioSubsystem->SetMasterVolume(Value);
 		}
 	}
+
+	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleBGMVolumeChanged(float Value)
@@ -126,6 +167,8 @@ void USettingWidget::HandleBGMVolumeChanged(float Value)
 			AudioSubsystem->SetBGMVolume(Value);
 		}
 	}
+
+	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleSFXVolumeChanged(float Value)
@@ -142,6 +185,8 @@ void USettingWidget::HandleSFXVolumeChanged(float Value)
 			AudioSubsystem->SetSFXVolume(Value);
 		}
 	}
+
+	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleBrightnessChanged(float Value)
@@ -158,6 +203,8 @@ void USettingWidget::HandleBrightnessChanged(float Value)
 			AudioSubsystem->SetScreenBrightness(Value);
 		}
 	}
+
+	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleCloseButtonClicked()
@@ -202,4 +249,15 @@ void USettingWidget::RefreshSliderValues()
 	}
 
 	bIsRefreshingSliders = false;
+	EnsureCloseButtonEnabled();
+}
+
+void USettingWidget::EnsureCloseButtonEnabled()
+{
+	SetIsEnabled(true);
+
+	if (CloseButton)
+	{
+		CloseButton->SetIsEnabled(true);
+	}
 }

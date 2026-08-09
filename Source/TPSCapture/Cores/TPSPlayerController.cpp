@@ -419,6 +419,26 @@ void ATPSPlayerController::SetUIInputMode()
 	SetInputMode(InputMode);
 }
 
+void ATPSPlayerController::SetSettingInputMode()
+{
+	bShowMouseCursor = true;
+
+	FInputModeUIOnly InputMode;
+
+	if (SettingWidget)
+	{
+		InputMode.SetWidgetToFocus(SettingWidget->TakeWidget());
+	}
+
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+
+	if (SettingWidget)
+	{
+		SettingWidget->SetKeyboardFocus();
+	}
+}
+
 void ATPSPlayerController::SetMenuInputMode()
 {
 	bShowMouseCursor = true;
@@ -1115,7 +1135,7 @@ void ATPSPlayerController::OpenSetting()
 		bIsSettingOpen = true;
 		SetIgnoreMoveInput(true);
 		SetIgnoreLookInput(true);
-		SetUIInputMode();
+		SetSettingInputMode();
 	}
 }
 
@@ -1141,6 +1161,12 @@ void ATPSPlayerController::CloseSetting()
 	if (bIsShopOpen || bIsInventoryOpen || bIsAnimalCollectionOpen)
 	{
 		SetUIInputMode();
+	}
+	else if (IsGameFlowMenuLevel())
+	{
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+		SetMenuInputMode();
 	}
 	else
 	{

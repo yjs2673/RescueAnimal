@@ -32,6 +32,9 @@ protected:
 	TObjectPtr<UButton> TitleButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> SettingButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UButton> QuitButton;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Game Flow")
@@ -46,6 +49,9 @@ private:
 
 	UFUNCTION()
 	void HandleTitleButtonClicked();
+
+	UFUNCTION()
+	void HandleSettingButtonClicked();
 
 	UFUNCTION()
 	void HandleQuitButtonClicked();

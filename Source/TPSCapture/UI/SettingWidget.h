@@ -17,6 +17,8 @@ class TPSCAPTURE_API USettingWidget : public UUserWidget
 public:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 	UPROPERTY(BlueprintAssignable, Category = "Setting")
 	FOnSettingCloseRequested OnSettingCloseRequested;
@@ -54,6 +56,7 @@ private:
 	void HandleCloseButtonClicked();
 
 	void RefreshSliderValues();
+	void EnsureCloseButtonEnabled();
 
 	bool bIsRefreshingSliders = false;
 };

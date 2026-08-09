@@ -18,6 +18,11 @@ void UGameFlowMenuWidget::NativeConstruct()
 		TitleButton->OnClicked.AddUniqueDynamic(this, &UGameFlowMenuWidget::HandleTitleButtonClicked);
 	}
 
+	if (SettingButton)
+	{
+		SettingButton->OnClicked.AddUniqueDynamic(this, &UGameFlowMenuWidget::HandleSettingButtonClicked);
+	}
+
 	if (QuitButton)
 	{
 		QuitButton->OnClicked.AddUniqueDynamic(this, &UGameFlowMenuWidget::HandleQuitButtonClicked);
@@ -34,6 +39,11 @@ void UGameFlowMenuWidget::NativeDestruct()
 	if (TitleButton)
 	{
 		TitleButton->OnClicked.RemoveDynamic(this, &UGameFlowMenuWidget::HandleTitleButtonClicked);
+	}
+
+	if (SettingButton)
+	{
+		SettingButton->OnClicked.RemoveDynamic(this, &UGameFlowMenuWidget::HandleSettingButtonClicked);
 	}
 
 	if (QuitButton)
@@ -98,6 +108,14 @@ void UGameFlowMenuWidget::HandleStartGameButtonClicked()
 void UGameFlowMenuWidget::HandleTitleButtonClicked()
 {
 	ReturnToTitle();
+}
+
+void UGameFlowMenuWidget::HandleSettingButtonClicked()
+{
+	if (ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetOwningPlayer()))
+	{
+		TPSPlayerController->ToggleSetting();
+	}
 }
 
 void UGameFlowMenuWidget::HandleQuitButtonClicked()

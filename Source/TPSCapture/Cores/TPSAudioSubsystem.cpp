@@ -200,6 +200,32 @@ float UTPSAudioSubsystem::GetBGMComponentVolume() const
 	return (VolumeSoundMix && BGMSoundClass) ? 1.0f : GetEffectiveBGMVolume();
 }
 
+float UTPSAudioSubsystem::GetAppliedVolume(float Volume) const
+{
+	const float ClampedVolume = FMath::Clamp(Volume, 0.0f, 1.0f);
+	return ClampedVolume <= KINDA_SMALL_NUMBER ? 0.0f : ClampedVolume;
+}
+
+float UTPSAudioSubsystem::GetAppliedMasterVolume() const
+{
+	const float ClampedMasterVolume = FMath::Clamp(MasterVolume, 0.0f, 1.0f);
+	const float ClampedMinMasterVolume = FMath::Clamp(MinMasterVolume, 0.0f, 1.0f);
+	return FMath::Lerp(ClampedMinMasterVolume, 1.0f, ClampedMasterVolume);
+}
+
+float UTPSAudioSubsystem::GetAppliedBGMVolume() const
+{
+	const float ClampedBGMVolume = FMath::Clamp(BGMVolume, 0.0f, 1.0f);
+	const float ClampedMinBGMVolume = FMath::Clamp(MinBGMVolume, 0.0f, 1.0f);
+	return FMath::Lerp(ClampedMinBGMVolume, 1.0f, ClampedBGMVolume);
+}
+
+float UTPSAudioSubsystem::GetBrightnessDimOpacity() const
+{
+	const float NormalizedBrightness = FMath::Clamp(ScreenBrightness, 0.0f, 1.0f);
+	return (1.0f - NormalizedBrightness) * FMath::Clamp(MaxDimOpacity, 0.0f, 1.0f);
+}
+
 void UTPSAudioSubsystem::ApplyCurrentBGMVolume() const
 {
 	if (CurrentBGMComponent)
@@ -220,10 +246,32 @@ void UTPSAudioSubsystem::LoadSoundClassSettings()
 	MasterSoundClass = AudioSettings->MasterSoundClass.LoadSynchronous();
 	BGMSoundClass = AudioSettings->BGMSoundClass.LoadSynchronous();
 	SFXSoundClass = AudioSettings->SFXSoundClass.LoadSynchronous();
+	MaxDimOpacity = FMath::Clamp(AudioSettings->MaxDimOpacity, 0.0f, 1.0f);
+	MinMasterVolume = FMath::Clamp(AudioSettings->MinMasterVolume, 0.0f, 1.0f);
+	MinBGMVolume = FMath::Clamp(AudioSettings->MinBGMVolume, 0.0f, 1.0f);
 
 	if (VolumeSoundMix)
 	{
 		UGameplayStatics::PushSoundMixModifier(this, VolumeSoundMix);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Audio] VolumeSoundMix is not assigned or failed to load."));
+	}
+
+	if (!MasterSoundClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Audio] MasterSoundClass is not assigned or failed to load."));
+	}
+
+	if (!BGMSoundClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Audio] BGMSoundClass is not assigned or failed to load."));
+	}
+
+	if (!SFXSoundClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Audio] SFXSoundClass is not assigned or failed to load."));
 	}
 }
 
@@ -234,8 +282,10 @@ void UTPSAudioSubsystem::ApplySoundClassVolumes()
 		return;
 	}
 
-	ApplySoundClassVolume(MasterSoundClass, MasterVolume);
-	ApplySoundClassVolume(BGMSoundClass, BGMVolume);
+	UGameplayStatics::PushSoundMixModifier(this, VolumeSoundMix);
+
+	ApplySoundClassVolume(MasterSoundClass, GetAppliedMasterVolume());
+	ApplySoundClassVolume(BGMSoundClass, GetAppliedBGMVolume());
 	ApplySoundClassVolume(SFXSoundClass, SFXVolume);
 }
 
@@ -250,7 +300,7 @@ void UTPSAudioSubsystem::ApplySoundClassVolume(USoundClass* SoundClass, float Vo
 		this,
 		VolumeSoundMix,
 		SoundClass,
-		FMath::Clamp(Volume, 0.0f, 1.0f),
+		GetAppliedVolume(Volume),
 		1.0f,
 		0.0f,
 		bApplyToChildren
@@ -259,7 +309,7 @@ void UTPSAudioSubsystem::ApplySoundClassVolume(USoundClass* SoundClass, float Vo
 
 void UTPSAudioSubsystem::ApplyBrightnessOverlay()
 {
-	const float DimOpacity = 1.0f - FMath::Clamp(ScreenBrightness, 0.0f, 1.0f);
+	const float DimOpacity = GetBrightnessDimOpacity();
 
 	if (DimOpacity <= KINDA_SMALL_NUMBER)
 	{
@@ -290,7 +340,7 @@ void UTPSAudioSubsystem::EnsureBrightnessOverlay()
 	BrightnessOverlayRootWidget =
 		SNew(SOverlay)
 		.Visibility(EVisibility::HitTestInvisible)
-		.RenderOpacity(1.0f - ScreenBrightness)
+		.RenderOpacity(GetBrightnessDimOpacity())
 		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
