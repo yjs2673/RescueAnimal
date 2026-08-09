@@ -16,6 +16,7 @@ class UPlayerStatComponent;
 class ATPSCaptureCharacter;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingButtonClicked);
 
 UCLASS()
 class TPSCAPTURE_API UMainHUDWidget : public UUserWidget
@@ -32,9 +33,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "MainHUD")
 	FOnInventoryButtonClicked OnInventoryButtonClicked;
 
+	UPROPERTY(BlueprintAssignable, Category = "MainHUD")
+	FOnSettingButtonClicked OnSettingButtonClicked;
+
 protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> InventoryButton;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> SettingButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UQuickSlotBarWidget> QuickSlotBar;
@@ -54,6 +61,9 @@ protected:
 private:
 	UFUNCTION()
 	void HandleInventoryButtonClicked();
+
+	UFUNCTION()
+	void HandleSettingButtonClicked();
 
 	UFUNCTION()
 	void HandleWeaponChanged(EWeaponType NewWeaponType);

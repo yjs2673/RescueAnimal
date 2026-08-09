@@ -5,6 +5,11 @@
 #include "Sound/SoundBase.h"
 #include "Sound/SoundClass.h"
 #include "Sound/SoundMix.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SOverlay.h"
 
 void UTPSAudioSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -12,12 +17,13 @@ void UTPSAudioSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	LoadSoundClassSettings();
 	LoadAudioSettings();
-	ApplySoundClassVolumes();
+	ApplyRuntimeSettings();
 }
 
 void UTPSAudioSubsystem::Deinitialize()
 {
 	StopBGM(0.0f);
+	RemoveBrightnessOverlay();
 
 	Super::Deinitialize();
 }
@@ -123,6 +129,24 @@ void UTPSAudioSubsystem::SetSFXVolume(float NewVolume, bool bSaveImmediately)
 	}
 }
 
+void UTPSAudioSubsystem::SetScreenBrightness(float NewBrightness, bool bSaveImmediately)
+{
+	ScreenBrightness = FMath::Clamp(NewBrightness, 0.0f, 1.0f);
+	ApplyBrightnessOverlay();
+
+	if (bSaveImmediately)
+	{
+		SaveAudioSettings();
+	}
+}
+
+void UTPSAudioSubsystem::ApplyRuntimeSettings()
+{
+	ApplySoundClassVolumes();
+	ApplyCurrentBGMVolume();
+	ApplyBrightnessOverlay();
+}
+
 void UTPSAudioSubsystem::LoadAudioSettings()
 {
 	USaveGame* LoadedSaveGame = nullptr;
@@ -141,9 +165,9 @@ void UTPSAudioSubsystem::LoadAudioSettings()
 	MasterVolume = FMath::Clamp(AudioSettings->MasterVolume, 0.0f, 1.0f);
 	BGMVolume = FMath::Clamp(AudioSettings->BGMVolume, 0.0f, 1.0f);
 	SFXVolume = FMath::Clamp(AudioSettings->SFXVolume, 0.0f, 1.0f);
+	ScreenBrightness = FMath::Clamp(AudioSettings->ScreenBrightness, 0.0f, 1.0f);
 
-	ApplySoundClassVolumes();
-	ApplyCurrentBGMVolume();
+	ApplyRuntimeSettings();
 }
 
 void UTPSAudioSubsystem::SaveAudioSettings() const
@@ -161,6 +185,7 @@ void UTPSAudioSubsystem::SaveAudioSettings() const
 	AudioSettings->MasterVolume = MasterVolume;
 	AudioSettings->BGMVolume = BGMVolume;
 	AudioSettings->SFXVolume = SFXVolume;
+	AudioSettings->ScreenBrightness = ScreenBrightness;
 
 	UGameplayStatics::SaveGameToSlot(AudioSettings, SettingsSaveSlotName, SettingsSaveUserIndex);
 }
@@ -172,7 +197,7 @@ float UTPSAudioSubsystem::GetEffectiveBGMVolume() const
 
 float UTPSAudioSubsystem::GetBGMComponentVolume() const
 {
-	return BGMSoundClass ? 1.0f : GetEffectiveBGMVolume();
+	return (VolumeSoundMix && BGMSoundClass) ? 1.0f : GetEffectiveBGMVolume();
 }
 
 void UTPSAudioSubsystem::ApplyCurrentBGMVolume() const
@@ -230,4 +255,64 @@ void UTPSAudioSubsystem::ApplySoundClassVolume(USoundClass* SoundClass, float Vo
 		0.0f,
 		bApplyToChildren
 	);
+}
+
+void UTPSAudioSubsystem::ApplyBrightnessOverlay()
+{
+	const float DimOpacity = 1.0f - FMath::Clamp(ScreenBrightness, 0.0f, 1.0f);
+
+	if (DimOpacity <= KINDA_SMALL_NUMBER)
+	{
+		RemoveBrightnessOverlay();
+		return;
+	}
+
+	EnsureBrightnessOverlay();
+
+	if (BrightnessOverlayRootWidget.IsValid())
+	{
+		BrightnessOverlayRootWidget->SetRenderOpacity(DimOpacity);
+	}
+}
+
+void UTPSAudioSubsystem::EnsureBrightnessOverlay()
+{
+	if (BrightnessOverlayRootWidget.IsValid())
+	{
+		return;
+	}
+
+	if (!GEngine || !GEngine->GameViewport)
+	{
+		return;
+	}
+
+	BrightnessOverlayRootWidget =
+		SNew(SOverlay)
+		.Visibility(EVisibility::HitTestInvisible)
+		.RenderOpacity(1.0f - ScreenBrightness)
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill)
+		[
+			SAssignNew(BrightnessOverlayBorderWidget, SBorder)
+			.BorderImage(FCoreStyle::Get().GetBrush(TEXT("WhiteBrush")))
+			.BorderBackgroundColor(FLinearColor::Black)
+		];
+
+	GEngine->GameViewport->AddViewportWidgetContent(
+		BrightnessOverlayRootWidget.ToSharedRef(),
+		50
+	);
+}
+
+void UTPSAudioSubsystem::RemoveBrightnessOverlay()
+{
+	if (GEngine && GEngine->GameViewport && BrightnessOverlayRootWidget.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(BrightnessOverlayRootWidget.ToSharedRef());
+	}
+
+	BrightnessOverlayRootWidget.Reset();
+	BrightnessOverlayBorderWidget.Reset();
 }

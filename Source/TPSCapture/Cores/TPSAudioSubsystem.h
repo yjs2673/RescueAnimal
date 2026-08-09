@@ -10,6 +10,8 @@ class UAudioComponent;
 class USoundClass;
 class USoundBase;
 class USoundMix;
+class SBorder;
+class SWidget;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "TPS Audio"))
 class TPSCAPTURE_API UTPSAudioSubsystemSettings : public UDeveloperSettings
@@ -44,6 +46,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "Audio Settings", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float SFXVolume = 1.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Display Settings", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ScreenBrightness = 1.0f;
 };
 
 UCLASS()
@@ -70,6 +75,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Audio|Settings")
 	void SetSFXVolume(float NewVolume, bool bSaveImmediately = true);
 
+	UFUNCTION(BlueprintCallable, Category = "Display|Settings")
+	void SetScreenBrightness(float NewBrightness, bool bSaveImmediately = true);
+
 	UFUNCTION(BlueprintPure, Category = "Audio|Settings")
 	float GetMasterVolume() const { return MasterVolume; }
 
@@ -78,6 +86,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Audio|Settings")
 	float GetSFXVolume() const { return SFXVolume; }
+
+	UFUNCTION(BlueprintPure, Category = "Display|Settings")
+	float GetScreenBrightness() const { return ScreenBrightness; }
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void ApplyRuntimeSettings();
 
 	UFUNCTION(BlueprintCallable, Category = "Audio|Settings")
 	void LoadAudioSettings();
@@ -92,6 +106,9 @@ private:
 	void LoadSoundClassSettings();
 	void ApplySoundClassVolumes();
 	void ApplySoundClassVolume(USoundClass* SoundClass, float Volume, bool bApplyToChildren = true);
+	void ApplyBrightnessOverlay();
+	void EnsureBrightnessOverlay();
+	void RemoveBrightnessOverlay();
 
 private:
 	UPROPERTY(Transient)
@@ -110,6 +127,9 @@ private:
 	float SFXVolume = 1.0f;
 
 	UPROPERTY()
+	float ScreenBrightness = 1.0f;
+
+	UPROPERTY()
 	FString SettingsSaveSlotName = TEXT("TPSAudioSettings");
 
 	UPROPERTY()
@@ -126,4 +146,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<USoundClass> SFXSoundClass = nullptr;
+
+	TSharedPtr<SWidget> BrightnessOverlayRootWidget;
+	TSharedPtr<SBorder> BrightnessOverlayBorderWidget;
 };

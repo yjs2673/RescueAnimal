@@ -30,6 +30,14 @@ void UMainHUDWidget::NativeConstruct()
 		UE_LOG(LogTemp, Warning, TEXT("MainHUDWidget: InventoryButton is not bound."));
 	}
 
+	if (SettingButton)
+	{
+		SettingButton->OnClicked.AddUniqueDynamic(
+			this,
+			&UMainHUDWidget::HandleSettingButtonClicked
+		);
+	}
+
 	if (QuickSlotBar)
 	{
 		QuickSlotBar->RefreshQuickSlots();
@@ -60,6 +68,14 @@ void UMainHUDWidget::NativeDestruct()
 		);
 	}
 
+	if (SettingButton)
+	{
+		SettingButton->OnClicked.RemoveDynamic(
+			this,
+			&UMainHUDWidget::HandleSettingButtonClicked
+		);
+	}
+
 	UnbindPlayerStatComponent();
 
 	Super::NativeDestruct();
@@ -68,6 +84,11 @@ void UMainHUDWidget::NativeDestruct()
 void UMainHUDWidget::HandleInventoryButtonClicked()
 {
 	OnInventoryButtonClicked.Broadcast();
+}
+
+void UMainHUDWidget::HandleSettingButtonClicked()
+{
+	OnSettingButtonClicked.Broadcast();
 }
 
 void UMainHUDWidget::BindPlayerWeaponChanged()

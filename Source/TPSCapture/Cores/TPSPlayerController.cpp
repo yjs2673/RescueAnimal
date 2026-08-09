@@ -9,7 +9,9 @@
 #include "GameProgressMessageWidget.h"
 #include "GameFlowMenuWidget.h"
 #include "MapProgressWidget.h"
+#include "SettingWidget.h"
 #include "ShopActor.h"
+#include "TPSAudioSubsystem.h"
 #include "TPSGameInstance.h"
 #include "TPSWorldStateManager.h"
 #include "InputCoreTypes.h"
@@ -33,6 +35,15 @@ void ATPSPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	SetGameInputMode();
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UTPSAudioSubsystem* AudioSubsystem = GameInstance->GetSubsystem<UTPSAudioSubsystem>())
+		{
+			AudioSubsystem->ApplyRuntimeSettings();
+		}
+	}
+
 	const FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(this, true);
 	const bool bIsGameFlowMenuLevel = IsTitleLevelName(CurrentLevelName) || IsEndingLevelName(CurrentLevelName);
 
@@ -47,6 +58,11 @@ void ATPSPlayerController::BeginPlay()
 			MainHUDWidget->OnInventoryButtonClicked.AddDynamic(
 				this,
 				&ATPSPlayerController::HandleInventoryButtonClicked
+			);
+
+			MainHUDWidget->OnSettingButtonClicked.AddDynamic(
+				this,
+				&ATPSPlayerController::HandleSettingButtonClicked
 			);
 		}
 	}
@@ -189,10 +205,15 @@ void ATPSPlayerController::ShowGameOverMessage()
 	{
 		AnimalCollectionWidget->RemoveFromParent();
 	}
+	if (SettingWidget)
+	{
+		SettingWidget->RemoveFromParent();
+	}
 
 	bIsShopOpen = false;
 	bIsInventoryOpen = false;
 	bIsAnimalCollectionOpen = false;
+	bIsSettingOpen = false;
 	CurrentShopActor = nullptr;
 
 	HideMainHUD();
@@ -246,6 +267,16 @@ void ATPSPlayerController::HandleInventoryButtonClicked()
 	ToggleInventory();
 }
 
+void ATPSPlayerController::HandleSettingButtonClicked()
+{
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
+	ToggleSetting();
+}
+
 void ATPSPlayerController::HandleInventoryCloseRequested()
 {
 	if (bIsPortalTransitionInputLocked)
@@ -254,6 +285,11 @@ void ATPSPlayerController::HandleInventoryCloseRequested()
 	}
 
 	CloseInventory();
+}
+
+void ATPSPlayerController::HandleSettingCloseRequested()
+{
+	CloseSetting();
 }
 
 void ATPSPlayerController::HandleAnimalCollectionCloseRequested()
@@ -362,7 +398,11 @@ void ATPSPlayerController::SetUIInputMode()
 
 	FInputModeGameAndUI InputMode;
 
-	if (bIsShopOpen && ShopWidget)
+	if (bIsSettingOpen && SettingWidget)
+	{
+		InputMode.SetWidgetToFocus(SettingWidget->TakeWidget());
+	}
+	else if (bIsShopOpen && ShopWidget)
 	{
 		InputMode.SetWidgetToFocus(ShopWidget->TakeWidget());
 	}
@@ -420,6 +460,7 @@ void ATPSPlayerController::SetPortalTransitionInputLocked(bool bLocked)
 
 	if (bLocked)
 	{
+		CloseSetting();
 		CloseInventory();
 		CloseAnimalCollection();
 	}
@@ -812,6 +853,11 @@ void ATPSPlayerController::OpenShop(AShopActor* ShopActor)
 	if (bIsShopOpen || !ShopActor)
 		return;
 
+	if (bIsSettingOpen)
+	{
+		CloseSetting();
+	}
+
 	if (!ShopWidget)
 	{
 		if (!ShopWidgetClass)
@@ -874,6 +920,11 @@ void ATPSPlayerController::OpenAnimalCollection()
 		return;
 	}
 
+	if (bIsSettingOpen)
+	{
+		CloseSetting();
+	}
+
 	if (!AnimalCollectionWidget)
 	{
 		if (!AnimalCollectionWidgetClass)
@@ -920,7 +971,7 @@ void ATPSPlayerController::CloseAnimalCollection()
 
 	bIsAnimalCollectionOpen = false;
 
-	if (bIsShopOpen || bIsInventoryOpen)
+	if (bIsShopOpen || bIsInventoryOpen || bIsSettingOpen)
 	{
 		SetUIInputMode();
 	}
@@ -949,7 +1000,7 @@ void ATPSPlayerController::CloseShop()
 	SetIgnoreMoveInput(false);
 	SetIgnoreLookInput(false);
 
-	if (bIsInventoryOpen || bIsAnimalCollectionOpen)
+	if (bIsInventoryOpen || bIsAnimalCollectionOpen || bIsSettingOpen)
 	{
 		SetUIInputMode();
 	}
@@ -972,6 +1023,12 @@ void ATPSPlayerController::CloseUI()
 		return;
 	}
 
+	if (bIsSettingOpen)
+	{
+		CloseSetting();
+		return;
+	}
+
 	if (bIsShopOpen)
 	{
 		CloseShop();
@@ -987,5 +1044,108 @@ void ATPSPlayerController::CloseUI()
 	if (bIsInventoryOpen)
 	{
 		CloseInventory();
+		return;
+	}
+
+	OpenSetting();
+}
+
+void ATPSPlayerController::ToggleSetting()
+{
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
+	if (bIsSettingOpen)
+	{
+		CloseSetting();
+	}
+	else
+	{
+		OpenSetting();
+	}
+}
+
+void ATPSPlayerController::OpenSetting()
+{
+	if (bIsPortalTransitionInputLocked || bIsSettingOpen)
+	{
+		return;
+	}
+
+	if (bIsShopOpen)
+	{
+		CloseShop();
+	}
+
+	if (bIsAnimalCollectionOpen)
+	{
+		CloseAnimalCollection();
+	}
+
+	if (bIsInventoryOpen)
+	{
+		CloseInventory();
+	}
+
+	if (!SettingWidget)
+	{
+		if (!SettingWidgetClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("SettingWidgetClass is not assigned."));
+			return;
+		}
+
+		SettingWidget = CreateWidget<USettingWidget>(this, SettingWidgetClass);
+
+		if (SettingWidget)
+		{
+			SettingWidget->OnSettingCloseRequested.AddDynamic(
+				this,
+				&ATPSPlayerController::HandleSettingCloseRequested
+			);
+		}
+	}
+
+	if (SettingWidget)
+	{
+		SettingWidget->AddToViewport(300);
+
+		bIsSettingOpen = true;
+		SetIgnoreMoveInput(true);
+		SetIgnoreLookInput(true);
+		SetUIInputMode();
+	}
+}
+
+void ATPSPlayerController::CloseSetting()
+{
+	if (!bIsSettingOpen)
+	{
+		return;
+	}
+
+	if (SettingWidget)
+	{
+		SettingWidget->RemoveFromParent();
+	}
+
+	bIsSettingOpen = false;
+
+	if (bIsPortalTransitionInputLocked)
+	{
+		return;
+	}
+
+	if (bIsShopOpen || bIsInventoryOpen || bIsAnimalCollectionOpen)
+	{
+		SetUIInputMode();
+	}
+	else
+	{
+		SetIgnoreMoveInput(false);
+		SetIgnoreLookInput(false);
+		SetGameInputMode();
 	}
 }

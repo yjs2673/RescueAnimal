@@ -12,6 +12,7 @@ class UAnimalCollectionWidget;
 class UGameProgressMessageWidget;
 class UMapProgressWidget;
 class UGameFlowMenuWidget;
+class USettingWidget;
 class AShopActor;
 class ATPSWorldStateManager;
 class SBorder;
@@ -57,6 +58,15 @@ public:
 	UFUNCTION()
 	void CloseUI();
 
+	UFUNCTION()
+	void ToggleSetting();
+
+	UFUNCTION()
+	void OpenSetting();
+
+	UFUNCTION()
+	void CloseSetting();
+
 	bool IsShopOpen() const { return bIsShopOpen; }
 	bool IsAnimalCollectionOpen() const { return bIsAnimalCollectionOpen; }
 	void HideMainHUD();
@@ -96,6 +106,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UAnimalCollectionWidget> AnimalCollectionWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<USettingWidget> SettingWidgetClass;
 
 #pragma region Game Progress Message
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Game Progress")
@@ -148,6 +161,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAnimalCollectionWidget> AnimalCollectionWidget;
 
+	UPROPERTY()
+	TObjectPtr<USettingWidget> SettingWidget;
+
 #pragma region Game Progress Message
 	UPROPERTY()
 	TObjectPtr<UGameProgressMessageWidget> GameProgressMessageWidget;
@@ -155,6 +171,9 @@ private:
 
 	UPROPERTY()
 	bool bIsAnimalCollectionOpen = false;
+
+	UPROPERTY()
+	bool bIsSettingOpen = false;
 
 	UPROPERTY()
 	bool bIsPortalTransitionInputLocked = false;
@@ -182,7 +201,13 @@ private:
 	void HandleInventoryButtonClicked();
 
 	UFUNCTION()
+	void HandleSettingButtonClicked();
+
+	UFUNCTION()
 	void HandleInventoryCloseRequested();
+
+	UFUNCTION()
+	void HandleSettingCloseRequested();
 
 	UFUNCTION()
 	void HandleAnimalCollectionCloseRequested();
