@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSStructTypes.h"
 #include "ShopItemSlotWidget.generated.h"
 
@@ -17,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 );
 
 UCLASS()
-class TPSCAPTURE_API UShopItemSlotWidget : public UUserWidget
+class TPSCAPTURE_API UShopItemSlotWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

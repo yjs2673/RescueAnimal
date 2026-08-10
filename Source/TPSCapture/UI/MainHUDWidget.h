@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSGameEnums.h"
 #include "MainHUDWidget.generated.h"
 
@@ -19,7 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryButtonClicked);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSettingButtonClicked);
 
 UCLASS()
-class TPSCAPTURE_API UMainHUDWidget : public UUserWidget
+class TPSCAPTURE_API UMainHUDWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

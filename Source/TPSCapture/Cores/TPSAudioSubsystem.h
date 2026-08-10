@@ -31,6 +31,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Sound Classes")
 	TSoftObjectPtr<USoundClass> SFXSoundClass;
 
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI Sounds")
+	TSoftObjectPtr<USoundBase> UIPopupOpenSound;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI Sounds")
+	TSoftObjectPtr<USoundBase> UIPopupCloseSound;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI Sounds")
+	TSoftObjectPtr<USoundBase> UIButtonClickSound;
+
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Display", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float MaxDimOpacity = 0.75f;
 

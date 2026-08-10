@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSGameEnums.h"
 #include "CurrentWeaponWidget.generated.h"
 
@@ -10,7 +10,7 @@ class UTexture2D;
 class ATPSCaptureCharacter;
 
 UCLASS()
-class TPSCAPTURE_API UCurrentWeaponWidget : public UUserWidget
+class TPSCAPTURE_API UCurrentWeaponWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

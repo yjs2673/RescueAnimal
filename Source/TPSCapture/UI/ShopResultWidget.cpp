@@ -2,6 +2,12 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
+UShopResultWidget::UShopResultWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void UShopResultWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

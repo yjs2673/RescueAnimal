@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "DialogueWidget.generated.h"
 
 class UButton;
@@ -25,7 +25,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 );
 
 UCLASS()
-class TPSCAPTURE_API UDialogueWidget : public UUserWidget
+class TPSCAPTURE_API UDialogueWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

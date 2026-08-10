@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSGameEnums.h"
 #include "InventoryWidget.generated.h"
 
@@ -16,11 +16,13 @@ class UInventoryComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryCloseRequested);
 
 UCLASS()
-class TPSCAPTURE_API UInventoryWidget : public UUserWidget
+class TPSCAPTURE_API UInventoryWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UInventoryWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 

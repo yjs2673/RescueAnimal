@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "QuickSlotBarWidget.generated.h"
 
 class UUniformGridPanel;
@@ -10,7 +10,7 @@ class UQuickSlotComponent;
 class UInventoryComponent;
 
 UCLASS()
-class TPSCAPTURE_API UQuickSlotBarWidget : public UUserWidget
+class TPSCAPTURE_API UQuickSlotBarWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

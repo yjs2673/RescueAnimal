@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSStructTypes.h"
 #include "ShopWidget.generated.h"
 
@@ -18,11 +18,13 @@ class UShopResultWidget;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnShopCloseRequested);
 
 UCLASS()
-class TPSCAPTURE_API UShopWidget : public UUserWidget
+class TPSCAPTURE_API UShopWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UShopWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 

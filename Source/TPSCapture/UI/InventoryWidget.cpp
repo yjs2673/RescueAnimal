@@ -15,6 +15,12 @@
 bool UInventoryWidget::bHasSavedInventoryPosition = false;
 FVector2D UInventoryWidget::SavedInventoryPosition = FVector2D::ZeroVector;
 
+UInventoryWidget::UInventoryWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void UInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "CrosshairBowWidget.generated.h"
 
 UCLASS()
-class TPSCAPTURE_API UCrosshairBowWidget : public UUserWidget
+class TPSCAPTURE_API UCrosshairBowWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

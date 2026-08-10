@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSStructTypes.h"
 #include "ItemTooltipWidget.generated.h"
 
 class UTextBlock;
 
 UCLASS()
-class TPSCAPTURE_API UItemTooltipWidget : public UUserWidget
+class TPSCAPTURE_API UItemTooltipWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

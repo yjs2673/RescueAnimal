@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSStructTypes.h"
 #include "BuyConfirmWidget.generated.h"
 
@@ -15,11 +15,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuySucceeded, FText, ResultMessag
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuyFailed, FText, ResultMessage);
 
 UCLASS()
-class TPSCAPTURE_API UBuyConfirmWidget : public UUserWidget
+class TPSCAPTURE_API UBuyConfirmWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UBuyConfirmWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Shop")

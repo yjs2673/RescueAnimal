@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "InventorySlotWidget.generated.h"
 
 class UImage;
@@ -13,7 +13,7 @@ struct FGeometry;
 struct FPointerEvent;
 
 UCLASS()
-class TPSCAPTURE_API UInventorySlotWidget : public UUserWidget
+class TPSCAPTURE_API UInventorySlotWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

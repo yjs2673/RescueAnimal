@@ -1,18 +1,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "ShopResultWidget.generated.h"
 
 class UButton;
 class UTextBlock;
 
 UCLASS()
-class TPSCAPTURE_API UShopResultWidget : public UUserWidget
+class TPSCAPTURE_API UShopResultWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UShopResultWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Shop")

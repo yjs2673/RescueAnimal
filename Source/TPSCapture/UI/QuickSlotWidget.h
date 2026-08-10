@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "QuickSlotWidget.generated.h"
 
 class UTextBlock;
@@ -11,7 +11,7 @@ struct FGeometry;
 struct FPointerEvent;
 
 UCLASS()
-class TPSCAPTURE_API UQuickSlotWidget : public UUserWidget
+class TPSCAPTURE_API UQuickSlotWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

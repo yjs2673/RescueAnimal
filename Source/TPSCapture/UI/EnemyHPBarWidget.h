@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "EnemyHPBarWidget.generated.h"
 
 class UProgressBar;
 
 UCLASS()
-class TPSCAPTURE_API UEnemyHPBarWidget : public UUserWidget
+class TPSCAPTURE_API UEnemyHPBarWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "PlayerStatusWidget.generated.h"
 
 class UTextBlock;
 class UProgressBar;
 
 UCLASS()
-class TPSCAPTURE_API UPlayerStatusWidget : public UUserWidget
+class TPSCAPTURE_API UPlayerStatusWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

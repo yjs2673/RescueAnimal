@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "GameProgressMessageWidget.generated.h"
 
 class UTextBlock;
@@ -9,7 +9,7 @@ class UButton;
 class USoundBase;
 
 UCLASS()
-class TPSCAPTURE_API UGameProgressMessageWidget : public UUserWidget
+class TPSCAPTURE_API UGameProgressMessageWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "GameFlowMenuWidget.generated.h"
 
 class UButton;
 
 UCLASS()
-class TPSCAPTURE_API UGameFlowMenuWidget : public UUserWidget
+class TPSCAPTURE_API UGameFlowMenuWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

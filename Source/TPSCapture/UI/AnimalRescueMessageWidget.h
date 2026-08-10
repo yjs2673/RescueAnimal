@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "AnimalRescueMessageWidget.generated.h"
 
 class UImage;
 class UTexture2D;
 
 UCLASS()
-class TPSCAPTURE_API UAnimalRescueMessageWidget : public UUserWidget
+class TPSCAPTURE_API UAnimalRescueMessageWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

@@ -10,6 +10,7 @@ UDialogueWidget::UDialogueWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	SetIsFocusable(true);
+	bPlayOpenCloseSounds = true;
 }
 
 void UDialogueWidget::NativeConstruct()

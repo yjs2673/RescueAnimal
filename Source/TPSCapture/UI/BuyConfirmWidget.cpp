@@ -6,6 +6,12 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 
+UBuyConfirmWidget::UBuyConfirmWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void UBuyConfirmWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

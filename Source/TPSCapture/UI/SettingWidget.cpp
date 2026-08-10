@@ -5,12 +5,17 @@
 #include "InputCoreTypes.h"
 #include "TPSAudioSubsystem.h"
 
+USettingWidget::USettingWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void USettingWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
 	SetIsFocusable(true);
-	SetIsEnabled(true);
 
 	if (MasterVolumeSlider)
 	{
@@ -62,7 +67,6 @@ void USettingWidget::NativeConstruct()
 
 	if (CloseButton)
 	{
-		CloseButton->SetIsEnabled(true);
 		CloseButton->OnClicked.AddUniqueDynamic(
 			this,
 			&USettingWidget::HandleCloseButtonClicked
@@ -117,13 +121,6 @@ void USettingWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void USettingWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
-
-	EnsureCloseButtonEnabled();
-}
-
 FReply USettingWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
 	if (InKeyEvent.GetKey() == EKeys::Escape)
@@ -149,8 +146,6 @@ void USettingWidget::HandleMasterVolumeChanged(float Value)
 			AudioSubsystem->SetMasterVolume(Value);
 		}
 	}
-
-	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleBGMVolumeChanged(float Value)
@@ -167,8 +162,6 @@ void USettingWidget::HandleBGMVolumeChanged(float Value)
 			AudioSubsystem->SetBGMVolume(Value);
 		}
 	}
-
-	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleSFXVolumeChanged(float Value)
@@ -185,8 +178,6 @@ void USettingWidget::HandleSFXVolumeChanged(float Value)
 			AudioSubsystem->SetSFXVolume(Value);
 		}
 	}
-
-	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleBrightnessChanged(float Value)
@@ -203,8 +194,6 @@ void USettingWidget::HandleBrightnessChanged(float Value)
 			AudioSubsystem->SetScreenBrightness(Value);
 		}
 	}
-
-	EnsureCloseButtonEnabled();
 }
 
 void USettingWidget::HandleCloseButtonClicked()
@@ -249,15 +238,4 @@ void USettingWidget::RefreshSliderValues()
 	}
 
 	bIsRefreshingSliders = false;
-	EnsureCloseButtonEnabled();
-}
-
-void USettingWidget::EnsureCloseButtonEnabled()
-{
-	SetIsEnabled(true);
-
-	if (CloseButton)
-	{
-		CloseButton->SetIsEnabled(true);
-	}
 }

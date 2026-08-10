@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSStructTypes.h"
 #include "AnimalCollectionWidget.generated.h"
 
@@ -26,11 +26,13 @@ struct FAnimalCollectionPageData
 };
 
 UCLASS()
-class TPSCAPTURE_API UAnimalCollectionWidget : public UUserWidget
+class TPSCAPTURE_API UAnimalCollectionWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
 public:
+	UAnimalCollectionWidget(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 

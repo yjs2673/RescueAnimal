@@ -11,6 +11,12 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 
+UShopWidget::UShopWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void UShopWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

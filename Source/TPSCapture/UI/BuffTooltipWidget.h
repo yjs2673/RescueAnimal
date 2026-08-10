@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "TPSGameEnums.h"
 #include "BuffTooltipWidget.generated.h"
 
@@ -9,7 +9,7 @@ class UTextBlock;
 class UPlayerStatComponent;
 
 UCLASS()
-class TPSCAPTURE_API UBuffTooltipWidget : public UUserWidget
+class TPSCAPTURE_API UBuffTooltipWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

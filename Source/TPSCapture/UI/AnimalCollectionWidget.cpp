@@ -6,6 +6,12 @@
 #include "Engine/DataTable.h"
 #include "TPSGameInstance.h"
 
+UAnimalCollectionWidget::UAnimalCollectionWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bPlayOpenCloseSounds = true;
+}
+
 void UAnimalCollectionWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

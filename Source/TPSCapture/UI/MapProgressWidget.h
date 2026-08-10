@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "MapProgressWidget.generated.h"
 
 class UButton;
@@ -12,7 +12,7 @@ class ATPSWorldStateManager;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMapProgressCloseRequested);
 
 UCLASS()
-class TPSCAPTURE_API UMapProgressWidget : public UUserWidget
+class TPSCAPTURE_API UMapProgressWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 

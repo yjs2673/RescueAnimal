@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "TPSUserWidget.h"
 #include "BuffListWidget.generated.h"
 
 class UPanelWidget;
@@ -9,7 +9,7 @@ class UBuffIconWidget;
 class UPlayerStatComponent;
 
 UCLASS()
-class TPSCAPTURE_API UBuffListWidget : public UUserWidget
+class TPSCAPTURE_API UBuffListWidget : public UTPSUserWidget
 {
 	GENERATED_BODY()
 
