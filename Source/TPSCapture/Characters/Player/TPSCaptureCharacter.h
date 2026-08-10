@@ -326,6 +326,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Consumable")
 	USoundBase* ConsumableUseSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Movement")
+	USoundBase* JumpSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Movement")
+	USoundBase* DodgeSound;
 #pragma endregion SFX Var
 
 #pragma region VFX Var

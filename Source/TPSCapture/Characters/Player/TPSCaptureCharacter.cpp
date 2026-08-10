@@ -358,6 +358,15 @@ void ATPSCaptureCharacter::StartJump()
 	if (bIsDodging)
 		return;
 
+	if (CanJump() && JumpSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			JumpSound,
+			GetActorLocation()
+		);
+	}
+
 	Jump();
 }
 void ATPSCaptureCharacter::Move(const FInputActionValue& Value)
@@ -878,6 +887,15 @@ void ATPSCaptureCharacter::Dodge()
 	DodgeDirection = GetActorForwardVector();
 	DodgeDirection.Z = 0.0f;
 	DodgeDirection.Normalize();
+
+	if (DodgeSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			DodgeSound,
+			GetActorLocation()
+		);
+	}
 
 	AnimInstance->OnMontageEnded.RemoveDynamic(this, &ATPSCaptureCharacter::OnDodgeMontageEnded);
 	AnimInstance->OnMontageEnded.AddDynamic(this, &ATPSCaptureCharacter::OnDodgeMontageEnded);

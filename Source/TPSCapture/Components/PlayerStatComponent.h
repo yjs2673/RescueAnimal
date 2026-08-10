@@ -192,7 +192,7 @@ protected:
 	float BaseJumpZVelocity = 600.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
-	float BaseMoveSpeed = 600.f;
+	float BaseMoveSpeed = 500.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	float MaxHP = 100.f;
