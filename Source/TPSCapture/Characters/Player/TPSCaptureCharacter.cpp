@@ -22,6 +22,7 @@
 #include "PlayerStatComponent.h"
 #include "InventoryComponent.h"
 #include "QuickSlotComponent.h"
+#include "PlayerSkillComponent.h"
 
 #include "TPSGameInstance.h"
 #include "TPSStructTypes.h"
@@ -96,6 +97,7 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	QuickSlotComponent = CreateDefaultSubobject<UQuickSlotComponent>(TEXT("QuickSlotComponent"));
+	PlayerSkillComponent = CreateDefaultSubobject<UPlayerSkillComponent>(TEXT("PlayerSkillComponent"));
 
 	// 차징 화살: 미리보기용 StaticMeshComponent 생성 및 설정
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
@@ -147,6 +149,11 @@ void ATPSCaptureCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		// Dodging
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &ATPSCaptureCharacter::Dodge);
+
+		// Skill
+		if (SkillAction && PlayerSkillComponent)
+			EnhancedInputComponent->BindAction(SkillAction, ETriggerEvent::Started, PlayerSkillComponent, &UPlayerSkillComponent::HandleSkillInput);
+
 		// Quick Slots
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("QuickSlot binding setup. Actions: 1=%s 2=%s 3=%s 4=%s 5=%s 6=%s 7=%s"),
 			QuickSlot1Action ? TEXT("Set") : TEXT("None"),
@@ -1929,6 +1936,14 @@ void ATPSCaptureCharacter::TriggerMeleeHit()
 		? PerformSwordHit(Damage, Range, Radius) : PerformPunchHit(Damage, Range, Radius);
 }
 
+void ATPSCaptureCharacter::TriggerSkillHit()
+{
+	if (PlayerSkillComponent)
+	{
+		PlayerSkillComponent->TriggerSkillHit();
+	}
+}
+
 void ATPSCaptureCharacter::ProceedCombo()
 {
 	if (!PunchMontage || !GetMesh() || !GetMesh()->GetAnimInstance())
@@ -2074,6 +2089,47 @@ FName ATPSCaptureCharacter::GetCurrentWeaponItemID() const
 	return CurrentWeapon ? CurrentWeapon->WeaponID : NAME_None;
 }
 #pragma endregion Delicate Func
+
+bool ATPSCaptureCharacter::CanStartSkillAction(bool bAllowBowAiming) const
+{
+	if (IsPortalTransitionInputLocked())
+		return false;
+
+	if (StatComponent && StatComponent->IsDead())
+		return false;
+
+	if (const ATPSPlayerController* TPSPlayerController = Cast<ATPSPlayerController>(GetController()))
+	{
+		if (TPSPlayerController->IsInventoryOpen() || TPSPlayerController->IsShopOpen() || TPSPlayerController->IsAnimalCollectionOpen())
+			return false;
+	}
+
+	if (bIsDodging)
+		return false;
+
+	const bool bBowAimException = bAllowBowAiming && bIsBowAiming;
+	if (bIsAttacking && !bBowAimException)
+		return false;
+
+	return true;
+}
+
+void ATPSCaptureCharacter::BeginSkillAction()
+{
+	StopHitMontage();
+	bIsAttacking = true;
+}
+
+void ATPSCaptureCharacter::EndSkillAction()
+{
+	bIsAttacking = false;
+}
+
+void ATPSCaptureCharacter::FaceSkillDirection()
+{
+	FaceAttackDirection();
+}
+
 #pragma region Runtime Data Func
 void ATPSCaptureCharacter::SaveRuntimeDataToGameInstance()
 {

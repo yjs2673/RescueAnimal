@@ -35,6 +35,7 @@ class AWeaponBase;
 class UPlayerStatComponent;
 class UInventoryComponent;
 class UQuickSlotComponent;
+class UPlayerSkillComponent;
 
 class APortalActor;
 class AShopActor;
@@ -92,6 +93,10 @@ class ATPSCaptureCharacter : public ACharacter
 	/** Dodge Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* DodgeAction;
+
+	/** Skill Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SkillAction;
 
 	/** QuickSlot Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -378,6 +383,11 @@ protected:
 	UQuickSlotComponent* QuickSlotComponent;
 #pragma endregion Quick Slot Component
 
+#pragma region Player Skill Component
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerSkillComponent* PlayerSkillComponent;
+#pragma endregion Player Skill Component
+
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -499,6 +509,9 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void FireArrow(); // 활
 
+	UFUNCTION(BlueprintCallable)
+	void TriggerSkillHit();
+
 	void PlayBowWeaponMontageSection(FName SectionName);
 
 	void PlayHitMontage();
@@ -603,6 +616,21 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Components")
 	FORCEINLINE UQuickSlotComponent* GetQuickSlotComponent() const { return QuickSlotComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerSkillComponent* GetPlayerSkillComponent() const { return PlayerSkillComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Skill")
+	bool CanStartSkillAction(bool bAllowBowAiming = false) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void BeginSkillAction();
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void EndSkillAction();
+
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	void FaceSkillDirection();
 
 };
 
