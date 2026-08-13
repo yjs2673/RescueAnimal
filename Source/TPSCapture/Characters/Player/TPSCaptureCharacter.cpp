@@ -1981,7 +1981,11 @@ void ATPSCaptureCharacter::ResetBowPreviewArrowStaticMesh()
 	PreviewArrowMesh->SetStaticMesh(PreviewArrowStaticMesh);
 }
 
-void ATPSCaptureCharacter::SetBowPreviewArrowVFX(UNiagaraSystem* NewPreviewArrowVFX)
+void ATPSCaptureCharacter::SetBowPreviewArrowVFX(
+	UNiagaraSystem* NewPreviewArrowVFX,
+	FVector RelativeLocation,
+	FRotator RelativeRotation,
+	FVector RelativeScale)
 {
 	if (!PreviewArrowVFXComponent || !NewPreviewArrowVFX)
 	{
@@ -1989,9 +1993,9 @@ void ATPSCaptureCharacter::SetBowPreviewArrowVFX(UNiagaraSystem* NewPreviewArrow
 	}
 
 	PreviewArrowVFXComponent->SetAsset(NewPreviewArrowVFX);
-	PreviewArrowVFXComponent->SetRelativeLocation(FVector::ZeroVector);
-	PreviewArrowVFXComponent->SetRelativeRotation(FRotator::ZeroRotator);
-	PreviewArrowVFXComponent->SetRelativeScale3D(FVector(1.0f));
+	PreviewArrowVFXComponent->SetRelativeLocation(RelativeLocation);
+	PreviewArrowVFXComponent->SetRelativeRotation(RelativeRotation);
+	PreviewArrowVFXComponent->SetRelativeScale3D(RelativeScale);
 	PreviewArrowVFXComponent->SetHiddenInGame(false);
 	PreviewArrowVFXComponent->Activate(true);
 }

@@ -269,7 +269,12 @@ bool UPlayerSkillComponent::ToggleBowSkillPreparation()
 
 	if (BowSkill.FirePreviewArrowVFX)
 	{
-		OwnerCharacter->SetBowPreviewArrowVFX(BowSkill.FirePreviewArrowVFX);
+		OwnerCharacter->SetBowPreviewArrowVFX(
+			BowSkill.FirePreviewArrowVFX,
+			BowSkill.FirePreviewVFXRelativeLocation,
+			BowSkill.FirePreviewVFXRelativeRotation,
+			BowSkill.FirePreviewVFXRelativeScale
+		);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow skill prepared."));
