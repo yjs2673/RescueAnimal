@@ -202,6 +202,9 @@ void ALobbyNPC::StartIntroDialogue()
 		TEXT("마우스 왼쪽 버튼으로 공격하고, E 키로 상호작용하실 수 있습니다.")
 	));
 	IntroDialogueLines.Add(FText::FromString(
+		TEXT("Q 키로 스킬을 사용하실 수 있습니다. 들고 있는 장비 종류에 따라 사용할 수 있는 스킬이 달라집니다.")
+	));
+	IntroDialogueLines.Add(FText::FromString(
 		TEXT("I 키로 인벤토리를 열 수 있고, C 키로 구조한 동물들의 컬렉션을 확인할 수 있습니다.")
 	));
 	IntroDialogueLines.Add(FText::FromString(
