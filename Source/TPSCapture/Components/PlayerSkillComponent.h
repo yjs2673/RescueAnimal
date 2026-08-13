@@ -12,6 +12,8 @@ class UNiagaraSystem;
 class USoundBase;
 class UStaticMesh;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillCooldownStarted, EWeaponType, SkillWeaponType);
+
 USTRUCT(BlueprintType)
 struct FPlayerSkillCommonInfo
 {
@@ -188,6 +190,11 @@ class TPSCAPTURE_API UPlayerSkillComponent : public UActorComponent
 public:	
 	UPlayerSkillComponent();
 
+#pragma region Cooldown Events
+	UPROPERTY(BlueprintAssignable, Category = "Skill|Cooldown")
+	FOnSkillCooldownStarted OnSkillCooldownStarted;
+#pragma endregion Cooldown Events
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -229,6 +236,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Skill")
 	float GetCooldownRemaining(EWeaponType SkillWeaponType) const;
+
+	UFUNCTION(BlueprintPure, Category = "Skill")
+	float GetSkillCooldown(EWeaponType SkillWeaponType) const;
+
+	UFUNCTION(BlueprintPure, Category = "Skill")
+	float GetCooldownPercent(EWeaponType SkillWeaponType) const;
 
 protected:
 	bool ActivateUnarmedSkill();

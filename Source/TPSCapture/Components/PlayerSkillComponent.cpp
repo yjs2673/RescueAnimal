@@ -308,6 +308,7 @@ void UPlayerSkillComponent::StartSkillCooldown(EWeaponType SkillWeaponType)
 	if (const UWorld* World = GetWorld())
 	{
 		LastSkillUseTimes.FindOrAdd(SkillWeaponType) = World->GetTimeSeconds();
+		OnSkillCooldownStarted.Broadcast(SkillWeaponType);
 	}
 }
 
@@ -320,26 +321,37 @@ float UPlayerSkillComponent::GetCooldownRemaining(EWeaponType SkillWeaponType) c
 		return 0.0f;
 	}
 
-	float Cooldown = 0.0f;
+	const float Cooldown = GetSkillCooldown(SkillWeaponType);
+	return FMath::Max(0.0f, Cooldown - (World->GetTimeSeconds() - *LastUseTime));
+}
+
+float UPlayerSkillComponent::GetSkillCooldown(EWeaponType SkillWeaponType) const
+{
 	switch (SkillWeaponType)
 	{
 	case EWeaponType::None:
-		Cooldown = UnarmedSkill.Common.Cooldown;
-		break;
+		return UnarmedSkill.Common.Cooldown;
 
 	case EWeaponType::Sword:
-		Cooldown = SwordSkill.Common.Cooldown;
-		break;
+		return SwordSkill.Common.Cooldown;
 
 	case EWeaponType::Bow:
-		Cooldown = BowSkill.Common.Cooldown;
-		break;
+		return BowSkill.Common.Cooldown;
 
 	default:
-		break;
+		return 0.0f;
+	}
+}
+
+float UPlayerSkillComponent::GetCooldownPercent(EWeaponType SkillWeaponType) const
+{
+	const float Cooldown = GetSkillCooldown(SkillWeaponType);
+	if (Cooldown <= 0.0f)
+	{
+		return 0.0f;
 	}
 
-	return FMath::Max(0.0f, Cooldown - (World->GetTimeSeconds() - *LastUseTime));
+	return FMath::Clamp(GetCooldownRemaining(SkillWeaponType) / Cooldown, 0.0f, 1.0f);
 }
 
 void UPlayerSkillComponent::TriggerUnarmedSkillHit()
