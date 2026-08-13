@@ -4,6 +4,7 @@
 #include "TPSAnimalBase.h"
 #include "TPSCreatureBase.h"
 #include "PlayerStatComponent.h"
+#include "ArrowProjectile.h"
 
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -53,8 +54,7 @@ bool UPlayerSkillComponent::TryActivateSkill()
 		return ActivateSwordSkill();
 
 	case EWeaponType::Bow:
-		UE_LOG(LogTemp, Warning, TEXT("Bow skill is not implemented yet."));
-		return false;
+		return ToggleBowSkillPreparation();
 
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("No skill is assigned for this weapon type."));
@@ -228,6 +228,54 @@ bool UPlayerSkillComponent::ActivateSwordSkill()
 	return true;
 }
 
+bool UPlayerSkillComponent::ToggleBowSkillPreparation()
+{
+	if (!OwnerCharacter)
+	{
+		return false;
+	}
+
+	if (bBowSkillPrepared)
+	{
+		CancelBowSkillPreparation();
+		UE_LOG(LogTemp, Warning, TEXT("Bow skill preparation canceled."));
+		return true;
+	}
+
+	if (!OwnerCharacter->CanPrepareBowSkill())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Bow skill can only be prepared while aiming."));
+		return false;
+	}
+
+	if (!CanActivateSkill(EWeaponType::Bow, BowSkill.Common))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Bow skill is on cooldown: %.2f seconds remaining."), GetCooldownRemaining(EWeaponType::Bow));
+		return false;
+	}
+
+	if (!BowSkill.FireArrowProjectileClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Bow skill failed: FireArrowProjectileClass is null."));
+		return false;
+	}
+
+	bBowSkillPrepared = true;
+
+	if (BowSkill.FirePreviewArrowStaticMesh)
+	{
+		OwnerCharacter->SetBowPreviewArrowStaticMesh(BowSkill.FirePreviewArrowStaticMesh);
+	}
+
+	if (BowSkill.FirePreviewArrowVFX)
+	{
+		OwnerCharacter->SetBowPreviewArrowVFX(BowSkill.FirePreviewArrowVFX);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Bow skill prepared."));
+	return true;
+}
+
 bool UPlayerSkillComponent::CanActivateSkill(EWeaponType SkillWeaponType, const FPlayerSkillCommonInfo& SkillInfo) const
 {
 	if (!OwnerCharacter || bIsSkillActive)
@@ -278,6 +326,10 @@ float UPlayerSkillComponent::GetCooldownRemaining(EWeaponType SkillWeaponType) c
 		Cooldown = SwordSkill.Common.Cooldown;
 		break;
 
+	case EWeaponType::Bow:
+		Cooldown = BowSkill.Common.Cooldown;
+		break;
+
 	default:
 		break;
 	}
@@ -322,6 +374,67 @@ void UPlayerSkillComponent::TriggerSkillHit()
 	default:
 		break;
 	}
+}
+
+TSubclassOf<AArrowProjectile> UPlayerSkillComponent::GetPreparedBowProjectileClass() const
+{
+	return bBowSkillPrepared ? BowSkill.FireArrowProjectileClass : nullptr;
+}
+
+bool UPlayerSkillComponent::CommitBowSkillRelease()
+{
+	if (!bBowSkillPrepared)
+	{
+		return false;
+	}
+
+	StartSkillCooldown(EWeaponType::Bow);
+	CancelBowSkillPreparation();
+	return true;
+}
+
+void UPlayerSkillComponent::CancelBowSkillPreparation()
+{
+	if (!bBowSkillPrepared)
+	{
+		return;
+	}
+
+	bBowSkillPrepared = false;
+
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->ResetBowPreviewArrowStaticMesh();
+		OwnerCharacter->ClearBowPreviewArrowVFX();
+	}
+}
+
+void UPlayerSkillComponent::PlayBowSkillReleaseSound() const
+{
+	if (!bBowSkillPrepared || !BowSkill.SkillReleaseSound || !OwnerCharacter)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		BowSkill.SkillReleaseSound,
+		OwnerCharacter->GetActorLocation()
+	);
+}
+
+void UPlayerSkillComponent::ApplyBowSkillHitEffects(AArrowProjectile* Arrow) const
+{
+	if (!Arrow)
+	{
+		return;
+	}
+
+	Arrow->ArrowHitSound = BowSkill.HitSound;
+	Arrow->ArrowHitVFX = BowSkill.HitVFX;
+	Arrow->ArrowHitColor = BowSkill.HitVFXColor;
+	Arrow->ArrowHitScale = BowSkill.HitVFXScale;
+	Arrow->ArrowHitLifetime = BowSkill.HitVFXLifetime;
 }
 
 void UPlayerSkillComponent::PerformUnarmedSkillHit()

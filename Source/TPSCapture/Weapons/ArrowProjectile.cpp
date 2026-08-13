@@ -62,6 +62,11 @@ void AArrowProjectile::OnArrowOverlap(
 
 	if (OtherActor && OtherActor != this && OtherActor != OwnerActor)
 	{
+		if (bPiercing && HitActors.Contains(OtherActor))
+		{
+			return;
+		}
+
 		if (const ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(OtherActor))
 		{
 			if (PlayerCharacter->IsDodging())
@@ -81,6 +86,11 @@ void AArrowProjectile::OnArrowOverlap(
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("Arrow hit actor: %s"), *OtherActor->GetName());
+
+		if (bPiercing)
+		{
+			HitActors.Add(OtherActor);
+		}
 
 		UGameplayStatics::ApplyDamage(
 			OtherActor,
@@ -133,6 +143,9 @@ void AArrowProjectile::OnArrowOverlap(
 			);
 		}
 
-		Destroy();
+		if (!bPiercing)
+		{
+			Destroy();
+		}
 	}
 }

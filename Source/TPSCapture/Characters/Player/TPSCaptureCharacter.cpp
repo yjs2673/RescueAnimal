@@ -106,6 +106,11 @@ ATPSCaptureCharacter::ATPSCaptureCharacter()
 	PreviewArrowMesh->SetGenerateOverlapEvents(false);
 	PreviewArrowMesh->SetSimulatePhysics(false);
 	PreviewArrowMesh->SetHiddenInGame(true);
+
+	PreviewArrowVFXComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PreviewArrowVFXComponent"));
+	PreviewArrowVFXComponent->SetupAttachment(PreviewArrowMesh);
+	PreviewArrowVFXComponent->SetAutoActivate(false);
+	PreviewArrowVFXComponent->SetHiddenInGame(true);
 }
 
 #pragma region Input Binding Func
@@ -1600,6 +1605,11 @@ void ATPSCaptureCharacter::StartBowCharge()
 	CachedBowChargeAlpha = 0.0f;
 	BowChargeStartTime = GetWorld()->GetTimeSeconds();
 
+	if (PlayerSkillComponent)
+	{
+		PlayerSkillComponent->CancelBowSkillPreparation();
+	}
+
 	GetCharacterMovement()->MaxWalkSpeed = 100.f;
 
 	if (CrosshairWidgetInstance) // 조준선 위젯이 있다면 보이도록 설정하고 초기 알파값을 0으로 설정
@@ -1704,9 +1714,20 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	if (!CurrentWeapon || CurrentWeapon->AttackType != EAttackType::Ranged)
 		return;
 
-	if (!CurrentWeapon->ProjectileClass)
+	TSubclassOf<AArrowProjectile> ProjectileClassToSpawn = CurrentWeapon->ProjectileClass;
+	const bool bUseBowSkillProjectile = PlayerSkillComponent && PlayerSkillComponent->IsBowSkillPrepared();
+	if (bUseBowSkillProjectile)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow: ProjectileClass is null"));
+		ProjectileClassToSpawn = PlayerSkillComponent->GetPreparedBowProjectileClass();
+	}
+
+	if (!ProjectileClassToSpawn)
+	{
+		if (PlayerSkillComponent)
+		{
+			PlayerSkillComponent->CancelBowSkillPreparation();
+		}
+		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow: ProjectileClassToSpawn is null"));
 		return;
 	}
 
@@ -1797,6 +1818,10 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	if (!ConsumeArrowAmmo())
 	{
 		HidePreviewArrow();
+		if (PlayerSkillComponent)
+		{
+			PlayerSkillComponent->CancelBowSkillPreparation();
+		}
 		UE_LOG(LogTemp, Warning, TEXT("FireChargedArrow failed: no Arrow ammo"));
 		return;
 	}
@@ -1806,7 +1831,7 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	SpawnParams.Instigator = this;
 
 	AArrowProjectile* Arrow = GetWorld()->SpawnActor<AArrowProjectile>(
-		CurrentWeapon->ProjectileClass,
+		ProjectileClassToSpawn,
 		SpawnLocation,
 		SpawnRotation,
 		SpawnParams
@@ -1815,7 +1840,17 @@ void ATPSCaptureCharacter::FireChargedArrow()
 	if (!Arrow)
 	{
 		RefundArrowAmmo();
+		if (PlayerSkillComponent)
+		{
+			PlayerSkillComponent->CancelBowSkillPreparation();
+		}
 		return;
+	}
+
+	if (bUseBowSkillProjectile && PlayerSkillComponent)
+	{
+		PlayerSkillComponent->ApplyBowSkillHitEffects(Arrow);
+		PlayerSkillComponent->CommitBowSkillRelease();
 	}
 
 	const float DamageMultiplier = FMath::Lerp(
@@ -1895,6 +1930,11 @@ void ATPSCaptureCharacter::UpdateBowCameraArm(float DeltaTime)
 
 void ATPSCaptureCharacter::EndBowAim()
 {
+	if (PlayerSkillComponent)
+	{
+		PlayerSkillComponent->CancelBowSkillPreparation();
+	}
+
 	bIsBowCharging = false;
 	bIsBowAiming = false;
 	bIsAttacking = false;
@@ -1909,6 +1949,63 @@ void ATPSCaptureCharacter::EndBowAim()
 	HidePreviewArrow();
 
 	UE_LOG(LogTemp, Warning, TEXT("Bow Aim End"));
+}
+
+bool ATPSCaptureCharacter::CanPrepareBowSkill() const
+{
+	return bIsBowCharging &&
+		bIsBowAiming &&
+		CurrentWeapon &&
+		CurrentWeapon->WeaponType == EWeaponType::Bow &&
+		CurrentWeapon->AttackType == EAttackType::Ranged;
+}
+
+void ATPSCaptureCharacter::SetBowPreviewArrowStaticMesh(UStaticMesh* NewPreviewArrowStaticMesh)
+{
+	if (!PreviewArrowMesh || !NewPreviewArrowStaticMesh)
+	{
+		return;
+	}
+
+	PreviewArrowMesh->SetStaticMesh(NewPreviewArrowStaticMesh);
+	PreviewArrowMesh->SetHiddenInGame(false);
+}
+
+void ATPSCaptureCharacter::ResetBowPreviewArrowStaticMesh()
+{
+	if (!PreviewArrowMesh || !PreviewArrowStaticMesh)
+	{
+		return;
+	}
+
+	PreviewArrowMesh->SetStaticMesh(PreviewArrowStaticMesh);
+}
+
+void ATPSCaptureCharacter::SetBowPreviewArrowVFX(UNiagaraSystem* NewPreviewArrowVFX)
+{
+	if (!PreviewArrowVFXComponent || !NewPreviewArrowVFX)
+	{
+		return;
+	}
+
+	PreviewArrowVFXComponent->SetAsset(NewPreviewArrowVFX);
+	PreviewArrowVFXComponent->SetRelativeLocation(FVector::ZeroVector);
+	PreviewArrowVFXComponent->SetRelativeRotation(FRotator::ZeroRotator);
+	PreviewArrowVFXComponent->SetRelativeScale3D(FVector(1.0f));
+	PreviewArrowVFXComponent->SetHiddenInGame(false);
+	PreviewArrowVFXComponent->Activate(true);
+}
+
+void ATPSCaptureCharacter::ClearBowPreviewArrowVFX()
+{
+	if (!PreviewArrowVFXComponent)
+	{
+		return;
+	}
+
+	PreviewArrowVFXComponent->Deactivate();
+	PreviewArrowVFXComponent->SetAsset(nullptr);
+	PreviewArrowVFXComponent->SetHiddenInGame(true);
 }
 #pragma	endregion Bow Attack Func
 
@@ -1941,6 +2038,31 @@ void ATPSCaptureCharacter::TriggerSkillHit()
 	if (PlayerSkillComponent)
 	{
 		PlayerSkillComponent->TriggerSkillHit();
+	}
+}
+
+void ATPSCaptureCharacter::NormalRelease()
+{
+	if (PlayerSkillComponent && PlayerSkillComponent->IsBowSkillPrepared())
+	{
+		return;
+	}
+
+	if (BowReleaseSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			BowReleaseSound,
+			GetActorLocation()
+		);
+	}
+}
+
+void ATPSCaptureCharacter::SkillRelease()
+{
+	if (PlayerSkillComponent)
+	{
+		PlayerSkillComponent->PlayBowSkillReleaseSound();
 	}
 }
 
@@ -2248,6 +2370,8 @@ void ATPSCaptureCharacter::HidePreviewArrow()
 {
 	if (!PreviewArrowMesh)
 		return;
+
+	ClearBowPreviewArrowVFX();
 
 	PreviewArrowMesh->SetHiddenInGame(true);
 	PreviewArrowMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);

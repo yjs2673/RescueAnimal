@@ -49,6 +49,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
 	float LifeSeconds = 5.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arrow")
+	bool bPiercing = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Arrow")
 	USoundBase* ArrowHitSound;
 
@@ -63,4 +66,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
 	float ArrowHitLifetime = 0.4f;
+
+protected:
+	TSet<AActor*> HitActors;
 };

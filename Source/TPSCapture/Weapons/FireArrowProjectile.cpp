@@ -1,26 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "FireArrowProjectile.h"
 
-// Sets default values
 AFireArrowProjectile::AFireArrowProjectile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-}
-
-// Called when the game starts or when spawned
-void AFireArrowProjectile::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void AFireArrowProjectile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
+	bPiercing = true;
+	ArrowHitColor = FLinearColor(1.0f, 0.25f, 0.05f, 1.0f);
 }
 

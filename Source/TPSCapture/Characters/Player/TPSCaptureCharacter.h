@@ -274,6 +274,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
 	UStaticMeshComponent* PreviewArrowMesh;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Bow")
+	UNiagaraComponent* PreviewArrowVFXComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Bow")
 	UStaticMesh* PreviewArrowStaticMesh;
 #pragma endregion Bow Var
@@ -328,6 +331,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
 	USoundBase* BowDrawSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Bow")
+	USoundBase* BowReleaseSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SFX|Consumable")
 	USoundBase* ConsumableUseSound;
@@ -485,6 +491,29 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Bow")
 	void EndBowAim();
+
+public:
+	UFUNCTION(BlueprintPure, Category = "Bow|Skill")
+	bool CanPrepareBowSkill() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
+	void SetBowPreviewArrowStaticMesh(UStaticMesh* NewPreviewArrowStaticMesh);
+
+	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
+	void ResetBowPreviewArrowStaticMesh();
+
+	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
+	void SetBowPreviewArrowVFX(
+		UNiagaraSystem* NewPreviewArrowVFX,
+		FVector RelativeLocation,
+		FRotator RelativeRotation,
+		FVector RelativeScale
+	);
+
+	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
+	void ClearBowPreviewArrowVFX();
+
+protected:
 #pragma endregion Bow Attack Func
 
 #pragma region Anim Montage Func
@@ -511,6 +540,12 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void TriggerSkillHit();
+
+	UFUNCTION(BlueprintCallable)
+	void NormalRelease();
+
+	UFUNCTION(BlueprintCallable)
+	void SkillRelease();
 
 	void PlayBowWeaponMontageSection(FName SectionName);
 
