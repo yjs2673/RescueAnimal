@@ -179,6 +179,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bIsAttacking = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Debug|Combat")
+	bool bDrawAttackDebug = false;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State")
 	bool bIsPunching = false;
 

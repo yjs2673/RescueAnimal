@@ -480,21 +480,24 @@ void UPlayerSkillComponent::PerformUnarmedSkillHit()
 		QueryParams
 	);
 
-	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
-		{
-			return !ShouldIgnoreSkillTarget(HitResult.GetActor());
-		});
+	if (bDrawSkillDebug)
+	{
+		const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+			{
+				return !ShouldIgnoreSkillTarget(HitResult.GetActor());
+			});
 
-	DrawDebugCapsule(
-		GetWorld(),
-		(Start + End) * 0.5f,
-		UnarmedSkill.Range * 0.5f,
-		UnarmedSkill.Radius,
-		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		bHitEnemy ? FColor::Red : FColor::Green,
-		false,
-		1.5f
-	);
+		DrawDebugCapsule(
+			GetWorld(),
+			(Start + End) * 0.5f,
+			UnarmedSkill.Range * 0.5f,
+			UnarmedSkill.Radius,
+			FRotationMatrix::MakeFromX(End - Start).ToQuat(),
+			bHitEnemy ? FColor::Red : FColor::Green,
+			false,
+			1.5f
+		);
+	}
 
 	TSet<AActor*> DamagedActors;
 	for (const FHitResult& HitResult : HitResults)
@@ -596,21 +599,24 @@ void UPlayerSkillComponent::PerformSwordSkillHit()
 		QueryParams
 	);
 
-	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
-		{
-			return !ShouldIgnoreSkillTarget(HitResult.GetActor());
-		});
+	if (bDrawSkillDebug)
+	{
+		const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+			{
+				return !ShouldIgnoreSkillTarget(HitResult.GetActor());
+			});
 
-	DrawDebugCapsule(
-		GetWorld(),
-		(Start + End) * 0.5f,
-		SwordSkill.Range * 0.5f,
-		SwordSkill.Radius,
-		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		bHitEnemy ? FColor::Red : FColor::Green,
-		false,
-		1.5f
-	);
+		DrawDebugCapsule(
+			GetWorld(),
+			(Start + End) * 0.5f,
+			SwordSkill.Range * 0.5f,
+			SwordSkill.Radius,
+			FRotationMatrix::MakeFromX(End - Start).ToQuat(),
+			bHitEnemy ? FColor::Red : FColor::Green,
+			false,
+			1.5f
+		);
+	}
 
 	TSet<AActor*> DamagedActors;
 	for (const FHitResult& HitResult : HitResults)

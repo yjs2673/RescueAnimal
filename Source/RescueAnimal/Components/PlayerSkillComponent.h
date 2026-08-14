@@ -269,6 +269,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill|Bow")
 	FBowSkillInfo BowSkill;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Debug|Skill")
+	bool bDrawSkillDebug = false;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill")
 	bool bIsSkillActive = false;
 

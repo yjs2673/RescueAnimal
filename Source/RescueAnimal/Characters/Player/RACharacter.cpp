@@ -1352,21 +1352,24 @@ void ARACharacter::PerformPunchHit(float damage, float range, float radius)
 		QueryParams
 	);
 
-	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
-		{
-			return IsValidPlayerAttackTarget(HitResult.GetActor());
-		});
-	const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
-	DrawDebugCapsule(
-		GetWorld(),
-		(Start + End) * 0.5f,
-		range * 0.5f,
-		radius,
-		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		DebugColor,
-		false,
-		1.5f
-	);
+	if (bDrawAttackDebug)
+	{
+		const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+			{
+				return IsValidPlayerAttackTarget(HitResult.GetActor());
+			});
+		const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
+		DrawDebugCapsule(
+			GetWorld(),
+			(Start + End) * 0.5f,
+			range * 0.5f,
+			radius,
+			FRotationMatrix::MakeFromX(End - Start).ToQuat(),
+			DebugColor,
+			false,
+			1.5f
+		);
+	}
 
 	for (const FHitResult& HitResult : HitResults)
 	{
@@ -1491,21 +1494,24 @@ void ARACharacter::PerformSwordHit(float damage, float range, float radius)
 		QueryParams
 	);
 
-	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
-		{
-			return IsValidPlayerAttackTarget(HitResult.GetActor());
-		});
-	const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
-	DrawDebugCapsule(
-		GetWorld(),
-		(Start + End) * 0.5f,
-		range * 0.5f,
-		radius,
-		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		DebugColor,
-		false,
-		1.5f
-	);
+	if (bDrawAttackDebug)
+	{
+		const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+			{
+				return IsValidPlayerAttackTarget(HitResult.GetActor());
+			});
+		const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
+		DrawDebugCapsule(
+			GetWorld(),
+			(Start + End) * 0.5f,
+			range * 0.5f,
+			radius,
+			FRotationMatrix::MakeFromX(End - Start).ToQuat(),
+			DebugColor,
+			false,
+			1.5f
+		);
+	}
 
 	for (const FHitResult& HitResult : HitResults)
 	{
@@ -1903,9 +1909,12 @@ void ARACharacter::FireChargedArrow()
 	}
 
 #if WITH_EDITOR
-	// DrawDebugLine(GetWorld(), TraceStart, AimTargetLocation, FColor::Green, false, 1.5f, 0, 1.5f);
-	DrawDebugSphere(GetWorld(), AimTargetLocation, 12.0f, 12, FColor::Red, false, 1.5f);
-	DrawDebugLine(GetWorld(), SpawnLocation, AimTargetLocation, FColor::Yellow, false, 1.5f, 0, 1.5f);
+	if (bDrawAttackDebug)
+	{
+		// DrawDebugLine(GetWorld(), TraceStart, AimTargetLocation, FColor::Green, false, 1.5f, 0, 1.5f);
+		DrawDebugSphere(GetWorld(), AimTargetLocation, 12.0f, 12, FColor::Red, false, 1.5f);
+		DrawDebugLine(GetWorld(), SpawnLocation, AimTargetLocation, FColor::Yellow, false, 1.5f, 0, 1.5f);
+	}
 #endif
 
 	UE_LOG(LogTemp, Warning, TEXT("Charged Arrow Fired | Alpha=%.2f Damage=%.1f Spawn=%s"),
