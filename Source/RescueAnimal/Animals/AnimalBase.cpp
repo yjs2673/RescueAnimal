@@ -1,9 +1,9 @@
 #include "AnimalBase.h"
 
-#include "AnimalAIComponent.h"
-#include "AnimalPresentationComponent.h"
-#include "AnimalRescueComponent.h"
-#include "AnimalStateComponent.h"
+#include "Components/AnimalAIComponent.h"
+#include "Components/AnimalPresentationComponent.h"
+#include "Components/AnimalRescueComponent.h"
+#include "Components/AnimalStateComponent.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"

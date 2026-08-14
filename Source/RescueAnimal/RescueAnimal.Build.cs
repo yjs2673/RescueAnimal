@@ -27,18 +27,43 @@ public class RescueAnimal : ModuleRules
         });
 
         PublicIncludePaths.AddRange(new string[] {
+            "RescueAnimal",
             "RescueAnimal/Animals",
+            "RescueAnimal/Animals/Components",
             "RescueAnimal/Camp",
             "RescueAnimal/Characters",
             "RescueAnimal/Characters/Player",
+            "RescueAnimal/Characters/Player/Components",
             "RescueAnimal/Characters/Enemies",
-            "RescueAnimal/Components",
+            "RescueAnimal/Characters/Enemies/Components",
             "RescueAnimal/Cores",
+            "RescueAnimal/Cores/Audio",
+            "RescueAnimal/Cores/GameInstance",
+            "RescueAnimal/Cores/GameMode",
+            "RescueAnimal/Cores/PlayerController",
+            "RescueAnimal/Cores/PlayerController/Components",
+            "RescueAnimal/Cores/WorldState",
             "RescueAnimal/Creatures",
             "RescueAnimal/Data",
             "RescueAnimal/Interactables",
+            "RescueAnimal/Interactables/Items",
+            "RescueAnimal/Interactables/NPC",
+            "RescueAnimal/Interactables/Portal",
+            "RescueAnimal/Interactables/Shop",
             "RescueAnimal/UI",
-            "RescueAnimal/Weapons"
+            "RescueAnimal/UI/Animal",
+            "RescueAnimal/UI/Audio",
+            "RescueAnimal/UI/Buff",
+            "RescueAnimal/UI/Dialogue",
+            "RescueAnimal/UI/Enemy",
+            "RescueAnimal/UI/GameFlow",
+            "RescueAnimal/UI/HUD",
+            "RescueAnimal/UI/Inventory",
+            "RescueAnimal/UI/Settings",
+            "RescueAnimal/UI/Shop",
+            "RescueAnimal/UI/Skill",
+            "RescueAnimal/Weapons",
+            "RescueAnimal/Weapons/Projectiles"
         });
     }
 }
