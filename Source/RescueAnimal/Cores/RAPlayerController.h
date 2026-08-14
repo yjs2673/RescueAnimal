@@ -18,11 +18,18 @@ class AShopActor;
 class ARAWorldStateManager;
 class SBorder;
 class SWidget;
+class UGameProgressUIComponent;
+class ULevelTransitionComponent;
+class UPlayerUIFlowComponent;
 
 UCLASS()
 class RESCUEANIMAL_API ARAPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+	friend class UGameProgressUIComponent;
+	friend class ULevelTransitionComponent;
+	friend class UPlayerUIFlowComponent;
 
 public:
 	ARAPlayerController();
@@ -152,6 +159,15 @@ protected:
 	TObjectPtr<AShopActor> CurrentShopActor;
 
 private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPlayerUIFlowComponent> PlayerUIFlowComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UGameProgressUIComponent> GameProgressUIComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULevelTransitionComponent> LevelTransitionComponent;
+
 	UPROPERTY()
 	TObjectPtr<UMainHUDWidget> MainHUDWidget;
 
