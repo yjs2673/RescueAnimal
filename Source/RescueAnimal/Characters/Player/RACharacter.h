@@ -36,6 +36,10 @@ class UPlayerStatComponent;
 class UInventoryComponent;
 class UQuickSlotComponent;
 class UPlayerSkillComponent;
+class UPlayerMovementComponent;
+class UPlayerCombatComponent;
+class UPlayerEquipmentComponent;
+class UPlayerInteractionComponent;
 
 class APortalActor;
 class AShopActor;
@@ -54,6 +58,11 @@ UCLASS(config=Game)
 class ARACharacter : public ACharacter
 {
 	GENERATED_BODY()
+
+	friend class UPlayerMovementComponent;
+	friend class UPlayerCombatComponent;
+	friend class UPlayerEquipmentComponent;
+	friend class UPlayerInteractionComponent;
 
 #pragma region Camera Mapping
 	/** Camera positioning */
@@ -397,6 +406,18 @@ protected:
 	UPlayerSkillComponent* PlayerSkillComponent;
 #pragma endregion Player Skill Component
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerMovementComponent* PlayerMovementComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerCombatComponent* PlayerCombatComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerEquipmentComponent* PlayerEquipmentComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPlayerInteractionComponent* PlayerInteractionComponent;
+
 /* Functions */
 protected:
 #pragma region Input Binding Func
@@ -614,21 +635,6 @@ public:
 	void LoadRuntimeDataFromGameInstance();
 #pragma endregion Runtime Data Func
 
-	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
-	void TestTakeDamage(float DamageAmount);
-
-	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
-	void TestHeal(float HealAmount);
-
-	UFUNCTION(BlueprintCallable, Category = "Debug|Stats")
-	void TestAddEXP(int32 EXPAmount);
-
-	UFUNCTION(BlueprintCallable, Category = "Debug|Inventory")
-	void TestAddItem(FName ItemID, int32 Count);
-
-	UFUNCTION(BlueprintCallable, Category = "Debug|Inventory")
-	bool TestUseItem(FName ItemID, int32 Count = 1);
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool UseInventoryItem(FName ItemID);
 
@@ -640,9 +646,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool UnequipCurrentWeaponToInventory();
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool TestUsePotion();
 
 	UFUNCTION(BlueprintPure, Category = "State")
 	bool IsDodging() const { return bIsDodging; }
