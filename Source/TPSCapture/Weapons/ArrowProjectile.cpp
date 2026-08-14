@@ -70,6 +70,13 @@ void AArrowProjectile::OnArrowOverlap(
 			return;
 		}
 
+		const bool bOwnedByEnemy = OwnerActor && OwnerActor->IsA<ATPSEnemyBase>();
+		if (bOwnedByEnemy && OtherActor->IsA<ATPSEnemyBase>())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Enemy arrow ignored friendly actor: %s"), *OtherActor->GetName());
+			return;
+		}
+
 		if (bPiercing && HitActors.Contains(OtherActor))
 		{
 			return;

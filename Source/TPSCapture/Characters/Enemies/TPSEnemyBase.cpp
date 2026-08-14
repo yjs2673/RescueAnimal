@@ -16,9 +16,11 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "NavigationSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -43,6 +45,12 @@ ATPSEnemyBase::ATPSEnemyBase()
 	HPBarWidgetComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
 	HPBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HPBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f));
+
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->bUseRVOAvoidance = true;
+		GetCharacterMovement()->AvoidanceConsiderationRadius = EnemySeparationRadius;
+	}
 }
 
 float ATPSEnemyBase::TakeDamage(
@@ -54,7 +62,17 @@ float ATPSEnemyBase::TakeDamage(
 	LastDamageInstigator = EventInstigator;
 	LastDamageCauser = DamageCauser;
 
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	const float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	if (AppliedDamage > 0.f && !bIsDead)
+	{
+		if (ATPSCaptureCharacter* PlayerCharacter = ResolvePlayerFromDamage(EventInstigator, DamageCauser))
+		{
+			SetTargetActor(PlayerCharacter);
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Aggroed by damage from %s"), *GetName(), *PlayerCharacter->GetName());
+		}
+	}
+
+	return AppliedDamage;
 }
 
 void ATPSEnemyBase::BeginPlay()
@@ -71,6 +89,8 @@ void ATPSEnemyBase::BeginPlay()
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+		GetCharacterMovement()->bUseRVOAvoidance = bUseEnemySeparation;
+		GetCharacterMovement()->AvoidanceConsiderationRadius = EnemySeparationRadius;
 	}
 
 	EquipDefaultWeapon();
@@ -81,7 +101,10 @@ void ATPSEnemyBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	bWantsMovementThisTick = false;
 	UpdateChase();
+	UpdateMovementStuckCheck(DeltaTime);
+	ApplySeparationFromNearbyEnemies(DeltaTime);
 
 	if (AttackType == EEnemyAttackType::Bow && bIsBowCharging)
 	{
@@ -171,10 +194,12 @@ void ATPSEnemyBase::UpdateChase()
 
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
 
-	if (DistanceToTarget > AttackRange)
+	if (DistanceToTarget > GetAttackStartRange())
 	{
 		StopHitMontage();
-		AIController->MoveToActor(TargetActor, AttackRange);
+		const EPathFollowingRequestResult::Type MoveResult =
+			AIController->MoveToActor(TargetActor, GetChaseAcceptanceRadius(), false);
+		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
 	}
 	else
 		AIController->StopMovement();
@@ -195,7 +220,9 @@ void ATPSEnemyBase::UpdateBowSpacing()
 
 	if (DistanceToTarget > TooFarDistance)
 	{
-		AIController->MoveToActor(TargetActor, BowPreferredDistance);
+		const EPathFollowingRequestResult::Type MoveResult =
+			AIController->MoveToActor(TargetActor, BowPreferredDistance, false);
+		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
 		return;
 	}
 
@@ -205,7 +232,9 @@ void ATPSEnemyBase::UpdateBowSpacing()
 		if (!AwayDirection.IsNearlyZero())
 		{
 			const FVector RetreatLocation = CurrentLocation + AwayDirection * BowRetreatStepDistance;
-			AIController->MoveToLocation(RetreatLocation, BowMoveAcceptanceRadius);
+			const EPathFollowingRequestResult::Type MoveResult =
+				AIController->MoveToLocation(RetreatLocation, BowMoveAcceptanceRadius);
+			bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
 			return;
 		}
 	}
@@ -215,6 +244,11 @@ void ATPSEnemyBase::UpdateBowSpacing()
 
 void ATPSEnemyBase::SetTargetActor(AActor* NewTarget)
 {
+	if (!IsValidCombatTarget(NewTarget))
+	{
+		return;
+	}
+
 	TargetActor = NewTarget;
 }
 
@@ -228,7 +262,7 @@ void ATPSEnemyBase::ClearTargetActor()
 
 bool ATPSEnemyBase::HasValidTarget() const
 {
-	return TargetActor != nullptr;
+	return IsValidCombatTarget(TargetActor);
 }
 
 bool ATPSEnemyBase::CanAttack() const
@@ -243,7 +277,7 @@ bool ATPSEnemyBase::CanAttack() const
 		return false;
 
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-	if (DistanceToTarget > AttackRange)
+	if (DistanceToTarget > GetAttackStartRange())
 		return false;
 
 	if (AttackType == EEnemyAttackType::Bow)
@@ -325,7 +359,246 @@ void ATPSEnemyBase::MoveToRandomCampLocation()
 		return;
 	}
 
-	AIController->MoveToLocation(RandomLocation.Location, CampWanderAcceptanceRadius);
+	const EPathFollowingRequestResult::Type MoveResult =
+		AIController->MoveToLocation(RandomLocation.Location, CampWanderAcceptanceRadius);
+	bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
+}
+
+bool ATPSEnemyBase::IsValidCombatTarget(const AActor* InTargetActor) const
+{
+	return IsValid(InTargetActor) && InTargetActor->IsA<ATPSCaptureCharacter>();
+}
+
+ATPSCaptureCharacter* ATPSEnemyBase::ResolvePlayerFromDamage(AController* EventInstigator, AActor* DamageCauser) const
+{
+	if (EventInstigator)
+	{
+		if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(EventInstigator->GetPawn()))
+		{
+			return PlayerCharacter;
+		}
+	}
+
+	if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(DamageCauser))
+	{
+		return PlayerCharacter;
+	}
+
+	if (DamageCauser)
+	{
+		if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(DamageCauser->GetOwner()))
+		{
+			return PlayerCharacter;
+		}
+
+		if (ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(DamageCauser->GetInstigator()))
+		{
+			return PlayerCharacter;
+		}
+	}
+
+	return nullptr;
+}
+
+float ATPSEnemyBase::GetAttackStartRange() const
+{
+	return AttackRange + FMath::Max(0.f, AttackStartRangePadding);
+}
+
+float ATPSEnemyBase::GetAttackHitRange() const
+{
+	return AttackRange + FMath::Max(0.f, AttackHitRangePadding);
+}
+
+float ATPSEnemyBase::GetChaseAcceptanceRadius() const
+{
+	return FMath::Max(10.f, AttackRange * 0.25f);
+}
+
+void ATPSEnemyBase::UpdateMovementStuckCheck(float DeltaTime)
+{
+	if (!bUseStuckRecovery || bIsDead || bIsAttacking || bIsAttackMovementLocked)
+	{
+		StuckTime = 0.f;
+		return;
+	}
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
+	{
+		StuckTime = 0.f;
+		return;
+	}
+
+	const bool bHasActiveMove =
+		bWantsMovementThisTick ||
+		AIController->GetMoveStatus() == EPathFollowingStatus::Moving;
+
+	if (!bHasActiveMove)
+	{
+		StuckTime = 0.f;
+		return;
+	}
+
+	if (GetVelocity().Size2D() > StuckVelocityThreshold)
+	{
+		StuckTime = 0.f;
+		return;
+	}
+
+	StuckTime += DeltaTime;
+	if (StuckTime < StuckTimeThreshold)
+	{
+		return;
+	}
+
+	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+	if (CurrentTime - LastStuckRecoveryTime < StuckRecoveryCooldown)
+	{
+		return;
+	}
+
+	LastStuckRecoveryTime = CurrentTime;
+	StuckTime = 0.f;
+	HandleMovementStuck();
+}
+
+void ATPSEnemyBase::HandleMovementStuck()
+{
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->StopMovement();
+	}
+
+	if (HasValidTarget())
+	{
+		if (TryMoveToStrafeLocationAroundTarget())
+		{
+			return;
+		}
+	}
+
+	MoveToRandomCampLocation();
+}
+
+bool ATPSEnemyBase::TryMoveToStrafeLocationAroundTarget()
+{
+	if (!HasValidTarget() || !GetWorld())
+	{
+		return false;
+	}
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+	if (!AIController || !NavSystem)
+	{
+		return false;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	FVector ToTarget = (TargetActor->GetActorLocation() - CurrentLocation).GetSafeNormal2D();
+	if (ToTarget.IsNearlyZero())
+	{
+		ToTarget = GetActorForwardVector();
+	}
+
+	const FVector RightVector(-ToTarget.Y, ToTarget.X, 0.f);
+	const int32 FirstSign = FMath::RandBool() ? 1 : -1;
+	const int32 Signs[2] = { FirstSign, -FirstSign };
+
+	for (const int32 Sign : Signs)
+	{
+		const FVector CandidateLocation =
+			CurrentLocation +
+			RightVector * static_cast<float>(Sign) * StuckSideStepDistance +
+			ToTarget * 80.f;
+
+		FNavLocation ProjectedLocation;
+		if (!NavSystem->ProjectPointToNavigation(CandidateLocation, ProjectedLocation, FVector(150.f, 150.f, 200.f)))
+		{
+			continue;
+		}
+
+		const EPathFollowingRequestResult::Type MoveResult =
+			AIController->MoveToLocation(ProjectedLocation.Location, GetChaseAcceptanceRadius());
+		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
+		if (bWantsMovementThisTick)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void ATPSEnemyBase::ApplySeparationFromNearbyEnemies(float DeltaTime)
+{
+	if (!bUseEnemySeparation || bIsDead || bIsAttacking || bIsAttackMovementLocked || EnemySeparationRadius <= 0.f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	const FCollisionShape SeparationShape = FCollisionShape::MakeSphere(EnemySeparationRadius);
+	if (!World->OverlapMultiByObjectType(
+		OverlapResults,
+		GetActorLocation(),
+		FQuat::Identity,
+		ObjectQueryParams,
+		SeparationShape,
+		QueryParams))
+	{
+		return;
+	}
+
+	FVector SeparationDirection = FVector::ZeroVector;
+	const FVector CurrentLocation = GetActorLocation();
+
+	for (const FOverlapResult& OverlapResult : OverlapResults)
+	{
+		const ATPSEnemyBase* OtherEnemy = Cast<ATPSEnemyBase>(OverlapResult.GetActor());
+		if (!OtherEnemy || OtherEnemy == this || OtherEnemy->bIsDead)
+		{
+			continue;
+		}
+
+		FVector AwayDirection = CurrentLocation - OtherEnemy->GetActorLocation();
+		AwayDirection.Z = 0.f;
+
+		const float Distance = AwayDirection.Size();
+		if (Distance <= KINDA_SMALL_NUMBER)
+		{
+			AwayDirection = GetActorRightVector();
+		}
+		else
+		{
+			AwayDirection /= Distance;
+		}
+
+		const float Weight = FMath::Clamp((EnemySeparationRadius - Distance) / EnemySeparationRadius, 0.f, 1.f);
+		SeparationDirection += AwayDirection * Weight;
+	}
+
+	if (SeparationDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const float ScaledStrength = EnemySeparationStrength * FMath::Clamp(DeltaTime * 60.f, 0.25f, 1.5f);
+	AddMovementInput(SeparationDirection.GetSafeNormal(), ScaledStrength);
+	bWantsMovementThisTick = true;
 }
 
 void ATPSEnemyBase::UpdateAttack()
@@ -343,6 +616,7 @@ void ATPSEnemyBase::UpdateAttack()
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 		AIController->StopMovement();
 
+	FaceTargetActor();
 	PerformAttack();
 }
 
@@ -813,7 +1087,7 @@ void ATPSEnemyBase::ApplyDamageToTarget()
 	}
 
 	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-	if (DistanceToTarget > AttackRange)
+	if (DistanceToTarget > GetAttackHitRange())
 		return;
 
 	if (const ATPSCaptureCharacter* PlayerCharacter = Cast<ATPSCaptureCharacter>(TargetActor))

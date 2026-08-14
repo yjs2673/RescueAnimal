@@ -16,6 +16,7 @@ class AWeaponBase;
 class UNiagaraSystem;
 class USoundBase;
 class UWidgetComponent;
+class ATPSCaptureCharacter;
 
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
@@ -67,6 +68,12 @@ protected:
 	float AttackRange = 150.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float AttackStartRangePadding = 35.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
+	float AttackHitRangePadding = 60.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackCooldown = 1.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Reward")
@@ -77,6 +84,30 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
 	float BowChargingMoveSpeed = 150.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
+	bool bUseStuckRecovery = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float StuckVelocityThreshold = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.1"))
+	float StuckTimeThreshold = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float StuckRecoveryCooldown = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float StuckSideStepDistance = 250.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement")
+	bool bUseEnemySeparation = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float EnemySeparationRadius = 120.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0"))
+	float EnemySeparationStrength = 0.6f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Target")
 	TObjectPtr<AActor> TargetActor = nullptr;
@@ -169,6 +200,15 @@ protected:
 	virtual void MoveToRandomCampLocation();
 
 	virtual void UpdateAttack();
+	virtual bool IsValidCombatTarget(const AActor* InTargetActor) const;
+	virtual ATPSCaptureCharacter* ResolvePlayerFromDamage(AController* EventInstigator, AActor* DamageCauser) const;
+	virtual float GetAttackStartRange() const;
+	virtual float GetAttackHitRange() const;
+	virtual float GetChaseAcceptanceRadius() const;
+	virtual void UpdateMovementStuckCheck(float DeltaTime);
+	virtual void HandleMovementStuck();
+	virtual bool TryMoveToStrafeLocationAroundTarget();
+	virtual void ApplySeparationFromNearbyEnemies(float DeltaTime);
 	virtual void EquipDefaultWeapon();
 	virtual void EquipWeapon(AWeaponBase* NewWeapon);
 	virtual void SyncCombatDataFromWeapon();
@@ -319,6 +359,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	bool bIsAttackMovementLocked = false;
+
+	UPROPERTY(Transient)
+	bool bWantsMovementThisTick = false;
+
+	UPROPERTY(Transient)
+	float StuckTime = 0.f;
+
+	UPROPERTY(Transient)
+	float LastStuckRecoveryTime = -1000.f;
 
 	FTimerHandle BowFireTimerHandle;
 	FTimerHandle AttackEndTimerHandle;
