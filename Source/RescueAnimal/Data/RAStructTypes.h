@@ -1,0 +1,214 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/DataTable.h"
+#include "RAGameEnums.h"
+#include "RAStructTypes.generated.h"
+
+class UTexture2D;
+class UStaticMesh;
+class USkeletalMesh;
+class AWeaponBase;
+class AArrowProjectile;
+
+USTRUCT(BlueprintType)
+struct FInventoryEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+	int32 Count = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FRewardItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	int32 Count = 1;
+};
+
+USTRUCT(BlueprintType)
+struct FItemData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	FText ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	EItemType ItemType = EItemType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	ERarity Rarity = ERarity::Common;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	int32 MaxStack = 99;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	UTexture2D* Image = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	UTexture2D* Icon = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item")
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	UStaticMesh* Mesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	USkeletalMesh* SkeletalMesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector ItemMeshPosition = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FRotator ItemMeshRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector ItemMeshScale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Drop")
+	FVector PickupCollisionScale = FVector::OneVector;
+
+	// Consumable specific properties
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable")
+	EConsumableType ConsumableType = EConsumableType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Heal")
+	float HealAmount = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	EBuffType BuffTargetType = EBuffType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	float BuffValue = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	float BuffDuration = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	bool bBuffValueIsPercent = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Buff")
+	UTexture2D* BuffIcon = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Consumable|Capture")
+	float CapturePower = 0.f;
+};
+
+USTRUCT(BlueprintType)
+struct FShopItemData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FText ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "0"))
+	int32 Price = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop")
+	FName CurrencyItemID = TEXT("Coin");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "1", ClampMax = "99"))
+	int32 MinBuyCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Shop", meta = (ClampMin = "1", ClampMax = "99"))
+	int32 MaxBuyCount = 99;
+};
+
+USTRUCT(BlueprintType)
+struct FDropItemData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	FName ItemID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	int32 MinCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	int32 MaxCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DropRate = 1.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FWeaponData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	FName WeaponID = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	FText WeaponName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EWeaponType WeaponType = EWeaponType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	EAttackType AttackType = EAttackType::Unarmed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	ERarity Rarity = ERarity::Common;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	UTexture2D* Icon = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TSubclassOf<class AWeaponBase> WeaponClass;
+};
+
+USTRUCT(BlueprintType)
+struct FAnimalData : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	FName AnimalID; // ���� ID
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	FText DisplayName; // �ΰ��� �̸�
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	float MaxHP = 30.0f; // �ִ� ü��
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	float CaptureDifficulty = 1.0f; // ĸó ���̵� (�������� ĸó�ϱ� �����)
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	TArray<FName> DropItemIDs; // ��� ������ ID ���
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
+	UTexture2D* Icon = nullptr; // UI ������
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
+	int32 CollectionOrder = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
+	UTexture2D* CollectionImage = nullptr;
+};

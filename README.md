@@ -1,4 +1,4 @@
-# TPSCapture
+# RescueAnimal
 
 > Unreal Engine 5.5 기반 3인칭 액션 어드벤처 프로젝트  
 > 전투, 인벤토리, 상점, 동물 구조, 맵 진행도, 포탈 이동, 런타임 상태 복원을 C++ 중심으로 구현한 게임 클라이언트 포트폴리오입니다.
@@ -12,7 +12,7 @@
 
 ## 프로젝트 소개
 
-`TPSCapture`는 필드에 배치된 적을 처치하고, 갇힌 동물을 구조하며, 여러 맵을 탐험하는 3인칭 액션 게임입니다.
+`RescueAnimal`는 필드에 배치된 적을 처치하고, 갇힌 동물을 구조하며, 여러 맵을 탐험하는 3인칭 액션 게임입니다.
 
 단순히 기능을 붙이는 것보다, 실제 게임 클라이언트 개발에서 자주 마주치는 문제를 직접 구조화하는 데 집중했습니다.
 
@@ -54,7 +54,7 @@
 
 관련 클래스
 
-- `ATPSCaptureCharacter`
+- `ARACharacter`
 - `AWeaponBase`
 - `AArrowProjectile`
 - `UPlayerStatComponent`
@@ -113,7 +113,7 @@
 
 구현 포인트
 
-- UI는 `ItemID`만 들고 있어도 `UTPSGameInstance::GetItemDataByID()`를 통해 이름, 설명, 아이콘, 타입을 표시할 수 있습니다.
+- UI는 `ItemID`만 들고 있어도 `URAGameInstance::GetItemDataByID()`를 통해 이름, 설명, 아이콘, 타입을 표시할 수 있습니다.
 - 아이템 로직과 UI 표시 데이터를 분리하여 확장성과 유지보수성을 높였습니다.
 
 ---
@@ -134,7 +134,7 @@
 - `AAnimalBase`
 - `AEnemyCampActor`
 - `UAnimalCollectionWidget`
-- `UTPSGameInstance`
+- `URAGameInstance`
 
 구현 포인트
 
@@ -156,16 +156,16 @@
 
 관련 클래스
 
-- `UTPSGameInstance`
-- `ATPSWorldStateManager`
+- `URAGameInstance`
+- `ARAWorldStateManager`
 - `ADropItemActor`
-- `ATPSEnemyBase`
+- `ARAEnemyBase`
 - `AAnimalBase`
 
 구현 포인트
 
-- `UTPSGameInstance`는 맵 이동 후에도 유지되는 런타임 저장소 역할을 합니다.
-- `ATPSWorldStateManager`는 현재 맵의 액터를 스캔하고 저장된 상태를 적용합니다.
+- `URAGameInstance`는 맵 이동 후에도 유지되는 런타임 저장소 역할을 합니다.
+- `ARAWorldStateManager`는 현재 맵의 액터를 스캔하고 저장된 상태를 적용합니다.
 - 정적 배치 액터와 런타임 생성 드롭 아이템을 구분해 복원했습니다.
 
 ---
@@ -184,8 +184,8 @@
 관련 클래스
 
 - `APortalActor`
-- `ATPSPlayerController`
-- `UTPSGameInstance`
+- `ARAPlayerController`
+- `URAGameInstance`
 
 ---
 
@@ -206,7 +206,7 @@
 
 구현 포인트
 
-- UI 생성과 입력 모드 전환을 `ATPSPlayerController` 중심으로 관리했습니다.
+- UI 생성과 입력 모드 전환을 `ARAPlayerController` 중심으로 관리했습니다.
 - 여러 UI가 동시에 열릴 때 마우스 커서와 입력 모드가 어긋나지 않도록 상태를 분리했습니다.
 
 ---
@@ -215,17 +215,17 @@
 
 ```mermaid
 flowchart TD
-    Player[ATPSCaptureCharacter]
+    Player[ARACharacter]
     Stat[UPlayerStatComponent]
     Inventory[UInventoryComponent]
     QuickSlot[UQuickSlotComponent]
-    Controller[ATPSPlayerController]
-    GI[UTPSGameInstance]
-    WorldState[ATPSWorldStateManager]
+    Controller[ARAPlayerController]
+    GI[URAGameInstance]
+    WorldState[ARAWorldStateManager]
     UI[UMG Widgets]
     Data[DataTables]
     Portal[APortalActor]
-    Enemy[ATPSEnemyBase]
+    Enemy[ARAEnemyBase]
     Animal[AAnimalBase]
     Camp[AEnemyCampActor]
 
