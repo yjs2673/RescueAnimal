@@ -10,6 +10,11 @@
 #include "RAGameInstance.h"
 #include "RAWorldStateManager.h"
 
+#include "EnemyAIComponent.h"
+#include "EnemyCombatComponent.h"
+#include "EnemyEquipmentComponent.h"
+#include "EnemyRewardComponent.h"
+
 #include "AIController.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SceneComponent.h"
@@ -46,6 +51,11 @@ ARAEnemyBase::ARAEnemyBase()
 	HPBarWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HPBarWidgetComponent->SetDrawSize(FVector2D(100.f, 20.f));
 
+	EnemyAIComponent = CreateDefaultSubobject<UEnemyAIComponent>(TEXT("EnemyAIComponent"));
+	EnemyCombatComponent = CreateDefaultSubobject<UEnemyCombatComponent>(TEXT("EnemyCombatComponent"));
+	EnemyEquipmentComponent = CreateDefaultSubobject<UEnemyEquipmentComponent>(TEXT("EnemyEquipmentComponent"));
+	EnemyRewardComponent = CreateDefaultSubobject<UEnemyRewardComponent>(TEXT("EnemyRewardComponent"));
+
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->bUseRVOAvoidance = true;
@@ -79,20 +89,6 @@ void ARAEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (DetectionSphere)
-	{
-		DetectionSphere->SetSphereRadius(DetectRange);
-		DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &ARAEnemyBase::OnDetectionSphereBeginOverlap);
-		DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &ARAEnemyBase::OnDetectionSphereEndOverlap);
-	}
-
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
-		GetCharacterMovement()->bUseRVOAvoidance = bUseEnemySeparation;
-		GetCharacterMovement()->AvoidanceConsiderationRadius = EnemySeparationRadius;
-	}
-
 	EquipDefaultWeapon();
 	UpdateHPBar();
 }
@@ -100,33 +96,11 @@ void ARAEnemyBase::BeginPlay()
 void ARAEnemyBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	bWantsMovementThisTick = false;
-	UpdateChase();
-	UpdateMovementStuckCheck(DeltaTime);
-	ApplySeparationFromNearbyEnemies(DeltaTime);
-
-	if (AttackType == EEnemyAttackType::Bow && bIsBowCharging)
-	{
-		FaceTargetActor();
-	}
-
-	UpdateAttack();
 	UpdateHPBarVisibility();
 }
 
 void ARAEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->Destroy();
-		CurrentWeapon = nullptr;
-	}
-
-	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
-	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
-	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
-
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -138,14 +112,9 @@ void ARAEnemyBase::OnDetectionSphereBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (bIsDead)
-		return;
-
-	ARACharacter* PlayerCharacter = Cast<ARACharacter>(OtherActor);
-	if (PlayerCharacter)
+	if (EnemyAIComponent)
 	{
-		SetTargetActor(PlayerCharacter);
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Detected Player: %s"), *GetName(), *OtherActor->GetName());
+		EnemyAIComponent->OnDetectionSphereBeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 	}
 }
 
@@ -155,860 +124,254 @@ void ARAEnemyBase::OnDetectionSphereEndOverlap(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
-	if (OtherActor && OtherActor == TargetActor)
+	if (EnemyAIComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Lost Target: %s"), *GetName(), *OtherActor->GetName());
-		ClearTargetActor();
+		EnemyAIComponent->OnDetectionSphereEndOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 	}
 }
 
 void ARAEnemyBase::UpdateChase()
 {
-	if (bIsDead)
-		return;
-
-	if (!HasValidTarget())
+	if (EnemyAIComponent)
 	{
-		UpdateCampWander();
-		return;
+		EnemyAIComponent->UpdateChase();
 	}
-
-	if (bIsAttackMovementLocked)
-	{
-		if (AAIController* AIController = Cast<AAIController>(GetController()))
-		{
-			AIController->StopMovement();
-		}
-		return;
-	}
-
-	if (AttackType == EEnemyAttackType::Bow)
-	{
-		UpdateBowSpacing();
-		return;
-	}
-
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController)
-		return;
-
-	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-
-	if (DistanceToTarget > GetAttackStartRange())
-	{
-		StopHitMontage();
-		const EPathFollowingRequestResult::Type MoveResult =
-			AIController->MoveToActor(TargetActor, GetChaseAcceptanceRadius(), false);
-		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
-	}
-	else
-		AIController->StopMovement();
 }
 
 void ARAEnemyBase::UpdateBowSpacing()
 {
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController)
-		return;
-
-	const FVector CurrentLocation = GetActorLocation();
-	const FVector TargetLocation = TargetActor->GetActorLocation();
-	const float DistanceToTarget = FVector::Dist(CurrentLocation, TargetLocation);
-
-	const float TooFarDistance = BowPreferredDistance + BowDistanceTolerance;
-	const float TooCloseDistance = FMath::Max(0.f, BowPreferredDistance - BowDistanceTolerance);
-
-	if (DistanceToTarget > TooFarDistance)
+	if (EnemyAIComponent)
 	{
-		const EPathFollowingRequestResult::Type MoveResult =
-			AIController->MoveToActor(TargetActor, BowPreferredDistance, false);
-		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
-		return;
+		EnemyAIComponent->UpdateBowSpacing();
 	}
-
-	if (DistanceToTarget < TooCloseDistance)
-	{
-		const FVector AwayDirection = (CurrentLocation - TargetLocation).GetSafeNormal();
-		if (!AwayDirection.IsNearlyZero())
-		{
-			const FVector RetreatLocation = CurrentLocation + AwayDirection * BowRetreatStepDistance;
-			const EPathFollowingRequestResult::Type MoveResult =
-				AIController->MoveToLocation(RetreatLocation, BowMoveAcceptanceRadius);
-			bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
-			return;
-		}
-	}
-
-	AIController->StopMovement();
 }
 
 void ARAEnemyBase::SetTargetActor(AActor* NewTarget)
 {
-	if (!IsValidCombatTarget(NewTarget))
+	if (EnemyAIComponent)
 	{
-		return;
+		EnemyAIComponent->SetTargetActor(NewTarget);
 	}
-
-	TargetActor = NewTarget;
 }
 
 void ARAEnemyBase::ClearTargetActor()
 {
-	TargetActor = nullptr;
-
-	if (AAIController* AIController = Cast<AAIController>(GetController()))
-		AIController->StopMovement();
+	if (EnemyAIComponent)
+	{
+		EnemyAIComponent->ClearTargetActor();
+	}
 }
 
 bool ARAEnemyBase::HasValidTarget() const
 {
-	return IsValidCombatTarget(TargetActor);
+	return EnemyAIComponent && EnemyAIComponent->HasValidTarget();
 }
 
 bool ARAEnemyBase::CanAttack() const
 {
-	if (bIsDead)
-		return false;
-
-	if (bIsAttacking)
-		return false;
-
-	if (!HasValidTarget())
-		return false;
-
-	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-	if (DistanceToTarget > GetAttackStartRange())
-		return false;
-
-	if (AttackType == EEnemyAttackType::Bow)
-	{
-		const float TooFarDistance = BowPreferredDistance + BowDistanceTolerance;
-		if (DistanceToTarget > TooFarDistance)
-			return false;
-	}
-
-	return true;
+	return EnemyCombatComponent && EnemyCombatComponent->CanAttack();
 }
 
 void ARAEnemyBase::SetCampPatrolArea(const FVector& InCenter, float InRadius)
 {
-	CampPatrolCenter = InCenter;
-	CampPatrolRadius = FMath::Max(0.0f, InRadius);
-	bUseCampPatrolArea = CampPatrolRadius > 0.0f;
-	LastCampWanderTime = -1000.0f;
+	if (EnemyAIComponent)
+	{
+		EnemyAIComponent->SetCampPatrolArea(InCenter, InRadius);
+	}
 }
 
 void ARAEnemyBase::ClearCampPatrolArea()
 {
-	bUseCampPatrolArea = false;
-	CampPatrolCenter = FVector::ZeroVector;
-	CampPatrolRadius = 0.0f;
-	LastCampWanderTime = -1000.0f;
+	if (EnemyAIComponent)
+	{
+		EnemyAIComponent->ClearCampPatrolArea();
+	}
 }
 
 void ARAEnemyBase::UpdateCampWander()
 {
-	if (bIsDead || bIsAttacking || bIsAttackMovementLocked)
+	if (EnemyAIComponent)
 	{
-		return;
+		EnemyAIComponent->UpdateCampWander();
 	}
-
-	if (!bUseCampPatrolArea || CampPatrolRadius <= 0.0f || !GetWorld())
-	{
-		return;
-	}
-
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LastCampWanderTime < CampWanderInterval)
-	{
-		return;
-	}
-
-	LastCampWanderTime = CurrentTime;
-	MoveToRandomCampLocation();
 }
 
 void ARAEnemyBase::MoveToRandomCampLocation()
 {
-	if (!GetWorld())
+	if (EnemyAIComponent)
 	{
-		return;
+		EnemyAIComponent->MoveToRandomCampLocation();
 	}
-
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController)
-	{
-		return;
-	}
-
-	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-	if (!NavSystem)
-	{
-		return;
-	}
-
-	FNavLocation RandomLocation;
-	const bool bFoundLocation = NavSystem->GetRandomReachablePointInRadius(
-		CampPatrolCenter,
-		CampPatrolRadius,
-		RandomLocation
-	);
-
-	if (!bFoundLocation)
-	{
-		return;
-	}
-
-	const EPathFollowingRequestResult::Type MoveResult =
-		AIController->MoveToLocation(RandomLocation.Location, CampWanderAcceptanceRadius);
-	bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
 }
 
 bool ARAEnemyBase::IsValidCombatTarget(const AActor* InTargetActor) const
 {
-	return IsValid(InTargetActor) && InTargetActor->IsA<ARACharacter>();
+	return EnemyAIComponent && EnemyAIComponent->IsValidCombatTarget(InTargetActor);
 }
 
 ARACharacter* ARAEnemyBase::ResolvePlayerFromDamage(AController* EventInstigator, AActor* DamageCauser) const
 {
-	if (EventInstigator)
-	{
-		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(EventInstigator->GetPawn()))
-		{
-			return PlayerCharacter;
-		}
-	}
-
-	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(DamageCauser))
-	{
-		return PlayerCharacter;
-	}
-
-	if (DamageCauser)
-	{
-		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(DamageCauser->GetOwner()))
-		{
-			return PlayerCharacter;
-		}
-
-		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(DamageCauser->GetInstigator()))
-		{
-			return PlayerCharacter;
-		}
-	}
-
-	return nullptr;
+	return EnemyAIComponent ? EnemyAIComponent->ResolvePlayerFromDamage(EventInstigator, DamageCauser) : nullptr;
 }
 
 float ARAEnemyBase::GetAttackStartRange() const
 {
-	return AttackRange + FMath::Max(0.f, AttackStartRangePadding);
+	return EnemyAIComponent ? EnemyAIComponent->GetAttackStartRange() : 0.f;
 }
 
 float ARAEnemyBase::GetAttackHitRange() const
 {
-	return AttackRange + FMath::Max(0.f, AttackHitRangePadding);
+	return EnemyAIComponent ? EnemyAIComponent->GetAttackHitRange() : 0.f;
 }
 
 float ARAEnemyBase::GetChaseAcceptanceRadius() const
 {
-	return FMath::Max(10.f, AttackRange * 0.25f);
+	return EnemyAIComponent ? EnemyAIComponent->GetChaseAcceptanceRadius() : 10.f;
 }
 
 void ARAEnemyBase::UpdateMovementStuckCheck(float DeltaTime)
 {
-	if (!bUseStuckRecovery || bIsDead || bIsAttacking || bIsAttackMovementLocked)
+	if (EnemyAIComponent)
 	{
-		StuckTime = 0.f;
-		return;
+		EnemyAIComponent->UpdateMovementStuckCheck(DeltaTime);
 	}
-
-	AAIController* AIController = Cast<AAIController>(GetController());
-	if (!AIController)
-	{
-		StuckTime = 0.f;
-		return;
-	}
-
-	const bool bHasActiveMove =
-		bWantsMovementThisTick ||
-		AIController->GetMoveStatus() == EPathFollowingStatus::Moving;
-
-	if (!bHasActiveMove)
-	{
-		StuckTime = 0.f;
-		return;
-	}
-
-	if (GetVelocity().Size2D() > StuckVelocityThreshold)
-	{
-		StuckTime = 0.f;
-		return;
-	}
-
-	StuckTime += DeltaTime;
-	if (StuckTime < StuckTimeThreshold)
-	{
-		return;
-	}
-
-	const float CurrentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
-	if (CurrentTime - LastStuckRecoveryTime < StuckRecoveryCooldown)
-	{
-		return;
-	}
-
-	LastStuckRecoveryTime = CurrentTime;
-	StuckTime = 0.f;
-	HandleMovementStuck();
 }
 
 void ARAEnemyBase::HandleMovementStuck()
 {
-	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	if (EnemyAIComponent)
 	{
-		AIController->StopMovement();
+		EnemyAIComponent->HandleMovementStuck();
 	}
-
-	if (HasValidTarget())
-	{
-		if (TryMoveToStrafeLocationAroundTarget())
-		{
-			return;
-		}
-	}
-
-	MoveToRandomCampLocation();
 }
 
 bool ARAEnemyBase::TryMoveToStrafeLocationAroundTarget()
 {
-	if (!HasValidTarget() || !GetWorld())
-	{
-		return false;
-	}
-
-	AAIController* AIController = Cast<AAIController>(GetController());
-	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-	if (!AIController || !NavSystem)
-	{
-		return false;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	FVector ToTarget = (TargetActor->GetActorLocation() - CurrentLocation).GetSafeNormal2D();
-	if (ToTarget.IsNearlyZero())
-	{
-		ToTarget = GetActorForwardVector();
-	}
-
-	const FVector RightVector(-ToTarget.Y, ToTarget.X, 0.f);
-	const int32 FirstSign = FMath::RandBool() ? 1 : -1;
-	const int32 Signs[2] = { FirstSign, -FirstSign };
-
-	for (const int32 Sign : Signs)
-	{
-		const FVector CandidateLocation =
-			CurrentLocation +
-			RightVector * static_cast<float>(Sign) * StuckSideStepDistance +
-			ToTarget * 80.f;
-
-		FNavLocation ProjectedLocation;
-		if (!NavSystem->ProjectPointToNavigation(CandidateLocation, ProjectedLocation, FVector(150.f, 150.f, 200.f)))
-		{
-			continue;
-		}
-
-		const EPathFollowingRequestResult::Type MoveResult =
-			AIController->MoveToLocation(ProjectedLocation.Location, GetChaseAcceptanceRadius());
-		bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
-		if (bWantsMovementThisTick)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return EnemyAIComponent && EnemyAIComponent->TryMoveToStrafeLocationAroundTarget();
 }
 
 void ARAEnemyBase::ApplySeparationFromNearbyEnemies(float DeltaTime)
 {
-	if (!bUseEnemySeparation || bIsDead || bIsAttacking || bIsAttackMovementLocked || EnemySeparationRadius <= 0.f)
+	if (EnemyAIComponent)
 	{
-		return;
+		EnemyAIComponent->ApplySeparationFromNearbyEnemies(DeltaTime);
 	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	TArray<FOverlapResult> OverlapResults;
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-
-	const FCollisionShape SeparationShape = FCollisionShape::MakeSphere(EnemySeparationRadius);
-	if (!World->OverlapMultiByObjectType(
-		OverlapResults,
-		GetActorLocation(),
-		FQuat::Identity,
-		ObjectQueryParams,
-		SeparationShape,
-		QueryParams))
-	{
-		return;
-	}
-
-	FVector SeparationDirection = FVector::ZeroVector;
-	const FVector CurrentLocation = GetActorLocation();
-
-	for (const FOverlapResult& OverlapResult : OverlapResults)
-	{
-		const ARAEnemyBase* OtherEnemy = Cast<ARAEnemyBase>(OverlapResult.GetActor());
-		if (!OtherEnemy || OtherEnemy == this || OtherEnemy->bIsDead)
-		{
-			continue;
-		}
-
-		FVector AwayDirection = CurrentLocation - OtherEnemy->GetActorLocation();
-		AwayDirection.Z = 0.f;
-
-		const float Distance = AwayDirection.Size();
-		if (Distance <= KINDA_SMALL_NUMBER)
-		{
-			AwayDirection = GetActorRightVector();
-		}
-		else
-		{
-			AwayDirection /= Distance;
-		}
-
-		const float Weight = FMath::Clamp((EnemySeparationRadius - Distance) / EnemySeparationRadius, 0.f, 1.f);
-		SeparationDirection += AwayDirection * Weight;
-	}
-
-	if (SeparationDirection.IsNearlyZero())
-	{
-		return;
-	}
-
-	const float ScaledStrength = EnemySeparationStrength * FMath::Clamp(DeltaTime * 60.f, 0.25f, 1.5f);
-	AddMovementInput(SeparationDirection.GetSafeNormal(), ScaledStrength);
-	bWantsMovementThisTick = true;
 }
 
 void ARAEnemyBase::UpdateAttack()
 {
-	if (!CanAttack())
-		return;
-
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LastAttackTime < AttackCooldown)
-		return;
-
-	bIsAttacking = true;
-	LastAttackTime = CurrentTime;
-
-	if (AAIController* AIController = Cast<AAIController>(GetController()))
-		AIController->StopMovement();
-
-	FaceTargetActor();
-	PerformAttack();
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->UpdateAttack();
+	}
 }
 
 void ARAEnemyBase::EquipDefaultWeapon()
 {
-	if (!EnemyWeaponClass || CurrentWeapon)
-		return;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = this;
-
-	AWeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(
-		EnemyWeaponClass,
-		GetActorTransform(),
-		SpawnParams
-	);
-	if (!SpawnedWeapon)
+	if (EnemyEquipmentComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn enemy weapon"), *GetName());
-		return;
+		EnemyEquipmentComponent->EquipDefaultWeapon();
 	}
-
-	EquipWeapon(SpawnedWeapon);
 }
 
 void ARAEnemyBase::EquipWeapon(AWeaponBase* NewWeapon)
 {
-	if (!NewWeapon || !GetMesh())
-		return;
-
-	if (CurrentWeapon && CurrentWeapon != NewWeapon)
+	if (EnemyEquipmentComponent)
 	{
-		CurrentWeapon->Destroy();
+		EnemyEquipmentComponent->EquipWeapon(NewWeapon);
 	}
-
-	CurrentWeapon = NewWeapon;
-	CurrentWeapon->SetOwner(this);
-	CurrentWeapon->SetInstigator(this);
-	CurrentWeapon->SetPickupEnabled(false);
-	CurrentWeapon->UpdateWeaponVisualState();
-
-	if (CurrentWeapon->WeaponMesh)
-	{
-		CurrentWeapon->WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		CurrentWeapon->WeaponMesh->SetGenerateOverlapEvents(false);
-		CurrentWeapon->WeaponMesh->SetSimulatePhysics(false);
-	}
-
-	if (CurrentWeapon->WeaponSkeletalMesh)
-	{
-		CurrentWeapon->WeaponSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		CurrentWeapon->WeaponSkeletalMesh->SetGenerateOverlapEvents(false);
-		CurrentWeapon->WeaponSkeletalMesh->SetSimulatePhysics(false);
-	}
-
-	const FName AttachSocketName =
-		(CurrentWeapon->WeaponType == EWeaponType::Bow)
-		? LeftWeaponSocketName : RightWeaponSocketName;
-
-	CurrentWeapon->AttachToComponent(
-		GetMesh(),
-		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-		AttachSocketName
-	);
-
-	if (USceneComponent* ActiveVisual = CurrentWeapon->GetActiveVisualComponent())
-	{
-		ActiveVisual->SetRelativeLocation(CurrentWeapon->EquipRelativeLocation);
-		ActiveVisual->SetRelativeRotation(CurrentWeapon->EquipRelativeRotation);
-		ActiveVisual->SetRelativeScale3D(CurrentWeapon->EquipRelativeScale);
-	}
-
-	SyncCombatDataFromWeapon();
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Equipped Enemy Weapon: %s | Socket: %s"),
-		*GetName(),
-		*CurrentWeapon->GetName(),
-		*AttachSocketName.ToString());
 }
 
 void ARAEnemyBase::SyncCombatDataFromWeapon()
 {
-	if (!CurrentWeapon || !bUseEquippedWeaponCombatData)
-		return;
-
-	AttackDamage = CurrentWeapon->AttackDamage;
-
-	if (CurrentWeapon->AttackMontage)
+	if (EnemyEquipmentComponent)
 	{
-		AttackMontage = CurrentWeapon->AttackMontage;
-	}
-
-	switch (CurrentWeapon->WeaponType)
-	{
-	case EWeaponType::Sword:
-		AttackType = EEnemyAttackType::Sword;
-		if (CurrentWeapon->AttackMontage)
-		{
-			SwordAttackMontage = CurrentWeapon->AttackMontage;
-		}
-		break;
-	case EWeaponType::Bow:
-		AttackType = EEnemyAttackType::Bow;
-		AttackRange = BowAttackRange;
-		if (CurrentWeapon->AttackMontage)
-		{
-			BowAttackMontage = CurrentWeapon->AttackMontage;
-		}
-		if (CurrentWeapon->ProjectileClass)
-		{
-			BowProjectileClass = CurrentWeapon->ProjectileClass;
-		}
-		BowProjectileSpeed = CurrentWeapon->ProjectileSpeed;
-		break;
-	default:
-		break;
+		EnemyEquipmentComponent->SyncCombatDataFromWeapon();
 	}
 }
 
 void ARAEnemyBase::PerformAttack()
 {
-	switch (AttackType)
+	if (EnemyCombatComponent)
 	{
-	case EEnemyAttackType::Sword:
-		PerformSwordAttack();
-		break;
-	case EEnemyAttackType::Bow:
-		PerformBowAttack();
-		break;
-	case EEnemyAttackType::Punch:
-	default:
-		PerformPunchAttack();
-		break;
+		EnemyCombatComponent->PerformAttack();
 	}
 }
 
 void ARAEnemyBase::PerformPunchAttack()
 {
-	bMeleeDamageAppliedThisAttack = false;
-
-	if (!PlayAttackMontage(AttackMontage))
+	if (EnemyCombatComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Punch AttackMontage is missing"), *GetName());
-		EndAttack();
-		return;
+		EnemyCombatComponent->PerformPunchAttack();
 	}
-
-	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		MeleeHitTimerHandle,
-		this,
-		&ARAEnemyBase::ApplyDamageToTarget,
-		FMath::Max(0.05f, PunchHitDelay),
-		false
-	);
-
-	ScheduleAttackEnd(FMath::Max(AttackEndFallbackDelay, PunchHitDelay + 0.05f));
 }
 
 void ARAEnemyBase::PerformSwordAttack()
 {
-	bMeleeDamageAppliedThisAttack = false;
-
-	UAnimMontage* MontageToPlay = SwordAttackMontage ? SwordAttackMontage : AttackMontage;
-
-	if (!MontageToPlay || !GetMesh() || !GetMesh()->GetAnimInstance())
+	if (EnemyCombatComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Sword AttackMontage is missing"), *GetName());
-		EndAttack();
-		return;
+		EnemyCombatComponent->PerformSwordAttack();
 	}
-
-	StopHitMontage();
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	const float MontageDuration = AnimInstance->Montage_Play(MontageToPlay);
-	if (MontageDuration <= 0.f)
-	{
-		EndAttack();
-		return;
-	}
-
-	SetAttackMovementLocked(true);
-
-	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		MeleeHitTimerHandle,
-		this,
-		&ARAEnemyBase::ApplyDamageToTarget,
-		FMath::Max(0.05f, SwordHitDelay),
-		false
-	);
-
-	ScheduleAttackEnd(FMath::Max(MontageDuration, SwordHitDelay + 0.05f));
 }
 
 void ARAEnemyBase::PerformBowAttack()
 {
-	bBowArrowFiredThisAttack = false;
-	bIsBowCharging = true;
-	if (GetCharacterMovement())
+	if (EnemyCombatComponent)
 	{
-		GetCharacterMovement()->MaxWalkSpeed = BowChargingMoveSpeed;
+		EnemyCombatComponent->PerformBowAttack();
 	}
-	FaceTargetActor();
-
-	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
-
-	if (!MontageToPlay || !GetMesh() || !GetMesh()->GetAnimInstance())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow AttackMontage is missing"), *GetName());
-		EndAttack();
-		return;
-	}
-
-	StopHitMontage();
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance->Montage_Play(MontageToPlay) <= 0.f)
-	{
-		EndAttack();
-		return;
-	}
-
-	AnimInstance->Montage_JumpToSection(FName("Drawing"), MontageToPlay);
-	PlayBowWeaponMontageSection(FName("Default"));
-
-	if (BowDrawSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(
-			this,
-			BowDrawSound,
-			GetActorLocation()
-		);
-	}
-
-	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		BowFireTimerHandle,
-		this,
-		&ARAEnemyBase::ReleaseBowChargeAtTarget,
-		BowFullChargeTime,
-		false
-	);
 }
 
 bool ARAEnemyBase::PlayAttackMontage(UAnimMontage* MontageToPlay)
 {
-	if (!MontageToPlay || !GetMesh() || !GetMesh()->GetAnimInstance())
-		return false;
-
-	StopHitMontage();
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	return AnimInstance->Montage_Play(MontageToPlay) > 0.f;
+	return EnemyCombatComponent && EnemyCombatComponent->PlayAttackMontage(MontageToPlay);
 }
 
 void ARAEnemyBase::ScheduleAttackEnd(float Delay)
 {
-	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
-	GetWorldTimerManager().SetTimer(
-		AttackEndTimerHandle,
-		this,
-		&ARAEnemyBase::EndAttack,
-		FMath::Max(0.05f, Delay),
-		false
-	);
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->ScheduleAttackEnd(Delay);
+	}
 }
 
 void ARAEnemyBase::ReleaseBowChargeAtTarget()
 {
-	if (bIsDead || !HasValidTarget())
+	if (EnemyCombatComponent)
 	{
-		EndAttack();
-		return;
+		EnemyCombatComponent->ReleaseBowChargeAtTarget();
 	}
-
-	bIsBowCharging = false;
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
-	}
-	SetAttackMovementLocked(true);
-	FaceTargetActor();
-
-	UAnimMontage* MontageToPlay = BowAttackMontage ? BowAttackMontage : AttackMontage;
-	if (MontageToPlay && GetMesh() && GetMesh()->GetAnimInstance())
-	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		AnimInstance->Montage_Play(MontageToPlay);
-		AnimInstance->Montage_JumpToSection(FName("Releasing"), MontageToPlay);
-	}
-
-	PlayBowWeaponMontageSection(FName("Release"));
-	FireArrowAtTarget();
-	ScheduleAttackEnd(BowReleaseEndDelay);
 }
 
 void ARAEnemyBase::PlayBowWeaponMontageSection(FName SectionName)
 {
-	if (!CurrentWeapon || !CurrentWeapon->UsesSkeletalMesh())
-		return;
-
-	if (!CurrentWeapon->WeaponSkeletalMesh || !CurrentWeapon->WeaponAnimMontage)
-		return;
-
-	UAnimInstance* WeaponAnimInstance = CurrentWeapon->WeaponSkeletalMesh->GetAnimInstance();
-	if (!WeaponAnimInstance)
+	if (EnemyCombatComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow weapon anim instance is missing"), *GetName());
-		return;
+		EnemyCombatComponent->PlayBowWeaponMontageSection(SectionName);
 	}
-
-	WeaponAnimInstance->Montage_Play(CurrentWeapon->WeaponAnimMontage);
-	WeaponAnimInstance->Montage_JumpToSection(SectionName, CurrentWeapon->WeaponAnimMontage);
 }
 
 void ARAEnemyBase::FaceTargetActor()
 {
-	if (!HasValidTarget())
-		return;
-
-	const FVector ToTarget = TargetActor->GetActorLocation() - GetActorLocation();
-	const FVector FlatDirection(ToTarget.X, ToTarget.Y, 0.f);
-	if (FlatDirection.IsNearlyZero())
-		return;
-
-	SetActorRotation(FlatDirection.Rotation());
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->FaceTargetActor();
+	}
 }
 
 void ARAEnemyBase::SetAttackMovementLocked(bool bLocked)
 {
-	bIsAttackMovementLocked = bLocked;
-
-	if (bLocked)
+	if (EnemyCombatComponent)
 	{
-		if (AAIController* AIController = Cast<AAIController>(GetController()))
-		{
-			AIController->StopMovement();
-		}
+		EnemyCombatComponent->SetAttackMovementLocked(bLocked);
 	}
 }
 
 void ARAEnemyBase::PlayMeleeHitEffects(const FVector& HitLocation)
 {
-	switch (AttackType)
+	if (EnemyCombatComponent)
 	{
-	case EEnemyAttackType::Sword:
-		SpawnHitVFX(
-			SwordHitVFX,
-			HitLocation,
-			GetActorRotation(),
-			SwordHitColor,
-			SwordHitScale,
-			SwordHitLifetime
-		);
-
-		if (SwordHitSound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(
-				this,
-				SwordHitSound,
-				HitLocation
-			);
-		}
-		break;
-	case EEnemyAttackType::Punch:
-	default:
-		SpawnHitVFX(
-			PunchHitVFX,
-			HitLocation,
-			GetActorRotation(),
-			PunchHitColor,
-			PunchHitScale,
-			PunchHitLifetime
-		);
-
-		if (PunchHitSounds.Num() > 0)
-		{
-			const int32 SoundIndex = FMath::RandRange(0, PunchHitSounds.Num() - 1);
-			USoundBase* SelectedHitSound = PunchHitSounds[SoundIndex];
-			if (SelectedHitSound)
-			{
-				UGameplayStatics::PlaySoundAtLocation(
-					this,
-					SelectedHitSound,
-					HitLocation
-				);
-			}
-		}
-		break;
+		EnemyCombatComponent->PlayMeleeHitEffects(HitLocation);
 	}
 }
 
@@ -1020,189 +383,42 @@ void ARAEnemyBase::SpawnHitVFX(
 	float Scale,
 	float Lifetime)
 {
-	if (!NiagaraSystem)
-		return;
-
-	UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-		GetWorld(),
-		NiagaraSystem,
-		SpawnLocation,
-		SpawnRotation,
-		FVector(1.0f),
-		true,
-		true,
-		ENCPoolMethod::None,
-		true
-	);
-
-	if (!NiagaraComp)
-		return;
-
-	NiagaraComp->SetVariableLinearColor(TEXT("Color"), Color);
-	NiagaraComp->SetVariableFloat(TEXT("Scale"), Scale);
-	NiagaraComp->SetVariableFloat(TEXT("Lifetime"), Lifetime);
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->SpawnHitVFX(NiagaraSystem, SpawnLocation, SpawnRotation, Color, Scale, Lifetime);
+	}
 }
 
 void ARAEnemyBase::EndAttack()
 {
-	if (AttackType == EEnemyAttackType::Bow &&
-		!bBowArrowFiredThisAttack &&
-		GetWorldTimerManager().IsTimerActive(BowFireTimerHandle))
+	if (EnemyCombatComponent)
 	{
-		return;
+		EnemyCombatComponent->EndAttack();
 	}
-
-	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
-	GetWorldTimerManager().ClearTimer(AttackEndTimerHandle);
-	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
-	bIsAttacking = false;
-	bIsBowCharging = false;
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
-	}
-	SetAttackMovementLocked(false);
-	bMeleeDamageAppliedThisAttack = false;
 }
 
 void ARAEnemyBase::ApplyDamageToTarget()
 {
-	if (bIsDead || !HasValidTarget())
-		return;
-
-	if (AttackType == EEnemyAttackType::Bow)
+	if (EnemyCombatComponent)
 	{
-		const float CurrentTime = GetWorld()->GetTimeSeconds();
-		if (CurrentTime - LastAttackTime >= BowFullChargeTime)
-		{
-			FireArrowAtTarget();
-		}
-		return;
+		EnemyCombatComponent->ApplyDamageToTarget();
 	}
-
-	if (AttackType != EEnemyAttackType::Bow)
-	{
-		if (bMeleeDamageAppliedThisAttack)
-			return;
-	}
-
-	const float DistanceToTarget = FVector::Dist(GetActorLocation(), TargetActor->GetActorLocation());
-	if (DistanceToTarget > GetAttackHitRange())
-		return;
-
-	if (const ARACharacter* PlayerCharacter = Cast<ARACharacter>(TargetActor))
-	{
-		if (PlayerCharacter->IsDodging())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack missed because target is dodging."), *GetName());
-			return;
-		}
-	}
-
-	if (const AAnimalBase* Animal = Cast<AAnimalBase>(TargetActor))
-	{
-		if (Animal->IsTrapped())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack ignored because target animal is trapped."), *GetName());
-			return;
-		}
-	}
-
-	bMeleeDamageAppliedThisAttack = true;
-	GetWorldTimerManager().ClearTimer(MeleeHitTimerHandle);
-
-	const FVector HitLocation = TargetActor->GetActorLocation();
-	PlayMeleeHitEffects(HitLocation);
-
-	const float AppliedDamage = UGameplayStatics::ApplyDamage(
-		TargetActor,
-		AttackDamage,
-		GetController(),
-		this,
-		UDamageType::StaticClass()
-	);
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Requested %.1f damage to %s / Applied=%.1f"),
-		*GetName(),
-		AttackDamage,
-		*TargetActor->GetName(),
-		AppliedDamage);
 }
 
 void ARAEnemyBase::TriggerMeleeHit()
 {
-	ApplyDamageToTarget();
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->TriggerMeleeHit();
+	}
 }
 
 void ARAEnemyBase::FireArrowAtTarget()
 {
-	if (bIsDead || !HasValidTarget())
-		return;
-
-	if (bBowArrowFiredThisAttack)
-		return;
-
-	GetWorldTimerManager().ClearTimer(BowFireTimerHandle);
-
-	if (!BowProjectileClass)
+	if (EnemyCombatComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] BowProjectileClass is missing"), *GetName());
-		return;
+		EnemyCombatComponent->FireArrowAtTarget();
 	}
-
-	bBowArrowFiredThisAttack = true;
-	FaceTargetActor();
-
-	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 50.f + FVector(0.f, 0.f, 50.f);
-	if (CurrentWeapon &&
-		CurrentWeapon->UsesSkeletalMesh() &&
-		CurrentWeapon->WeaponSkeletalMesh &&
-		CurrentWeapon->WeaponSkeletalMesh->DoesSocketExist(ArrowSpawnSocketName))
-	{
-		SpawnLocation = CurrentWeapon->WeaponSkeletalMesh->GetSocketLocation(ArrowSpawnSocketName);
-	}
-	else if (CurrentWeapon &&
-		CurrentWeapon->WeaponMesh &&
-		CurrentWeapon->WeaponMesh->DoesSocketExist(ArrowSpawnSocketName))
-	{
-		SpawnLocation = CurrentWeapon->WeaponMesh->GetSocketLocation(ArrowSpawnSocketName);
-	}
-	else if (GetMesh() && GetMesh()->DoesSocketExist(ArrowSpawnSocketName))
-	{
-		SpawnLocation = GetMesh()->GetSocketLocation(ArrowSpawnSocketName);
-	}
-
-	const FVector TargetLocation = TargetActor->GetActorLocation() + FVector(0.f, 0.f, 50.f);
-	const FVector ShootDirection = (TargetLocation - SpawnLocation).GetSafeNormal();
-	if (ShootDirection.IsNearlyZero())
-		return;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = this;
-
-	AArrowProjectile* Arrow = GetWorld()->SpawnActor<AArrowProjectile>(
-		BowProjectileClass,
-		SpawnLocation,
-		ShootDirection.Rotation(),
-		SpawnParams
-	);
-
-	if (!Arrow)
-		return;
-
-	Arrow->Damage = AttackDamage;
-
-	if (Arrow->ProjectileMovement)
-	{
-		Arrow->ProjectileMovement->InitialSpeed = BowProjectileSpeed;
-		Arrow->ProjectileMovement->MaxSpeed = BowProjectileSpeed;
-		Arrow->ProjectileMovement->Velocity = ShootDirection * BowProjectileSpeed;
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Fired arrow at %s"),
-		*GetName(),
-		*TargetActor->GetName());
 }
 
 void ARAEnemyBase::UpdateHPBar()
@@ -1265,183 +481,16 @@ void ARAEnemyBase::Die()
 
 void ARAEnemyBase::GrantEXPToKiller()
 {
-	if (bHasGrantedEXP || EXPReward <= 0)
+	if (EnemyRewardComponent)
 	{
-		return;
+		EnemyRewardComponent->GrantEXPToKiller();
 	}
-
-	ARACharacter* PlayerCharacter = nullptr;
-
-	if (LastDamageInstigator)
-	{
-		PlayerCharacter = Cast<ARACharacter>(LastDamageInstigator->GetPawn());
-	}
-
-	if (!PlayerCharacter && LastDamageCauser)
-	{
-		PlayerCharacter = Cast<ARACharacter>(LastDamageCauser);
-	}
-
-	if (!PlayerCharacter && LastDamageCauser)
-	{
-		PlayerCharacter = Cast<ARACharacter>(LastDamageCauser->GetOwner());
-	}
-
-	if (!PlayerCharacter && LastDamageCauser)
-	{
-		PlayerCharacter = Cast<ARACharacter>(LastDamageCauser->GetInstigator());
-	}
-
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-	UPlayerStatComponent* PlayerStatComponent = PlayerCharacter->FindComponentByClass<UPlayerStatComponent>();
-	if (!PlayerStatComponent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to grant EXP: PlayerStatComponent is missing"), *GetName());
-		return;
-	}
-
-	bHasGrantedEXP = true;
-	PlayerStatComponent->AddEXP(EXPReward);
-
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Granted %d EXP to %s"),
-		*GetName(),
-		EXPReward,
-		*PlayerCharacter->GetName());
 }
 
 void ARAEnemyBase::SpawnDropItems()
 {
-	if (bHasDroppedItems)
+	if (EnemyRewardComponent)
 	{
-		return;
-	}
-
-	bHasDroppedItems = true;
-
-	if (DropItems.Num() <= 0)
-	{
-		return;
-	}
-
-	if (!DropItemActorClass)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] DropItemActorClass is missing"), *GetName());
-		return;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop items: World is null"), *GetName());
-		return;
-	}
-
-#pragma region Runtime Spawned Drop Items
-	ARAWorldStateManager* WorldStateManager = nullptr;
-	for (TActorIterator<ARAWorldStateManager> It(World); It; ++It)
-	{
-		WorldStateManager = *It;
-		break;
-	}
-
-	int32 SpawnedDropNumber = 0;
-#pragma endregion Runtime Spawned Drop Items
-
-	for (const FDropItemData& DropItemData : DropItems)
-	{
-		if (DropItemData.ItemID.IsNone())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Skipped drop item: ItemID is None"), *GetName());
-			continue;
-		}
-
-		const float SafeDropRate = FMath::Clamp(DropItemData.DropRate, 0.0f, 1.0f);
-		if (FMath::FRand() > SafeDropRate)
-		{
-			continue;
-		}
-
-		const int32 SafeMinCount = FMath::Max(1, DropItemData.MinCount);
-		const int32 SafeMaxCount = FMath::Max(SafeMinCount, DropItemData.MaxCount);
-		const int32 DropCount = FMath::RandRange(SafeMinCount, SafeMaxCount);
-
-		const FVector RandomOffset(
-			FMath::FRandRange(-80.f, 80.f),
-			FMath::FRandRange(-80.f, 80.f),
-			30.f
-		);
-		const FVector SpawnLocation = GetActorLocation() + RandomOffset;
-		const FRotator SpawnRotation = FRotator::ZeroRotator;
-		const FTransform SpawnTransform(SpawnRotation, SpawnLocation);
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = this;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-		ADropItemActor* DropItemActor = World->SpawnActorDeferred<ADropItemActor>(
-			DropItemActorClass,
-			SpawnTransform,
-			SpawnParams.Owner,
-			SpawnParams.Instigator,
-			SpawnParams.SpawnCollisionHandlingOverride
-		);
-
-		if (!DropItemActor)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop item: %s"),
-				*GetName(),
-				*DropItemData.ItemID.ToString());
-			continue;
-		}
-
-#pragma region Runtime Spawned Drop Items
-		++SpawnedDropNumber;
-		const FName RuntimeItemSaveID(*FString::Printf(
-			TEXT("%s_%s_%d"),
-			*GetName(),
-			*DropItemData.ItemID.ToString(),
-			SpawnedDropNumber
-		));
-
-		DropItemActor->InitializeRuntimeDropItem(
-			DropItemData.ItemID,
-			DropCount,
-			RuntimeItemSaveID
-		);
-
-		if (WorldStateManager && !WorldStateManager->MapID.IsNone())
-		{
-			if (URAGameInstance* RAGameInstance = World->GetGameInstance<URAGameInstance>())
-			{
-				FSpawnedDropItemRuntimeData RuntimeDropData;
-				RuntimeDropData.ItemSaveID = RuntimeItemSaveID;
-				RuntimeDropData.ItemID = DropItemData.ItemID;
-				RuntimeDropData.Count = DropCount;
-				RuntimeDropData.SpawnTransform = SpawnTransform;
-				RuntimeDropData.DropItemActorClass = DropItemActor->GetClass();
-
-				RAGameInstance->RegisterSpawnedDropItem(WorldStateManager->MapID, RuntimeDropData);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Runtime drop state was not registered: WorldStateManager or MapID is missing. ItemSaveID=%s"),
-				*GetName(),
-				*RuntimeItemSaveID.ToString());
-		}
-#pragma endregion Runtime Spawned Drop Items
-
-		UGameplayStatics::FinishSpawningActor(DropItemActor, SpawnTransform);
-
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d / ItemSaveID=%s"),
-			*GetName(),
-			*DropItemData.ItemID.ToString(),
-			DropCount,
-			*RuntimeItemSaveID.ToString());
+		EnemyRewardComponent->SpawnDropItems();
 	}
 }

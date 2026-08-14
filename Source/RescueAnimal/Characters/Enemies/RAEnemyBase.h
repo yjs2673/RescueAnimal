@@ -16,7 +16,13 @@ class AWeaponBase;
 class UNiagaraSystem;
 class USoundBase;
 class UWidgetComponent;
+
 class ARACharacter;
+
+class UEnemyAIComponent;
+class UEnemyCombatComponent;
+class UEnemyEquipmentComponent;
+class UEnemyRewardComponent;
 
 UENUM(BlueprintType)
 enum class EEnemyAttackType : uint8
@@ -30,6 +36,11 @@ UCLASS()
 class RESCUEANIMAL_API ARAEnemyBase : public ARACreatureBase
 {
 	GENERATED_BODY()
+
+	friend class UEnemyAIComponent;
+	friend class UEnemyCombatComponent;
+	friend class UEnemyEquipmentComponent;
+	friend class UEnemyRewardComponent;
 
 public:
 	ARAEnemyBase();
@@ -129,6 +140,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|UI")
 	TObjectPtr<UWidgetComponent> HPBarWidgetComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEnemyAIComponent> EnemyAIComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEnemyCombatComponent> EnemyCombatComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEnemyEquipmentComponent> EnemyEquipmentComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEnemyRewardComponent> EnemyRewardComponent;
 
 protected:
 	UFUNCTION()
