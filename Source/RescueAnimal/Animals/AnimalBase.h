@@ -16,6 +16,10 @@ class UNiagaraSystem;
 class USoundBase;
 class AAnimalBase;
 class AEnemyCampActor;
+class UAnimalAIComponent;
+class UAnimalPresentationComponent;
+class UAnimalRescueComponent;
+class UAnimalStateComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAnimalRescued, AAnimalBase*, RescuedAnimal);
 
@@ -23,6 +27,11 @@ UCLASS()
 class RESCUEANIMAL_API AAnimalBase : public ARACreatureBase
 {
     GENERATED_BODY()
+
+    friend class UAnimalAIComponent;
+    friend class UAnimalPresentationComponent;
+    friend class UAnimalRescueComponent;
+    friend class UAnimalStateComponent;
 
 public:
     AAnimalBase();
@@ -96,6 +105,19 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|Drop")
     TArray<FName> DropItemIDs;
+
+protected: // Components
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UAnimalAIComponent> AnimalAIComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UAnimalPresentationComponent> AnimalPresentationComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UAnimalRescueComponent> AnimalRescueComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UAnimalStateComponent> AnimalStateComponent;
 
 protected:
     UFUNCTION(BlueprintCallable, Category = "Animal|Data")
