@@ -30,10 +30,17 @@ namespace
 	TSharedPtr<SBorder> GViewportFadeOverlayBorderWidget;
 }
 
+ATPSPlayerController::ATPSPlayerController()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	InitializeMouseCursor();
+}
+
 void ATPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitializeMouseCursor();
 	SetGameInputMode();
 
 	if (UGameInstance* GameInstance = GetGameInstance())
@@ -386,7 +393,8 @@ void ATPSPlayerController::CloseInventory()
 
 void ATPSPlayerController::SetGameInputMode()
 {
-	bShowMouseCursor = false;
+	bShowMouseCursor = bShowMouseCursorInGame;
+	SetMouseCursorType(NormalMouseCursor.GetValue());
 
 	FInputModeGameOnly InputMode;
 	SetInputMode(InputMode);
@@ -395,6 +403,7 @@ void ATPSPlayerController::SetGameInputMode()
 void ATPSPlayerController::SetUIInputMode()
 {
 	bShowMouseCursor = true;
+	SetMouseCursorType(NormalMouseCursor.GetValue());
 
 	FInputModeGameAndUI InputMode;
 
@@ -422,6 +431,7 @@ void ATPSPlayerController::SetUIInputMode()
 void ATPSPlayerController::SetSettingInputMode()
 {
 	bShowMouseCursor = true;
+	SetMouseCursorType(NormalMouseCursor.GetValue());
 
 	FInputModeUIOnly InputMode;
 
@@ -442,10 +452,23 @@ void ATPSPlayerController::SetSettingInputMode()
 void ATPSPlayerController::SetMenuInputMode()
 {
 	bShowMouseCursor = true;
+	SetMouseCursorType(NormalMouseCursor.GetValue());
 
 	FInputModeUIOnly InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
+}
+
+void ATPSPlayerController::InitializeMouseCursor()
+{
+	DefaultMouseCursor = NormalMouseCursor.GetValue();
+	CurrentMouseCursor = NormalMouseCursor.GetValue();
+}
+
+void ATPSPlayerController::SetMouseCursorType(EMouseCursor::Type NewMouseCursor)
+{
+	DefaultMouseCursor = NormalMouseCursor.GetValue();
+	CurrentMouseCursor = NewMouseCursor;
 }
 
 void ATPSPlayerController::HideMainHUD()

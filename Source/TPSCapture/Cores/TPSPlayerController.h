@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "InputCoreTypes.h"
 #include "TimerManager.h"
 #include "TPSPlayerController.generated.h"
 
@@ -24,6 +25,8 @@ class TPSCAPTURE_API ATPSPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	ATPSPlayerController();
+
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
@@ -95,6 +98,12 @@ public:
 	TSubclassOf<UMapProgressWidget> MapProgressWidgetClass;
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Mouse Cursor")
+	bool bShowMouseCursorInGame = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Mouse Cursor")
+	TEnumAsByte<EMouseCursor::Type> NormalMouseCursor = EMouseCursor::Default;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UMainHUDWidget> MainHUDWidgetClass;
 
@@ -216,6 +225,8 @@ private:
 	void SetUIInputMode();
 	void SetSettingInputMode();
 	void SetMenuInputMode();
+	void InitializeMouseCursor();
+	void SetMouseCursorType(EMouseCursor::Type NewMouseCursor);
 	void StartLevelFadeIn();
 	void PlayLevelFadeIn();
 	void FinishLevelFadeIn();
