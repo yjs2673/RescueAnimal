@@ -1,8 +1,7 @@
 #include "PlayerSkillComponent.h"
 
 #include "TPSCaptureCharacter.h"
-#include "TPSAnimalBase.h"
-#include "TPSCreatureBase.h"
+#include "TPSEnemyBase.h"
 #include "PlayerStatComponent.h"
 #include "ArrowProjectile.h"
 
@@ -468,16 +467,23 @@ void UPlayerSkillComponent::PerformUnarmedSkillHit()
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	TArray<FHitResult> HitResults;
-	const bool bHit = GetWorld()->SweepMultiByChannel(
+	GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		Start,
 		End,
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		Sphere,
 		QueryParams
 	);
+
+	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+		{
+			return !ShouldIgnoreSkillTarget(HitResult.GetActor());
+		});
 
 	DrawDebugCapsule(
 		GetWorld(),
@@ -485,7 +491,7 @@ void UPlayerSkillComponent::PerformUnarmedSkillHit()
 		UnarmedSkill.Range * 0.5f,
 		UnarmedSkill.Radius,
 		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		bHit ? FColor::Red : FColor::Green,
+		bHitEnemy ? FColor::Red : FColor::Green,
 		false,
 		1.5f
 	);
@@ -577,16 +583,23 @@ void UPlayerSkillComponent::PerformSwordSkillHit()
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	TArray<FHitResult> HitResults;
-	const bool bHit = GetWorld()->SweepMultiByChannel(
+	GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		Start,
 		End,
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		Sphere,
 		QueryParams
 	);
+
+	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+		{
+			return !ShouldIgnoreSkillTarget(HitResult.GetActor());
+		});
 
 	DrawDebugCapsule(
 		GetWorld(),
@@ -594,7 +607,7 @@ void UPlayerSkillComponent::PerformSwordSkillHit()
 		SwordSkill.Range * 0.5f,
 		SwordSkill.Radius,
 		FRotationMatrix::MakeFromX(End - Start).ToQuat(),
-		bHit ? FColor::Red : FColor::Green,
+		bHitEnemy ? FColor::Red : FColor::Green,
 		false,
 		1.5f
 	);
@@ -653,17 +666,7 @@ bool UPlayerSkillComponent::ShouldIgnoreSkillTarget(AActor* TargetActor) const
 		return true;
 	}
 
-	if (!TargetActor->IsA<ATPSCreatureBase>())
-	{
-		return true;
-	}
-
-	if (const AAnimalBase* Animal = Cast<AAnimalBase>(TargetActor))
-	{
-		return Animal->IsTrapped();
-	}
-
-	return false;
+	return !TargetActor->IsA<ATPSEnemyBase>();
 }
 
 void UPlayerSkillComponent::SpawnSkillVFX(

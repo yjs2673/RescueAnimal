@@ -6,6 +6,7 @@
 #include "WeaponBase.h"
 #include "ArrowProjectile.h"
 #include "TPSAnimalBase.h"
+#include "TPSEnemyBase.h"
 
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
@@ -1247,6 +1248,12 @@ void ATPSCaptureCharacter::FaceAttackDirection()
 	const FRotator TargetRot(0.0f, ControlRot.Yaw, 0.0f);
 	SetActorRotation(TargetRot);
 }
+
+bool ATPSCaptureCharacter::IsValidPlayerAttackTarget(const AActor* TargetActor) const
+{
+	return TargetActor && TargetActor != this && TargetActor->IsA<ATPSEnemyBase>();
+}
+
 void ATPSCaptureCharacter::EndAttack()
 {
 	bIsAttacking = false;
@@ -1331,18 +1338,24 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	FHitResult HitResult;
-	const bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	TArray<FHitResult> HitResults;
+	GetWorld()->SweepMultiByObjectType(
+		HitResults,
 		Start,
 		End,
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		Sphere,
 		QueryParams
 	);
 
-	const FColor DebugColor = bHit ? FColor::Red : FColor::Green;
+	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+		{
+			return IsValidPlayerAttackTarget(HitResult.GetActor());
+		});
+	const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
 	DrawDebugCapsule(
 		GetWorld(),
 		(Start + End) * 0.5f,
@@ -1354,18 +1367,16 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		1.5f
 	);
 
-	if (bHit && HitResult.GetActor())
+	for (const FHitResult& HitResult : HitResults)
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
-
-		if (const AAnimalBase* Animal = Cast<AAnimalBase>(HitResult.GetActor()))
+		AActor* HitActor = HitResult.GetActor();
+		if (!IsValidPlayerAttackTarget(HitActor))
 		{
-			if (Animal->IsTrapped())
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch ignored trapped animal: %s"), *HitResult.GetActor()->GetName());
-				return;
-			}
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Punch ignored non-enemy hit: %s"), *GetNameSafe(HitActor));
+			continue;
 		}
+
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit Enemy: %s"), *HitActor->GetName());
 
 		SpawnHitVFX(
 			PunchHitVFX,
@@ -1392,12 +1403,14 @@ void ATPSCaptureCharacter::PerformPunchHit(float damage, float range, float radi
 		}
 
 		UGameplayStatics::ApplyDamage(
-			HitResult.GetActor(),
+			HitActor,
 			damage,
 			GetController(),
 			this,
 			UDamageType::StaticClass()
 		);
+
+		break;
 	}
 
 	// TestAddItem("Potion", 2);
@@ -1464,18 +1477,24 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	FHitResult HitResult;
-	const bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	TArray<FHitResult> HitResults;
+	GetWorld()->SweepMultiByObjectType(
+		HitResults,
 		Start,
 		End,
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		Sphere,
 		QueryParams
 	);
 
-	const FColor DebugColor = bHit ? FColor::Red : FColor::Green;
+	const bool bHitEnemy = HitResults.ContainsByPredicate([this](const FHitResult& HitResult)
+		{
+			return IsValidPlayerAttackTarget(HitResult.GetActor());
+		});
+	const FColor DebugColor = bHitEnemy ? FColor::Red : FColor::Green;
 	DrawDebugCapsule(
 		GetWorld(),
 		(Start + End) * 0.5f,
@@ -1487,18 +1506,16 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 		1.5f
 	);
 
-	if (bHit && HitResult.GetActor())
+	for (const FHitResult& HitResult : HitResults)
 	{
-		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit: %s"), *HitResult.GetActor()->GetName());
-
-		if (const AAnimalBase* Animal = Cast<AAnimalBase>(HitResult.GetActor()))
+		AActor* HitActor = HitResult.GetActor();
+		if (!IsValidPlayerAttackTarget(HitActor))
 		{
-			if (Animal->IsTrapped())
-			{
-				UE_LOG(LogTemplateCharacter, Warning, TEXT("Sword ignored trapped animal: %s"), *HitResult.GetActor()->GetName());
-				return;
-			}
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("Sword ignored non-enemy hit: %s"), *GetNameSafe(HitActor));
+			continue;
 		}
+
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("Hit Enemy: %s"), *HitActor->GetName());
 
 		SpawnHitVFX(
 			SwordHitVFX,
@@ -1519,12 +1536,14 @@ void ATPSCaptureCharacter::PerformSwordHit(float damage, float range, float radi
 		}
 
 		UGameplayStatics::ApplyDamage(
-			HitResult.GetActor(),
+			HitActor,
 			damage,
 			GetController(),
 			this,
 			UDamageType::StaticClass()
 		);
+
+		break;
 	}
 
 	TestUsePotion();

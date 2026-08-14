@@ -1,6 +1,7 @@
 #include "ArrowProjectile.h"
 #include "TPSCaptureCharacter.h"
 #include "TPSAnimalBase.h"
+#include "TPSEnemyBase.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -62,6 +63,13 @@ void AArrowProjectile::OnArrowOverlap(
 
 	if (OtherActor && OtherActor != this && OtherActor != OwnerActor)
 	{
+		const bool bOwnedByPlayer = OwnerActor && OwnerActor->IsA<ATPSCaptureCharacter>();
+		if (bOwnedByPlayer && !OtherActor->IsA<ATPSEnemyBase>())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Player arrow ignored non-enemy actor: %s"), *OtherActor->GetName());
+			return;
+		}
+
 		if (bPiercing && HitActors.Contains(OtherActor))
 		{
 			return;

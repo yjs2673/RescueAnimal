@@ -454,6 +454,7 @@ protected:
 	void AttackUnarmed();		// 맨손
 	void AttackWithWeapon();	// 무기
 	void FaceAttackDirection();
+	bool IsValidPlayerAttackTarget(const AActor* TargetActor) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void EndAttack();	
