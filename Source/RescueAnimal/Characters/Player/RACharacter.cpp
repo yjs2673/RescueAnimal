@@ -97,8 +97,8 @@ ARACharacter::ARACharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 #pragma endregion Base Setting
 
-	PrimaryActorTick.bCanEverTick = true; // Tick() ?�수�??�용?�기 ?�해 true�??�정
-	CurrentWeapon = nullptr; // 처음?�는 무기�??�고 ?��? ?�으므�?nullptr�?초기??
+	PrimaryActorTick.bCanEverTick = true; // Tick() 함수를 쓰기 위해 true로 설정
+	CurrentWeapon = nullptr; // 처음에는 들고 있는 무기가 없으니 nullptr로 초기화
 
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
@@ -109,7 +109,7 @@ ARACharacter::ARACharacter()
 	PlayerEquipmentComponent = CreateDefaultSubobject<UPlayerEquipmentComponent>(TEXT("PlayerEquipmentComponent"));
 	PlayerInteractionComponent = CreateDefaultSubobject<UPlayerInteractionComponent>(TEXT("PlayerInteractionComponent"));
 
-	// 차징 ?�살: 미리보기??StaticMeshComponent ?�성 �??�정
+	// 차징 화살: 미리보기용 StaticMeshComponent 생성 및 설정
 	PreviewArrowMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewArrowMesh"));
 	PreviewArrowMesh->SetupAttachment(GetMesh());
 	PreviewArrowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -287,7 +287,7 @@ void ARACharacter::BeginPlay()
 #pragma endregion Runtime Data BeginPlay
 }
 
-void ARACharacter::HandleCharacterDeath() // ?�레?�어 ?�망 처리: 공격 ?�태 초기?? ?�동 불�?, ?�력 비활?�화
+void ARACharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 상태 초기화, 이동 불가, 입력 비활성화
 {
 #pragma region Game Progress
 	if (bGameOverHandled)
@@ -812,7 +812,7 @@ void ARACharacter::PlayHitMontage()
 	if (!AnimInstance)
 		return;
 
-	//if (AnimInstance->IsAnyMontagePlaying()) // ?�른 몽�?주�? ?�생 중이�?멈추�??�로 ?�생
+	//if (AnimInstance->IsAnyMontagePlaying()) // 다른 몽타주가 재생 중이면 멈추고 새로 재생
 	//	AnimInstance->Montage_Stop(0.1f);
 
 	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);

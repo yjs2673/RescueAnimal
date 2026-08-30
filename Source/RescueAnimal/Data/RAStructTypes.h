@@ -186,22 +186,22 @@ struct FAnimalData : public FTableRowBase
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	FName AnimalID; // ���� ID
+	FName AnimalID; // 동물 ID
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	FText DisplayName; // �ΰ��� �̸�
+	FText DisplayName; // 보여줄 이름
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	float MaxHP = 30.0f; // �ִ� ü��
+	float MaxHP = 30.0f; // 최대 체력
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	float CaptureDifficulty = 1.0f; // ĸó ���̵� (�������� ĸó�ϱ� �����)
+	float CaptureDifficulty = 1.0f; // 포획 난이도 (높을수록 포획하기 어려움)
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	TArray<FName> DropItemIDs; // ��� ������ ID ���
+	TArray<FName> DropItemIDs; // 드랍 아이템 ID 목록
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal")
-	UTexture2D* Icon = nullptr; // UI ������
+	UTexture2D* Icon = nullptr; // UI 아이콘
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Collection")
 	int32 CollectionOrder = 0;

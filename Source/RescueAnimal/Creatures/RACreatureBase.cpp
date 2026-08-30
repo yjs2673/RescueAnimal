@@ -65,7 +65,7 @@ void ARACreatureBase::PlayHitMontage()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!AnimInstance)
 		return;
-	if (AnimInstance->IsAnyMontagePlaying()) // �ٸ� ��Ÿ�ְ� ��� ���̸� ���߰� ���� ���
+	if (AnimInstance->IsAnyMontagePlaying()) // 다른 몽타주가 재생 중이면 멈추고 새로 재생
 		AnimInstance->Montage_Stop(0.1f);
 
 	const int32 RandomIndex = FMath::RandRange(0, HitMontages.Num() - 1);

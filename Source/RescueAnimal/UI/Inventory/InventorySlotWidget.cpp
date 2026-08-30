@@ -67,8 +67,8 @@ void UInventorySlotWidget::SetupSlot(FName InItemID, int32 InCount)
 
 	if (ItemNameText)
 	{
-		// �Ϲ� ���� �κ��丮ó�� ���� �ȿ����� �̸��� ����.
-		// ���߿� �������� �����ִ� ��� ��õ.
+		// 일반 게임 인벤토리처럼 슬롯 안에서는 이름을 숨김.
+		// 나중에 툴팁으로 보여주는 방식 추천.
 		ItemNameText->SetText(bHasItemData && !ItemData.ItemName.IsEmpty()
 			? ItemData.ItemName
 			: FText::FromName(ItemID));
