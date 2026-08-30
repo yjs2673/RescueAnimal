@@ -97,7 +97,7 @@ ARACharacter::ARACharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 #pragma endregion Base Setting
 
-	PrimaryActorTick.bCanEverTick = true; // Tick() 함수를 쓰기 위해 true로 설정
+	PrimaryActorTick.bCanEverTick = false;
 	CurrentWeapon = nullptr; // 처음에는 들고 있는 무기가 없으니 nullptr로 초기화
 
 	StatComponent = CreateDefaultSubobject<UPlayerStatComponent>(TEXT("StatComponent"));
@@ -211,10 +211,10 @@ bool ARACharacter::IsPortalTransitionInputLocked() const
 }
 
 /* Tick */
-void ARACharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
+//void ARACharacter::Tick(float DeltaTime)
+//{
+//	Super::Tick(DeltaTime);
+//}
 
 /* Begin */
 void ARACharacter::BeginPlay()

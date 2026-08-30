@@ -127,7 +127,7 @@ class ARACharacter : public ACharacter
 #pragma region Constructor & Tick & Begin & Death
 public:
 	ARACharacter();
-	virtual void Tick(float DeltaTime) override;
+	// virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
 
