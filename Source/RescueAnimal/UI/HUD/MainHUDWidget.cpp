@@ -10,6 +10,7 @@
 #include "BuffListWidget.h"
 #include "PlayerStatusWidget.h"
 #include "Characters/Player/Components/PlayerStatComponent.h"
+#include "PlayerEquipmentComponent.h"
 
 #include "RACharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -47,8 +48,9 @@ void UMainHUDWidget::NativeConstruct()
 
 	if (CachedPlayerCharacter && CurrentWeaponWidget)
 	{
+		const UPlayerEquipmentComponent* PlayerEquipmentComponent = CachedPlayerCharacter->GetPlayerEquipmentComponent();
 		CurrentWeaponWidget->UpdateWeaponIcon(
-			CachedPlayerCharacter->GetCurrentWeaponType()
+			PlayerEquipmentComponent ? PlayerEquipmentComponent->GetCurrentWeaponType() : EWeaponType::None
 		);
 	}
 

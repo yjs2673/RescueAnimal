@@ -2,6 +2,7 @@
 
 #include "InventoryComponent.h"
 #include "Characters/Player/Components/PlayerStatComponent.h"
+#include "PlayerEquipmentComponent.h"
 #include "QuickSlotComponent.h"
 #include "RACharacter.h"
 
@@ -147,7 +148,15 @@ void URAGameInstance::SavePlayerRuntimeData(ARACharacter* PlayerCharacter)
 		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: InventoryComponent is missing during save."));
 	}
 
-	PlayerRuntimeData.EquippedWeaponID = PlayerCharacter->GetCurrentWeaponItemID();
+	if (const UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent())
+	{
+		PlayerRuntimeData.EquippedWeaponID = PlayerEquipmentComponent->GetCurrentWeaponItemID();
+	}
+	else
+	{
+		PlayerRuntimeData.EquippedWeaponID = NAME_None;
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: PlayerEquipmentComponent is missing during save."));
+	}
 	PlayerRuntimeData.QuickSlotItemIDs.Reset();
 
 	if (const UQuickSlotComponent* QuickSlotComponent = PlayerCharacter->GetQuickSlotComponent())
@@ -250,7 +259,8 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 			}
 		}
 
-		if (!PlayerCharacter->EquipWeaponFromInventory(PlayerRuntimeData.EquippedWeaponID))
+		UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent();
+		if (!PlayerEquipmentComponent || !PlayerEquipmentComponent->EquipWeaponFromInventory(PlayerRuntimeData.EquippedWeaponID))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: Failed to restore equipped weapon. WeaponID=%s"),
 				*PlayerRuntimeData.EquippedWeaponID.ToString());
@@ -258,7 +268,10 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 	}
 	else
 	{
-		PlayerCharacter->OnWeaponChanged.Broadcast(PlayerCharacter->GetCurrentWeaponType());
+		const UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent();
+		PlayerCharacter->OnWeaponChanged.Broadcast(
+			PlayerEquipmentComponent ? PlayerEquipmentComponent->GetCurrentWeaponType() : EWeaponType::None
+		);
 	}
 }
 

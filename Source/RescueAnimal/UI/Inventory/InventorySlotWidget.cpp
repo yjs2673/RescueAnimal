@@ -1,4 +1,6 @@
 #include "InventorySlotWidget.h"
+
+#include "PlayerInteractionComponent.h"
 #include "ItemTooltipWidget.h"
 #include "ItemDragDropOperation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
@@ -200,7 +202,8 @@ bool UInventorySlotWidget::UseSlotItem()
 	if (!PlayerCharacter)
 		return false;
 
-	return PlayerCharacter->UseInventoryItem(ItemID);
+	UPlayerInteractionComponent* PlayerInteractionComponent = PlayerCharacter->GetPlayerInteractionComponent();
+	return PlayerInteractionComponent && PlayerInteractionComponent->UseInventoryItem(ItemID);
 }
 bool UInventorySlotWidget::TryUseItemOnDoubleClick()
 {

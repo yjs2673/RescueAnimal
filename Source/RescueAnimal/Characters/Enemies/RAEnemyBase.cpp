@@ -75,9 +75,12 @@ float ARAEnemyBase::TakeDamage(
 	const float AppliedDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (AppliedDamage > 0.f && !bIsDead)
 	{
-		if (ARACharacter* PlayerCharacter = ResolvePlayerFromDamage(EventInstigator, DamageCauser))
+		ARACharacter* PlayerCharacter = EnemyAIComponent
+			? EnemyAIComponent->ResolvePlayerFromDamage(EventInstigator, DamageCauser)
+			: nullptr;
+		if (PlayerCharacter)
 		{
-			SetTargetActor(PlayerCharacter);
+			EnemyAIComponent->SetTargetActor(PlayerCharacter);
 			UE_LOG(LogTemp, Warning, TEXT("[%s] Aggroed by damage from %s"), *GetName(), *PlayerCharacter->GetName());
 		}
 	}
@@ -89,7 +92,11 @@ void ARAEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	EquipDefaultWeapon();
+	if (EnemyEquipmentComponent)
+	{
+		EnemyEquipmentComponent->EquipDefaultWeapon();
+	}
+
 	UpdateHPBar();
 }
 
@@ -130,265 +137,6 @@ void ARAEnemyBase::OnDetectionSphereEndOverlap(
 	}
 }
 
-void ARAEnemyBase::UpdateChase()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->UpdateChase();
-	}
-}
-
-void ARAEnemyBase::UpdateBowSpacing()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->UpdateBowSpacing();
-	}
-}
-
-void ARAEnemyBase::SetTargetActor(AActor* NewTarget)
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->SetTargetActor(NewTarget);
-	}
-}
-
-void ARAEnemyBase::ClearTargetActor()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->ClearTargetActor();
-	}
-}
-
-bool ARAEnemyBase::HasValidTarget() const
-{
-	return EnemyAIComponent && EnemyAIComponent->HasValidTarget();
-}
-
-bool ARAEnemyBase::CanAttack() const
-{
-	return EnemyCombatComponent && EnemyCombatComponent->CanAttack();
-}
-
-void ARAEnemyBase::SetCampPatrolArea(const FVector& InCenter, float InRadius)
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->SetCampPatrolArea(InCenter, InRadius);
-	}
-}
-
-void ARAEnemyBase::ClearCampPatrolArea()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->ClearCampPatrolArea();
-	}
-}
-
-void ARAEnemyBase::UpdateCampWander()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->UpdateCampWander();
-	}
-}
-
-void ARAEnemyBase::MoveToRandomCampLocation()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->MoveToRandomCampLocation();
-	}
-}
-
-bool ARAEnemyBase::IsValidCombatTarget(const AActor* InTargetActor) const
-{
-	return EnemyAIComponent && EnemyAIComponent->IsValidCombatTarget(InTargetActor);
-}
-
-ARACharacter* ARAEnemyBase::ResolvePlayerFromDamage(AController* EventInstigator, AActor* DamageCauser) const
-{
-	return EnemyAIComponent ? EnemyAIComponent->ResolvePlayerFromDamage(EventInstigator, DamageCauser) : nullptr;
-}
-
-float ARAEnemyBase::GetAttackStartRange() const
-{
-	return EnemyAIComponent ? EnemyAIComponent->GetAttackStartRange() : 0.f;
-}
-
-float ARAEnemyBase::GetAttackHitRange() const
-{
-	return EnemyAIComponent ? EnemyAIComponent->GetAttackHitRange() : 0.f;
-}
-
-float ARAEnemyBase::GetChaseAcceptanceRadius() const
-{
-	return EnemyAIComponent ? EnemyAIComponent->GetChaseAcceptanceRadius() : 10.f;
-}
-
-void ARAEnemyBase::UpdateMovementStuckCheck(float DeltaTime)
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->UpdateMovementStuckCheck(DeltaTime);
-	}
-}
-
-void ARAEnemyBase::HandleMovementStuck()
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->HandleMovementStuck();
-	}
-}
-
-bool ARAEnemyBase::TryMoveToStrafeLocationAroundTarget()
-{
-	return EnemyAIComponent && EnemyAIComponent->TryMoveToStrafeLocationAroundTarget();
-}
-
-void ARAEnemyBase::ApplySeparationFromNearbyEnemies(float DeltaTime)
-{
-	if (EnemyAIComponent)
-	{
-		EnemyAIComponent->ApplySeparationFromNearbyEnemies(DeltaTime);
-	}
-}
-
-void ARAEnemyBase::UpdateAttack()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->UpdateAttack();
-	}
-}
-
-void ARAEnemyBase::EquipDefaultWeapon()
-{
-	if (EnemyEquipmentComponent)
-	{
-		EnemyEquipmentComponent->EquipDefaultWeapon();
-	}
-}
-
-void ARAEnemyBase::EquipWeapon(AWeaponBase* NewWeapon)
-{
-	if (EnemyEquipmentComponent)
-	{
-		EnemyEquipmentComponent->EquipWeapon(NewWeapon);
-	}
-}
-
-void ARAEnemyBase::SyncCombatDataFromWeapon()
-{
-	if (EnemyEquipmentComponent)
-	{
-		EnemyEquipmentComponent->SyncCombatDataFromWeapon();
-	}
-}
-
-void ARAEnemyBase::PerformAttack()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PerformAttack();
-	}
-}
-
-void ARAEnemyBase::PerformPunchAttack()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PerformPunchAttack();
-	}
-}
-
-void ARAEnemyBase::PerformSwordAttack()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PerformSwordAttack();
-	}
-}
-
-void ARAEnemyBase::PerformBowAttack()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PerformBowAttack();
-	}
-}
-
-bool ARAEnemyBase::PlayAttackMontage(UAnimMontage* MontageToPlay)
-{
-	return EnemyCombatComponent && EnemyCombatComponent->PlayAttackMontage(MontageToPlay);
-}
-
-void ARAEnemyBase::ScheduleAttackEnd(float Delay)
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->ScheduleAttackEnd(Delay);
-	}
-}
-
-void ARAEnemyBase::ReleaseBowChargeAtTarget()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->ReleaseBowChargeAtTarget();
-	}
-}
-
-void ARAEnemyBase::PlayBowWeaponMontageSection(FName SectionName)
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PlayBowWeaponMontageSection(SectionName);
-	}
-}
-
-void ARAEnemyBase::FaceTargetActor()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->FaceTargetActor();
-	}
-}
-
-void ARAEnemyBase::SetAttackMovementLocked(bool bLocked)
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->SetAttackMovementLocked(bLocked);
-	}
-}
-
-void ARAEnemyBase::PlayMeleeHitEffects(const FVector& HitLocation)
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->PlayMeleeHitEffects(HitLocation);
-	}
-}
-
-void ARAEnemyBase::SpawnHitVFX(
-	UNiagaraSystem* NiagaraSystem,
-	const FVector& SpawnLocation,
-	const FRotator& SpawnRotation,
-	const FLinearColor& Color,
-	float Scale,
-	float Lifetime)
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->SpawnHitVFX(NiagaraSystem, SpawnLocation, SpawnRotation, Color, Scale, Lifetime);
-	}
-}
-
 void ARAEnemyBase::EndAttack()
 {
 	if (EnemyCombatComponent)
@@ -410,14 +158,6 @@ void ARAEnemyBase::TriggerMeleeHit()
 	if (EnemyCombatComponent)
 	{
 		EnemyCombatComponent->TriggerMeleeHit();
-	}
-}
-
-void ARAEnemyBase::FireArrowAtTarget()
-{
-	if (EnemyCombatComponent)
-	{
-		EnemyCombatComponent->FireArrowAtTarget();
 	}
 }
 
@@ -465,8 +205,11 @@ void ARAEnemyBase::UpdateHPBarVisibility()
 
 void ARAEnemyBase::Die()
 {
-	GrantEXPToKiller();
-	SpawnDropItems();
+	if (EnemyRewardComponent)
+	{
+		EnemyRewardComponent->GrantEXPToKiller();
+		EnemyRewardComponent->SpawnDropItems();
+	}
 
 #pragma region Runtime World State
 	for (TActorIterator<ARAWorldStateManager> It(GetWorld()); It; ++It)
@@ -477,20 +220,4 @@ void ARAEnemyBase::Die()
 #pragma endregion Runtime World State
 
 	Super::Die();
-}
-
-void ARAEnemyBase::GrantEXPToKiller()
-{
-	if (EnemyRewardComponent)
-	{
-		EnemyRewardComponent->GrantEXPToKiller();
-	}
-}
-
-void ARAEnemyBase::SpawnDropItems()
-{
-	if (EnemyRewardComponent)
-	{
-		EnemyRewardComponent->SpawnDropItems();
-	}
 }

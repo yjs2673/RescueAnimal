@@ -1,6 +1,7 @@
 #include "AnimalPresentationComponent.h"
 
 #include "AnimalBase.h"
+#include "AnimalStateComponent.h"
 #include "UI/Enemy/EnemyHPBarWidget.h"
 
 #include "AIController.h"
@@ -133,7 +134,10 @@ void UAnimalPresentationComponent::PlayAnimalDeathVisual()
 
 	Animal->bAnimalDeathVisualPlayed = true;
 
-	Animal->SetAnimalState(EAnimalState::Dead);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(EAnimalState::Dead);
+	}
 
 	Animal->GetWorldTimerManager().ClearTimer(Animal->WanderTimerHandle);
 	Animal->GetWorldTimerManager().ClearTimer(Animal->FleeTimerHandle);

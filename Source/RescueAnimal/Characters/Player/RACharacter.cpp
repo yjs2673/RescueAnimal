@@ -5,7 +5,6 @@
 #include "LobbyNPC.h"
 #include "WeaponBase.h"
 #include "ArrowProjectile.h"
-#include "AnimalBase.h"
 #include "RAEnemyBase.h"
 
 #include "Engine/LocalPlayer.h"
@@ -34,7 +33,6 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputActionValue.h"
 #include "InputAction.h"
 
 #include "Blueprint/UserWidget.h"
@@ -249,8 +247,10 @@ void ARACharacter::BeginPlay()
 	if (!bShouldLoadPlayerRuntimeData && StarterWeaponClass)
 	{
 		AWeaponBase* SpawnedWeapon = GetWorld()->SpawnActor<AWeaponBase>(StarterWeaponClass);
-		if (SpawnedWeapon)
-			EquipWeapon(SpawnedWeapon);
+		if (SpawnedWeapon && PlayerEquipmentComponent)
+		{
+			PlayerEquipmentComponent->EquipWeapon(SpawnedWeapon);
+		}
 	}
 
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetController()))
@@ -333,80 +333,6 @@ void ARACharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 
 }
 
 #pragma region Base Action Func
-void ARACharacter::StartJump()
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->StartJump();
-	}
-}
-void ARACharacter::Move(const FInputActionValue& Value)
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->Move(Value);
-	}
-}
-
-void ARACharacter::Look(const FInputActionValue& Value)
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->Look(Value);
-	}
-}
-
-void ARACharacter::Interact()
-{
-	if (PlayerInteractionComponent)
-	{
-		PlayerInteractionComponent->Interact();
-	}
-}
-
-bool ARACharacter::TryRescueNearbyAnimal()
-{
-	return PlayerInteractionComponent && PlayerInteractionComponent->TryRescueNearbyAnimal();
-}
-
-AAnimalBase* ARACharacter::FindNearbyRescueAnimal() const
-{
-	return PlayerInteractionComponent ? PlayerInteractionComponent->FindNearbyRescueAnimal() : nullptr;
-}
-
-bool ARACharacter::IsRescueKitEquipped() const
-{
-	return PlayerInteractionComponent && PlayerInteractionComponent->IsRescueKitEquipped();
-}
-
-void ARACharacter::UseQuickSlotItem(int32 SlotIndex)
-{
-	if (PlayerInteractionComponent)
-	{
-		PlayerInteractionComponent->UseQuickSlotItem(SlotIndex);
-	}
-}
-
-bool ARACharacter::UseInventoryItem(FName ItemID)
-{
-	return PlayerInteractionComponent && PlayerInteractionComponent->UseInventoryItem(ItemID);
-}
-
-bool ARACharacter::UseConsumableItem(FName ItemID)
-{
-	return PlayerInteractionComponent && PlayerInteractionComponent->UseConsumableItem(ItemID);
-}
-
-bool ARACharacter::UnequipCurrentWeaponToInventory()
-{
-	return PlayerEquipmentComponent && PlayerEquipmentComponent->UnequipCurrentWeaponToInventory();
-}
-
-bool ARACharacter::EquipWeaponFromInventory(FName ItemID)
-{
-	return PlayerEquipmentComponent && PlayerEquipmentComponent->EquipWeaponFromInventory(ItemID);
-}
-
 void ARACharacter::ApplyMovementStats()
 {
 	if (PlayerMovementComponent)
@@ -414,83 +340,9 @@ void ARACharacter::ApplyMovementStats()
 		PlayerMovementComponent->ApplyMovementStats();
 	}
 }
-bool ARACharacter::CanDodge() const
-{
-	return PlayerMovementComponent && PlayerMovementComponent->CanDodge();
-}
-
-void ARACharacter::Dodge()
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->Dodge();
-	}
-}
-
-void ARACharacter::UpdateDodgeMovement(float DeltaTime)
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->UpdateDodgeMovement(DeltaTime);
-	}
-}
-
-void ARACharacter::EndDodge()
-{
-	if (PlayerMovementComponent)
-	{
-		PlayerMovementComponent->EndDodge();
-	}
-}
 #pragma endregion Base Action Func
 
 #pragma region Equip Func
-void ARACharacter::HandleWeaponInteract()
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->HandleWeaponInteract();
-	}
-}
-void ARACharacter::EquipWeapon(AWeaponBase* NewWeapon)
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->EquipWeapon(NewWeapon);
-	}
-}
-
-void ARACharacter::UnequipWeapon()
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->UnequipWeapon();
-	}
-}
-
-void ARACharacter::DropCurrentWeapon()
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->DropCurrentWeapon();
-	}
-}
-
-void ARACharacter::SetNearbyWeapon(AWeaponBase* NewWeapon)
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->SetNearbyWeapon(NewWeapon);
-	}
-}
-
-void ARACharacter::ClearNearbyWeapon(AWeaponBase* WeaponToClear)
-{
-	if (PlayerEquipmentComponent)
-	{
-		PlayerEquipmentComponent->ClearNearbyWeapon(WeaponToClear);
-	}
-}
 #pragma endregion Equip Func
 
 #pragma region Base Combat Func
@@ -675,46 +527,6 @@ void ARACharacter::EndBowAim()
 	}
 }
 
-bool ARACharacter::CanPrepareBowSkill() const
-{
-	return PlayerCombatComponent && PlayerCombatComponent->CanPrepareBowSkill();
-}
-
-void ARACharacter::SetBowPreviewArrowStaticMesh(UStaticMesh* NewPreviewArrowStaticMesh)
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->SetBowPreviewArrowStaticMesh(NewPreviewArrowStaticMesh);
-	}
-}
-
-void ARACharacter::ResetBowPreviewArrowStaticMesh()
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->ResetBowPreviewArrowStaticMesh();
-	}
-}
-
-void ARACharacter::SetBowPreviewArrowVFX(
-	UNiagaraSystem* NewPreviewArrowVFX,
-	FVector RelativeLocation,
-	FRotator RelativeRotation,
-	FVector RelativeScale)
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->SetBowPreviewArrowVFX(NewPreviewArrowVFX, RelativeLocation, RelativeRotation, RelativeScale);
-	}
-}
-
-void ARACharacter::ClearBowPreviewArrowVFX()
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->ClearBowPreviewArrowVFX();
-	}
-}
 #pragma	endregion Bow Attack Func
 
 #pragma region Anim Montage Func
@@ -837,47 +649,6 @@ void ARACharacter::StopHitMontage()
 	CurrentHitMontage = nullptr;
 }
 #pragma endregion Anim Montage Func
-
-#pragma region Delicate Func
-EWeaponType ARACharacter::GetCurrentWeaponType() const
-{
-	return PlayerEquipmentComponent ? PlayerEquipmentComponent->GetCurrentWeaponType() : EWeaponType::None;
-}
-
-FName ARACharacter::GetCurrentWeaponItemID() const
-{
-	return PlayerEquipmentComponent ? PlayerEquipmentComponent->GetCurrentWeaponItemID() : NAME_None;
-}
-#pragma endregion Delicate Func
-
-bool ARACharacter::CanStartSkillAction(bool bAllowBowAiming) const
-{
-	return PlayerCombatComponent && PlayerCombatComponent->CanStartSkillAction(bAllowBowAiming);
-}
-
-void ARACharacter::BeginSkillAction()
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->BeginSkillAction();
-	}
-}
-
-void ARACharacter::EndSkillAction()
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->EndSkillAction();
-	}
-}
-
-void ARACharacter::FaceSkillDirection()
-{
-	if (PlayerCombatComponent)
-	{
-		PlayerCombatComponent->FaceSkillDirection();
-	}
-}
 
 #pragma region Runtime Data Func
 void ARACharacter::SaveRuntimeDataToGameInstance()

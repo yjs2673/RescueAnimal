@@ -1,6 +1,8 @@
 #include "AnimalStateComponent.h"
 
 #include "AnimalBase.h"
+#include "AnimalAIComponent.h"
+#include "AnimalPresentationComponent.h"
 
 #include "Engine/DataTable.h"
 
@@ -99,15 +101,24 @@ void UAnimalStateComponent::HandleDamageTaken(float ActualDamage, AActor* Damage
 		return;
 	}
 
-	Animal->UpdateHPBar();
-	Animal->ShowHPBar();
+	if (UAnimalPresentationComponent* AnimalPresentationComponent = Animal->GetAnimalPresentationComponent())
+	{
+		AnimalPresentationComponent->UpdateHPBar();
+		AnimalPresentationComponent->ShowHPBar();
+	}
 
 	if (Animal->CurrentHP <= 0.0f)
 	{
-		Animal->PlayAnimalDeathVisual();
+		if (UAnimalPresentationComponent* AnimalPresentationComponent = Animal->GetAnimalPresentationComponent())
+		{
+			AnimalPresentationComponent->PlayAnimalDeathVisual();
+		}
 	}
 	else
 	{
-		Animal->StartFlee(DamageCauser);
+		if (UAnimalAIComponent* AnimalAIComponent = Animal->GetAnimalAIComponent())
+		{
+			AnimalAIComponent->StartFlee(DamageCauser);
+		}
 	}
 }

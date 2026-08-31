@@ -1,6 +1,9 @@
 #include "AnimalRescueComponent.h"
 
+#include "AnimalAIComponent.h"
 #include "AnimalBase.h"
+#include "AnimalPresentationComponent.h"
+#include "AnimalStateComponent.h"
 #include "EnemyCampActor.h"
 #include "RAGameInstance.h"
 #include "RAWorldStateManager.h"
@@ -109,12 +112,18 @@ void UAnimalRescueComponent::ApplyTrappedState()
 	}
 
 	Animal->bHasBeenRescued = false;
-	Animal->SetAnimalState(EAnimalState::Trapped);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(EAnimalState::Trapped);
+	}
 
 	Animal->GetWorldTimerManager().ClearTimer(Animal->WanderTimerHandle);
 	Animal->GetWorldTimerManager().ClearTimer(Animal->FleeTimerHandle);
 
-	Animal->StopMovement();
+	if (UAnimalAIComponent* AnimalAIComponent = Animal->GetAnimalAIComponent())
+	{
+		AnimalAIComponent->StopMovement();
+	}
 
 	if (Animal->GetCharacterMovement())
 	{
@@ -128,7 +137,10 @@ void UAnimalRescueComponent::ApplyTrappedState()
 		Animal->CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
 
-	Animal->HideSaveWidget();
+	if (UAnimalPresentationComponent* AnimalPresentationComponent = Animal->GetAnimalPresentationComponent())
+	{
+		AnimalPresentationComponent->HideSaveWidget();
+	}
 }
 
 void UAnimalRescueComponent::ApplyRescuedState()
@@ -140,7 +152,10 @@ void UAnimalRescueComponent::ApplyRescuedState()
 	}
 
 	Animal->bHasBeenRescued = true;
-	Animal->SetAnimalState(EAnimalState::Rescued);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(EAnimalState::Rescued);
+	}
 
 	if (Animal->CageDisappearEffect)
 	{
@@ -173,8 +188,15 @@ void UAnimalRescueComponent::ApplyRescuedState()
 		Animal->GetCharacterMovement()->MaxWalkSpeed = Animal->WanderSpeed;
 	}
 
-	Animal->ShowSaveWidget();
-	Animal->StartWander();
+	if (UAnimalPresentationComponent* AnimalPresentationComponent = Animal->GetAnimalPresentationComponent())
+	{
+		AnimalPresentationComponent->ShowSaveWidget();
+	}
+
+	if (UAnimalAIComponent* AnimalAIComponent = Animal->GetAnimalAIComponent())
+	{
+		AnimalAIComponent->StartWander();
+	}
 }
 
 void UAnimalRescueComponent::ApplyRuntimeRescuedState()
@@ -187,7 +209,10 @@ void UAnimalRescueComponent::ApplyRuntimeRescuedState()
 
 	Animal->bStartTrapped = false;
 	Animal->bHasBeenRescued = true;
-	Animal->SetAnimalState(EAnimalState::Rescued);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(EAnimalState::Rescued);
+	}
 
 	Animal->GetWorldTimerManager().ClearTimer(Animal->WanderTimerHandle);
 	Animal->GetWorldTimerManager().ClearTimer(Animal->FleeTimerHandle);
@@ -200,7 +225,10 @@ void UAnimalRescueComponent::ApplyRuntimeRescuedState()
 		Animal->CageMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	Animal->HideSaveWidget();
+	if (UAnimalPresentationComponent* AnimalPresentationComponent = Animal->GetAnimalPresentationComponent())
+	{
+		AnimalPresentationComponent->HideSaveWidget();
+	}
 
 	if (Animal->GetCharacterMovement())
 	{
@@ -208,5 +236,8 @@ void UAnimalRescueComponent::ApplyRuntimeRescuedState()
 		Animal->GetCharacterMovement()->MaxWalkSpeed = Animal->WanderSpeed;
 	}
 
-	Animal->StartWander();
+	if (UAnimalAIComponent* AnimalAIComponent = Animal->GetAnimalAIComponent())
+	{
+		AnimalAIComponent->StartWander();
+	}
 }

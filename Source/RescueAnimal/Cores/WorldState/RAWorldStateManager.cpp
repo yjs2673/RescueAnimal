@@ -3,6 +3,7 @@
 #include "DropItemActor.h"
 #include "RAEnemyBase.h"
 #include "AnimalBase.h"
+#include "AnimalRescueComponent.h"
 #include "RAGameInstance.h"
 #include "RAPlayerController.h"
 
@@ -104,7 +105,10 @@ void ARAWorldStateManager::ApplySavedWorldState()
 #pragma region Runtime Animal Restore
 		if (RAGameInstance->IsAnimalRescued(MapID, AnimalSaveID))
 		{
-			Animal->ApplyRuntimeRescuedState();
+			if (UAnimalRescueComponent* AnimalRescueComponent = Animal->GetAnimalRescueComponent())
+			{
+				AnimalRescueComponent->ApplyRuntimeRescuedState();
+			}
 			continue;
 		}
 #pragma endregion Runtime Animal Restore
