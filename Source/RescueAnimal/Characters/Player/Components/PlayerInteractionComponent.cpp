@@ -2,6 +2,7 @@
 
 #include "RACharacter.h"
 #include "AnimalBase.h"
+#include "AnimalRescueComponent.h"
 #include "InventoryComponent.h"
 #include "LobbyNPC.h"
 #include "PlayerEquipmentComponent.h"
@@ -81,13 +82,14 @@ bool UPlayerInteractionComponent::TryRescueNearbyAnimal()
 		return true;
 	}
 
-	if (!RescueAnimal->CanBeRescued())
+	UAnimalRescueComponent* AnimalRescueComponent = RescueAnimal->GetAnimalRescueComponent();
+	if (!AnimalRescueComponent || !AnimalRescueComponent->CanBeRescued())
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescue failed: camp is not cleared or animal is not trapped."));
 		return true;
 	}
 
-	if (!RescueAnimal->Rescue())
+	if (!AnimalRescueComponent->Rescue())
 	{
 		UE_LOG(LogTemplateCharacter, Warning, TEXT("Animal rescue failed: Rescue() returned false."));
 		return true;
@@ -169,7 +171,11 @@ bool UPlayerInteractionComponent::UseInventoryItem(FName ItemID)
 	case EItemType::Consumable:
 		return UseConsumableItem(ItemID);
 	case EItemType::Weapon:
-		return Character->PlayerEquipmentComponent && Character->PlayerEquipmentComponent->EquipWeaponFromInventory(ItemID);
+		if (UPlayerEquipmentComponent* PlayerEquipmentComponent = Character->GetPlayerEquipmentComponent())
+		{
+			return PlayerEquipmentComponent->EquipWeaponFromInventory(ItemID);
+		}
+		return false;
 	default:
 		return false;
 	}

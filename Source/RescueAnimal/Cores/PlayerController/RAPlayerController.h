@@ -37,69 +37,14 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
-public:
-	UFUNCTION()
-	void ToggleInventory();
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerUIFlowComponent* GetPlayerUIFlowComponent() const { return PlayerUIFlowComponent.Get(); }
 
-	UFUNCTION()
-	void OpenInventory();
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UGameProgressUIComponent* GetGameProgressUIComponent() const { return GameProgressUIComponent.Get(); }
 
-	UFUNCTION()
-	void CloseInventory();
-
-	UFUNCTION()
-	void ToggleAnimalCollection();
-
-	UFUNCTION()
-	void OpenAnimalCollection();
-
-	UFUNCTION()
-	void CloseAnimalCollection();
-
-	UMainHUDWidget* GetMainHUDWidget() const { return MainHUDWidget; }
-	bool IsInventoryOpen() const { return bIsInventoryOpen; }
-
-	UFUNCTION()
-	void OpenShop(AShopActor* ShopActor);
-
-	UFUNCTION()
-	void CloseShop();
-
-	UFUNCTION()
-	void CloseUI();
-
-	UFUNCTION()
-	void ToggleSetting();
-
-	UFUNCTION()
-	void OpenSetting();
-
-	UFUNCTION()
-	void CloseSetting();
-
-	bool IsShopOpen() const { return bIsShopOpen; }
-	bool IsAnimalCollectionOpen() const { return bIsAnimalCollectionOpen; }
-	void HideMainHUD();
-	void ShowMainHUD();
-	void SetPortalTransitionInputLocked(bool bLocked);
-	bool IsPortalTransitionInputLocked() const { return bIsPortalTransitionInputLocked || bIsSettingOpen; }
-
-	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
-	void TravelToLevelWithFade(FName TargetLevelName, float FadeOutDuration = -1.0f);
-
-	UFUNCTION(BlueprintCallable, Category = "Game Flow|Transition")
-	void ReturnToTitleWithFade();
-
-	UFUNCTION(BlueprintCallable, Category = "Game Flow")
-	void QuitGame();
-
-#pragma region Game Progress Message
-	UFUNCTION(BlueprintCallable, Category = "Game Progress")
-	void ShowFieldClearMessage(FName MapID);
-
-	UFUNCTION(BlueprintCallable, Category = "Game Progress")
-	void ShowGameOverMessage();
-#pragma endregion Game Progress Message
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE ULevelTransitionComponent* GetLevelTransitionComponent() const { return LevelTransitionComponent.Get(); }
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Map Progress")
 	TSubclassOf<UMapProgressWidget> MapProgressWidgetClass;
@@ -222,39 +167,4 @@ private:
 	bool bRemoveViewportFadeOverlayWhenFinished = false;
 
 private:
-	UFUNCTION()
-	void HandleInventoryButtonClicked();
-
-	UFUNCTION()
-	void HandleSettingButtonClicked();
-
-	UFUNCTION()
-	void HandleInventoryCloseRequested();
-
-	UFUNCTION()
-	void HandleSettingCloseRequested();
-
-	UFUNCTION()
-	void HandleAnimalCollectionCloseRequested();
-
-	void SetGameInputMode();
-	void SetUIInputMode();
-	void SetSettingInputMode();
-	void SetMenuInputMode();
-	void InitializeMouseCursor();
-	void SetMouseCursorType(EMouseCursor::Type NewMouseCursor);
-	void StartLevelFadeIn();
-	void PlayLevelFadeIn();
-	void FinishLevelFadeIn();
-	void OpenPendingFadeTravelLevel();
-	void StartViewportFadeOverlay(float FromOpacity, float ToOpacity, float Duration, bool bRemoveWhenFinished);
-	void TickViewportFadeOverlay();
-	void EnsureViewportFadeOverlay(float InitialOpacity);
-	void SetViewportFadeOverlayOpacity(float Opacity);
-	void RemoveViewportFadeOverlay();
-	void TryCreateMapProgressWidget();
-	void TryCreateGameFlowMenuWidget();
-	bool IsTitleLevelName(const FString& LevelName) const;
-	bool IsEndingLevelName(const FString& LevelName) const;
-	bool IsGameFlowMenuLevel() const;
 };

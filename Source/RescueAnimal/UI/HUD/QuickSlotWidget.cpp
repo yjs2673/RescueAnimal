@@ -1,5 +1,6 @@
 #include "QuickSlotWidget.h"
 #include "QuickSlotComponent.h"
+#include "PlayerInteractionComponent.h"
 #include "ItemDragDropOperation.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
@@ -22,7 +23,10 @@ FReply UQuickSlotWidget::NativeOnMouseButtonDown(
 	{
 		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(GetOwningPlayerPawn()))
 		{
-			PlayerCharacter->UseInventoryItem(ItemID);
+			if (UPlayerInteractionComponent* PlayerInteractionComponent = PlayerCharacter->GetPlayerInteractionComponent())
+			{
+				PlayerInteractionComponent->UseInventoryItem(ItemID);
+			}
 		}
 
 		return FReply::Handled();

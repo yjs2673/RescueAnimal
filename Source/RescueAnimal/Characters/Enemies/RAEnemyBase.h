@@ -52,6 +52,18 @@ public:
 		AActor* DamageCauser
 	) override;
 
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UEnemyAIComponent* GetEnemyAIComponent() const { return EnemyAIComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UEnemyCombatComponent* GetEnemyCombatComponent() const { return EnemyCombatComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UEnemyEquipmentComponent* GetEnemyEquipmentComponent() const { return EnemyEquipmentComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UEnemyRewardComponent* GetEnemyRewardComponent() const { return EnemyRewardComponent; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -172,28 +184,6 @@ protected:
 		int32 OtherBodyIndex
 	);
 
-	virtual void UpdateChase();
-	virtual void UpdateBowSpacing();
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Enemy|Target")
-	virtual void SetTargetActor(AActor* NewTarget);
-
-	UFUNCTION(BlueprintCallable, Category = "Enemy|Target")
-	virtual void ClearTargetActor();
-
-	UFUNCTION(BlueprintPure, Category = "Enemy|Target")
-	virtual bool HasValidTarget() const;
-
-	UFUNCTION(BlueprintPure, Category = "Enemy|Combat")
-	virtual bool CanAttack() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Enemy|Camp")
-	void SetCampPatrolArea(const FVector& InCenter, float InRadius);
-
-	UFUNCTION(BlueprintCallable, Category = "Enemy|Camp")
-	void ClearCampPatrolArea();
-
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float LastAttackTime = -1000.f;
@@ -219,42 +209,6 @@ protected:
 
 	float LastCampWanderTime = -1000.0f;
 
-	virtual void UpdateCampWander();
-	virtual void MoveToRandomCampLocation();
-
-	virtual void UpdateAttack();
-	virtual bool IsValidCombatTarget(const AActor* InTargetActor) const;
-	virtual ARACharacter* ResolvePlayerFromDamage(AController* EventInstigator, AActor* DamageCauser) const;
-	virtual float GetAttackStartRange() const;
-	virtual float GetAttackHitRange() const;
-	virtual float GetChaseAcceptanceRadius() const;
-	virtual void UpdateMovementStuckCheck(float DeltaTime);
-	virtual void HandleMovementStuck();
-	virtual bool TryMoveToStrafeLocationAroundTarget();
-	virtual void ApplySeparationFromNearbyEnemies(float DeltaTime);
-	virtual void EquipDefaultWeapon();
-	virtual void EquipWeapon(AWeaponBase* NewWeapon);
-	virtual void SyncCombatDataFromWeapon();
-	virtual void PerformAttack();
-	virtual void PerformPunchAttack();
-	virtual void PerformSwordAttack();
-	virtual void PerformBowAttack();
-	virtual bool PlayAttackMontage(UAnimMontage* MontageToPlay);
-	virtual void ScheduleAttackEnd(float Delay);
-	virtual void ReleaseBowChargeAtTarget();
-	virtual void PlayBowWeaponMontageSection(FName SectionName);
-	virtual void FaceTargetActor();
-	virtual void SetAttackMovementLocked(bool bLocked);
-	virtual void PlayMeleeHitEffects(const FVector& HitLocation);
-	virtual void SpawnHitVFX(
-		UNiagaraSystem* NiagaraSystem,
-		const FVector& SpawnLocation,
-		const FRotator& SpawnRotation,
-		const FLinearColor& Color,
-		float Scale,
-		float Lifetime
-	);
-
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void EndAttack();
 
@@ -262,17 +216,13 @@ protected:
 	virtual void UpdateHPBarVisibility();
 
 	virtual void Die() override;
-	virtual void GrantEXPToKiller();
-	virtual void SpawnDropItems();
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void ApplyDamageToTarget();
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
 	virtual void TriggerMeleeHit();
-
-	UFUNCTION(BlueprintCallable, Category = "Enemy|Combat")
-	virtual void FireArrowAtTarget();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Animation")

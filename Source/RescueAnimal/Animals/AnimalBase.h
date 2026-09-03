@@ -9,8 +9,6 @@
 class UDataTable;
 class UWidgetComponent;
 class UEnemyHPBarWidget;
-class AAIController;
-class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 class UNiagaraSystem;
 class USoundBase;
@@ -39,28 +37,29 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
     bool Rescue();
 
-#pragma region Runtime World State
-    UFUNCTION(BlueprintCallable, Category = "World State")
-    void ApplyRuntimeRescuedState();
-#pragma endregion Runtime World State
-
     UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
     bool IsTrapped() const { return AnimalState == EAnimalState::Trapped; }
 
     UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
     bool IsRescued() const { return bHasBeenRescued; }
 
-    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
-    void SetOwningCamp(AEnemyCampActor* InCamp);
-
     UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
     AEnemyCampActor* GetOwningCamp() const { return OwningCamp; }
 
-    UFUNCTION(BlueprintPure, Category = "Animal|Rescue")
-    bool CanBeRescued() const;
-
     UPROPERTY(BlueprintAssignable, Category = "Animal|Rescue")
     FOnAnimalRescued OnAnimalRescued;
+
+    UFUNCTION(BlueprintPure, Category = "Components")
+    FORCEINLINE UAnimalAIComponent* GetAnimalAIComponent() const { return AnimalAIComponent; }
+
+    UFUNCTION(BlueprintPure, Category = "Components")
+    FORCEINLINE UAnimalPresentationComponent* GetAnimalPresentationComponent() const { return AnimalPresentationComponent; }
+
+    UFUNCTION(BlueprintPure, Category = "Components")
+    FORCEINLINE UAnimalRescueComponent* GetAnimalRescueComponent() const { return AnimalRescueComponent; }
+
+    UFUNCTION(BlueprintPure, Category = "Components")
+    FORCEINLINE UAnimalStateComponent* GetAnimalStateComponent() const { return AnimalStateComponent; }
 
 protected:
     virtual void BeginPlay() override;
@@ -120,18 +119,6 @@ protected: // Components
     TObjectPtr<UAnimalStateComponent> AnimalStateComponent;
 
 protected:
-    UFUNCTION(BlueprintCallable, Category = "Animal|Data")
-    void InitAnimalData();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|State")
-    void SetAnimalState(EAnimalState NewState);
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
-    void ApplyTrappedState();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
-    void ApplyRescuedState();
-
     UFUNCTION(BlueprintImplementableEvent, Category = "Animal|Rescue")
     void BP_OnRescued();
 
@@ -156,12 +143,6 @@ protected: // Rescue Visual
 
     FTimerHandle SaveWidgetHideTimerHandle;
 
-    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
-    void ShowSaveWidget();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|Rescue")
-    void HideSaveWidget();
-
 protected: // HP Bar
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animal|UI")
     UWidgetComponent* HPWidgetComponent;
@@ -173,12 +154,6 @@ protected: // HP Bar
 
     UFUNCTION(BlueprintCallable, Category = "Animal|UI")
     void UpdateHPBar();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|UI")
-    void ShowHPBar();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|UI")
-    void HideHPBar();
 
 protected: // Animal AI
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|AI")
@@ -202,21 +177,6 @@ protected: // Animal AI
     FTimerHandle WanderTimerHandle;
     FTimerHandle FleeTimerHandle;
 
-    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
-    void StartWander();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
-    void MoveToRandomLocation();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
-    void StartFlee(AActor* ThreatActor);
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
-    void StopFlee();
-
-    UFUNCTION(BlueprintCallable, Category = "Animal|AI")
-    void StopMovement();
-
 protected: // Death Visual
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animal|Death")
     float DeathLifeSpan = 3.0f;
@@ -237,9 +197,4 @@ protected: // Death Visual
 
     float DeathFallElapsedTime = 0.0f;
 
-    UFUNCTION(BlueprintCallable, Category = "Animal|Death")
-    void PlayAnimalDeathVisual();
-
-    UFUNCTION()
-    void UpdateDeathFallRotation();
 };

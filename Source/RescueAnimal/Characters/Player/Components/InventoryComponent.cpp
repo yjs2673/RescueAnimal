@@ -147,7 +147,7 @@ bool UInventoryComponent::HasItem(FName ItemID, int32 Count) const
 	return GetItemCount(ItemID) >= Count;
 }
 
-bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const // ������ �߰� �������� �Ǵ�
+bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const // 아이템을 추가할 수 있는지 확인
 {
 	if (ItemID.IsNone() || Count <= 0 || MaxSlotCount <= 0)
 	{

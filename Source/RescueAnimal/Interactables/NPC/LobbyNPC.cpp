@@ -10,6 +10,7 @@
 #include "RACharacter.h"
 #include "RAGameInstance.h"
 #include "RAPlayerController.h"
+#include "LevelTransitionComponent.h"
 
 ALobbyNPC::ALobbyNPC()
 {
@@ -533,8 +534,11 @@ void ALobbyNPC::OnEndingDialogueFinished()
 
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
-		RAPlayerController->TravelToLevelWithFade(EndingMapName);
-		return;
+		if (ULevelTransitionComponent* LevelTransitionComponent = RAPlayerController->GetLevelTransitionComponent())
+		{
+			LevelTransitionComponent->TravelToLevelWithFade(EndingMapName);
+			return;
+		}
 	}
 
 	RAGameInstance->bPendingPortalTransition = true;

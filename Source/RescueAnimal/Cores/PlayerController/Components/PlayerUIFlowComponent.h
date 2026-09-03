@@ -7,6 +7,7 @@
 
 class ARAPlayerController;
 class AShopActor;
+class UMainHUDWidget;
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class RESCUEANIMAL_API UPlayerUIFlowComponent : public UActorComponent
@@ -42,6 +43,31 @@ public:
 	void SetMouseCursorType(EMouseCursor::Type NewMouseCursor);
 	void RemoveModalWidgets();
 
+	UMainHUDWidget* GetMainHUDWidget() const;
+	bool IsInventoryOpen() const;
+	bool IsShopOpen() const;
+	bool IsAnimalCollectionOpen() const;
+	bool IsSettingOpen() const;
+	bool IsPortalTransitionInputLocked() const;
+
 private:
 	ARAPlayerController* GetOwnerController() const;
+
+	UFUNCTION()
+	void HandleInventoryButtonClicked();
+
+	UFUNCTION()
+	void HandleSettingButtonClicked();
+
+	UFUNCTION()
+	void HandleInventoryCloseRequested();
+
+	UFUNCTION()
+	void HandleShopCloseRequested();
+
+	UFUNCTION()
+	void HandleSettingCloseRequested();
+
+	UFUNCTION()
+	void HandleAnimalCollectionCloseRequested();
 };

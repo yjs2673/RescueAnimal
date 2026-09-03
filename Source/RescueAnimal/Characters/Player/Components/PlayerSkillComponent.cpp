@@ -2,6 +2,8 @@
 
 #include "RACharacter.h"
 #include "RAEnemyBase.h"
+#include "PlayerCombatComponent.h"
+#include "PlayerEquipmentComponent.h"
 #include "PlayerStatComponent.h"
 #include "ArrowProjectile.h"
 
@@ -32,11 +34,6 @@ void UPlayerSkillComponent::BeginPlay()
 	}
 }
 
-void UPlayerSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
 bool UPlayerSkillComponent::TryActivateSkill()
 {
 	if (!OwnerCharacter)
@@ -44,7 +41,12 @@ bool UPlayerSkillComponent::TryActivateSkill()
 		return false;
 	}
 
-	switch (OwnerCharacter->GetCurrentWeaponType())
+	const UPlayerEquipmentComponent* PlayerEquipmentComponent = OwnerCharacter->GetPlayerEquipmentComponent();
+	const EWeaponType CurrentWeaponType = PlayerEquipmentComponent
+		? PlayerEquipmentComponent->GetCurrentWeaponType()
+		: EWeaponType::None;
+
+	switch (CurrentWeaponType)
 	{
 	case EWeaponType::None:
 		return ActivateUnarmedSkill();
@@ -73,7 +75,8 @@ bool UPlayerSkillComponent::ActivateUnarmedSkill()
 		return false;
 	}
 
-	if (!OwnerCharacter->CanStartSkillAction(false))
+	UPlayerCombatComponent* PlayerCombatComponent = OwnerCharacter->GetPlayerCombatComponent();
+	if (!PlayerCombatComponent || !PlayerCombatComponent->CanStartSkillAction(false))
 	{
 		return false;
 	}
@@ -91,8 +94,8 @@ bool UPlayerSkillComponent::ActivateUnarmedSkill()
 	bSwordSkillHitApplied = false;
 	ActiveSkillWeaponType = EWeaponType::None;
 
-	OwnerCharacter->FaceSkillDirection();
-	OwnerCharacter->BeginSkillAction();
+	PlayerCombatComponent->FaceSkillDirection();
+	PlayerCombatComponent->BeginSkillAction();
 
 	const FVector LaunchVelocity =
 		OwnerCharacter->GetActorForwardVector() * UnarmedSkill.ForwardLaunchStrength +
@@ -153,7 +156,8 @@ bool UPlayerSkillComponent::ActivateSwordSkill()
 		return false;
 	}
 
-	if (!OwnerCharacter->CanStartSkillAction(false))
+	UPlayerCombatComponent* PlayerCombatComponent = OwnerCharacter->GetPlayerCombatComponent();
+	if (!PlayerCombatComponent || !PlayerCombatComponent->CanStartSkillAction(false))
 	{
 		return false;
 	}
@@ -171,8 +175,8 @@ bool UPlayerSkillComponent::ActivateSwordSkill()
 	bSwordSkillHitApplied = false;
 	ActiveSkillWeaponType = EWeaponType::Sword;
 
-	OwnerCharacter->FaceSkillDirection();
-	OwnerCharacter->BeginSkillAction();
+	PlayerCombatComponent->FaceSkillDirection();
+	PlayerCombatComponent->BeginSkillAction();
 
 	if (!FMath::IsNearlyZero(SwordSkill.ForwardLaunchStrength))
 	{
@@ -241,7 +245,8 @@ bool UPlayerSkillComponent::ToggleBowSkillPreparation()
 		return true;
 	}
 
-	if (!OwnerCharacter->CanPrepareBowSkill())
+	UPlayerCombatComponent* PlayerCombatComponent = OwnerCharacter->GetPlayerCombatComponent();
+	if (!PlayerCombatComponent || !PlayerCombatComponent->CanPrepareBowSkill())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Bow skill can only be prepared while aiming."));
 		return false;
@@ -263,12 +268,12 @@ bool UPlayerSkillComponent::ToggleBowSkillPreparation()
 
 	if (BowSkill.FirePreviewArrowStaticMesh)
 	{
-		OwnerCharacter->SetBowPreviewArrowStaticMesh(BowSkill.FirePreviewArrowStaticMesh);
+		PlayerCombatComponent->SetBowPreviewArrowStaticMesh(BowSkill.FirePreviewArrowStaticMesh);
 	}
 
 	if (BowSkill.FirePreviewArrowVFX)
 	{
-		OwnerCharacter->SetBowPreviewArrowVFX(
+		PlayerCombatComponent->SetBowPreviewArrowVFX(
 			BowSkill.FirePreviewArrowVFX,
 			BowSkill.FirePreviewVFXRelativeLocation,
 			BowSkill.FirePreviewVFXRelativeRotation,
@@ -420,8 +425,11 @@ void UPlayerSkillComponent::CancelBowSkillPreparation()
 
 	if (OwnerCharacter)
 	{
-		OwnerCharacter->ResetBowPreviewArrowStaticMesh();
-		OwnerCharacter->ClearBowPreviewArrowVFX();
+		if (UPlayerCombatComponent* PlayerCombatComponent = OwnerCharacter->GetPlayerCombatComponent())
+		{
+			PlayerCombatComponent->ResetBowPreviewArrowStaticMesh();
+			PlayerCombatComponent->ClearBowPreviewArrowVFX();
+		}
 	}
 }
 
@@ -767,7 +775,9 @@ void UPlayerSkillComponent::EndActiveSkill()
 
 	if (OwnerCharacter)
 	{
-		OwnerCharacter->EndSkillAction();
+		if (UPlayerCombatComponent* PlayerCombatComponent = OwnerCharacter->GetPlayerCombatComponent())
+		{
+			PlayerCombatComponent->EndSkillAction();
+		}
 	}
 }
-

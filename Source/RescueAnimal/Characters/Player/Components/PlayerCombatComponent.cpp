@@ -7,6 +7,7 @@
 #include "PlayerMovementComponent.h"
 #include "PlayerSkillComponent.h"
 #include "PlayerStatComponent.h"
+#include "PlayerUIFlowComponent.h"
 #include "RAEnemyBase.h"
 #include "RAPlayerController.h"
 #include "WeaponBase.h"
@@ -432,8 +433,14 @@ void UPlayerCombatComponent::OnAttackPressed()
 
 	if (const ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(Character->GetController()))
 	{
-		if (RAPlayerController->IsInventoryOpen() || RAPlayerController->IsShopOpen() || RAPlayerController->IsAnimalCollectionOpen())
+		const UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
+		if (PlayerUIFlowComponent &&
+			(PlayerUIFlowComponent->IsInventoryOpen() ||
+				PlayerUIFlowComponent->IsShopOpen() ||
+				PlayerUIFlowComponent->IsAnimalCollectionOpen()))
+		{
 			return;
+		}
 	}
 
 	if (Character->PlayerMovementComponent && Character->PlayerMovementComponent->IsDodging())
@@ -465,8 +472,11 @@ void UPlayerCombatComponent::OnAttackReleased()
 
 	if (const ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(Character->GetController()))
 	{
-		if (RAPlayerController->IsShopOpen())
+		const UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
+		if (PlayerUIFlowComponent && PlayerUIFlowComponent->IsShopOpen())
+		{
 			return;
+		}
 	}
 
 	if (Character->bIsBowCharging)
@@ -1049,8 +1059,14 @@ bool UPlayerCombatComponent::CanStartSkillAction(bool bAllowBowAiming) const
 
 	if (const ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(Character->GetController()))
 	{
-		if (RAPlayerController->IsInventoryOpen() || RAPlayerController->IsShopOpen() || RAPlayerController->IsAnimalCollectionOpen())
+		const UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
+		if (PlayerUIFlowComponent &&
+			(PlayerUIFlowComponent->IsInventoryOpen() ||
+				PlayerUIFlowComponent->IsShopOpen() ||
+				PlayerUIFlowComponent->IsAnimalCollectionOpen()))
+		{
 			return false;
+		}
 	}
 
 	if (Character->PlayerMovementComponent && Character->PlayerMovementComponent->IsDodging())

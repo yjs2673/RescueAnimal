@@ -34,7 +34,7 @@ struct FPlayerRuntimeData
 	int32 Coin = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
-	int32 SpecialCurrency = 0;
+	int32 Gem = 0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Runtime")
 	FName EquippedWeaponID = NAME_None;

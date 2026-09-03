@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "RAPlayerController.h"
+#include "LevelTransitionComponent.h"
 
 UGameProgressMessageWidget::UGameProgressMessageWidget(
 	const FObjectInitializer& ObjectInitializer)
@@ -189,5 +190,8 @@ void UGameProgressMessageWidget::HandleReturnToTitleButtonClicked()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[GameProgressWidget] Return to title requested from game over."));
-	RAPlayerController->ReturnToTitleWithFade();
+	if (ULevelTransitionComponent* LevelTransitionComponent = RAPlayerController->GetLevelTransitionComponent())
+	{
+		LevelTransitionComponent->ReturnToTitleWithFade();
+	}
 }

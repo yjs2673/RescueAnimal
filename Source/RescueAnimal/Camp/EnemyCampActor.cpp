@@ -7,6 +7,8 @@
 
 #include "RAEnemyBase.h"
 #include "AnimalBase.h"
+#include "AnimalRescueComponent.h"
+#include "EnemyAIComponent.h"
 
 AEnemyCampActor::AEnemyCampActor()
 {
@@ -88,7 +90,10 @@ void AEnemyCampActor::RegisterEnemy(ARAEnemyBase* Enemy)
 	}
 
 	CampEnemies.AddUnique(Enemy);
-	Enemy->SetCampPatrolArea(CampBounds ? CampBounds->GetComponentLocation() : GetActorLocation(), GetCampRadius());
+	if (UEnemyAIComponent* EnemyAIComponent = Enemy->GetEnemyAIComponent())
+	{
+		EnemyAIComponent->SetCampPatrolArea(CampBounds ? CampBounds->GetComponentLocation() : GetActorLocation(), GetCampRadius());
+	}
 	CheckCampCleared();
 }
 
@@ -100,7 +105,10 @@ void AEnemyCampActor::RegisterAnimal(AAnimalBase* Animal)
 	}
 
 	CampAnimals.AddUnique(Animal);
-	Animal->SetOwningCamp(this);
+	if (UAnimalRescueComponent* AnimalRescueComponent = Animal->GetAnimalRescueComponent())
+	{
+		AnimalRescueComponent->SetOwningCamp(this);
+	}
 }
 
 void AEnemyCampActor::RefreshCampMembers()
@@ -122,7 +130,10 @@ void AEnemyCampActor::RefreshCampMembers()
 		}
 
 		CampEnemies.AddUnique(Enemy);
-		Enemy->SetCampPatrolArea(CampBounds->GetComponentLocation(), GetCampRadius());
+		if (UEnemyAIComponent* EnemyAIComponent = Enemy->GetEnemyAIComponent())
+		{
+			EnemyAIComponent->SetCampPatrolArea(CampBounds->GetComponentLocation(), GetCampRadius());
+		}
 	}
 
 	for (TActorIterator<AAnimalBase> It(GetWorld()); It; ++It)
@@ -134,7 +145,10 @@ void AEnemyCampActor::RefreshCampMembers()
 		}
 
 		CampAnimals.AddUnique(Animal);
-		Animal->SetOwningCamp(this);
+		if (UAnimalRescueComponent* AnimalRescueComponent = Animal->GetAnimalRescueComponent())
+		{
+			AnimalRescueComponent->SetOwningCamp(this);
+		}
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[EnemyCampActor] Refreshed members: %s / Enemies=%d Animals=%d"),

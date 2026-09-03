@@ -1,5 +1,6 @@
 #include "WeaponBase.h"
 #include "RACharacter.h"
+#include "PlayerEquipmentComponent.h"
 
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -120,9 +121,12 @@ void AWeaponBase::OnPickupSphereBeginOverlap(
 		return;
 
 	ARACharacter* Character = Cast<ARACharacter>(OtherActor);
-	if (Character)
+	UPlayerEquipmentComponent* PlayerEquipmentComponent = Character
+		? Character->GetPlayerEquipmentComponent()
+		: nullptr;
+	if (PlayerEquipmentComponent)
 	{
-		Character->SetNearbyWeapon(this);
+		PlayerEquipmentComponent->SetNearbyWeapon(this);
 	}
 }
 
@@ -134,9 +138,12 @@ void AWeaponBase::OnPickupSphereEndOverlap(
 )
 {
 	ARACharacter* Character = Cast<ARACharacter>(OtherActor);
-	if (Character)
+	UPlayerEquipmentComponent* PlayerEquipmentComponent = Character
+		? Character->GetPlayerEquipmentComponent()
+		: nullptr;
+	if (PlayerEquipmentComponent)
 	{
-		Character->ClearNearbyWeapon(this);
+		PlayerEquipmentComponent->ClearNearbyWeapon(this);
 	}
 }
 

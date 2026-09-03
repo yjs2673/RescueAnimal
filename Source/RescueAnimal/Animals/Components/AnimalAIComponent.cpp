@@ -1,6 +1,7 @@
 #include "AnimalAIComponent.h"
 
 #include "AnimalBase.h"
+#include "AnimalStateComponent.h"
 
 #include "AIController.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -48,7 +49,10 @@ void UAnimalAIComponent::StartWander()
 
 	Animal->GetWorldTimerManager().ClearTimer(Animal->FleeTimerHandle);
 
-	Animal->SetAnimalState(Animal->bHasBeenRescued ? EAnimalState::Rescued : EAnimalState::Wander);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(Animal->bHasBeenRescued ? EAnimalState::Rescued : EAnimalState::Wander);
+	}
 
 	if (Animal->GetCharacterMovement())
 	{
@@ -134,7 +138,10 @@ void UAnimalAIComponent::StartFlee(AActor* ThreatActor)
 	Animal->GetWorldTimerManager().ClearTimer(Animal->WanderTimerHandle);
 	Animal->GetWorldTimerManager().ClearTimer(Animal->FleeTimerHandle);
 
-	Animal->SetAnimalState(EAnimalState::Flee);
+	if (UAnimalStateComponent* AnimalStateComponent = Animal->GetAnimalStateComponent())
+	{
+		AnimalStateComponent->SetAnimalState(EAnimalState::Flee);
+	}
 
 	if (Animal->GetCharacterMovement())
 	{

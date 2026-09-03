@@ -2,6 +2,7 @@
 
 #include "InventoryComponent.h"
 #include "Characters/Player/Components/PlayerStatComponent.h"
+#include "PlayerEquipmentComponent.h"
 #include "QuickSlotComponent.h"
 #include "RACharacter.h"
 
@@ -137,17 +138,25 @@ void URAGameInstance::SavePlayerRuntimeData(ARACharacter* PlayerCharacter)
 	{
 		PlayerRuntimeData.InventoryItems = InventoryComponent->GetAllItems();
 		PlayerRuntimeData.Coin = InventoryComponent->GetItemCount(TEXT("Coin"));
-		PlayerRuntimeData.SpecialCurrency = InventoryComponent->GetItemCount(TEXT("SpecialCurrency"));
+		PlayerRuntimeData.Gem = InventoryComponent->GetItemCount(TEXT("Gem"));
 	}
 	else
 	{
 		PlayerRuntimeData.InventoryItems.Reset();
 		PlayerRuntimeData.Coin = 0;
-		PlayerRuntimeData.SpecialCurrency = 0;
+		PlayerRuntimeData.Gem = 0;
 		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: InventoryComponent is missing during save."));
 	}
 
-	PlayerRuntimeData.EquippedWeaponID = PlayerCharacter->GetCurrentWeaponItemID();
+	if (const UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent())
+	{
+		PlayerRuntimeData.EquippedWeaponID = PlayerEquipmentComponent->GetCurrentWeaponItemID();
+	}
+	else
+	{
+		PlayerRuntimeData.EquippedWeaponID = NAME_None;
+		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: PlayerEquipmentComponent is missing during save."));
+	}
 	PlayerRuntimeData.QuickSlotItemIDs.Reset();
 
 	if (const UQuickSlotComponent* QuickSlotComponent = PlayerCharacter->GetQuickSlotComponent())
@@ -207,15 +216,15 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 			InventoryComponent->RemoveItem(CoinItemID, CurrentCoin - PlayerRuntimeData.Coin);
 		}
 
-		const FName SpecialCurrencyItemID = TEXT("SpecialCurrency");
-		const int32 CurrentSpecialCurrency = InventoryComponent->GetItemCount(SpecialCurrencyItemID);
-		if (PlayerRuntimeData.SpecialCurrency > CurrentSpecialCurrency)
+		const FName GemItemID = TEXT("Gem");
+		const int32 CurrentGem = InventoryComponent->GetItemCount(GemItemID);
+		if (PlayerRuntimeData.Gem > CurrentGem)
 		{
-			InventoryComponent->AddItem(SpecialCurrencyItemID, PlayerRuntimeData.SpecialCurrency - CurrentSpecialCurrency);
+			InventoryComponent->AddItem(GemItemID, PlayerRuntimeData.Gem - CurrentGem);
 		}
-		else if (PlayerRuntimeData.SpecialCurrency < CurrentSpecialCurrency)
+		else if (PlayerRuntimeData.Gem < CurrentGem)
 		{
-			InventoryComponent->RemoveItem(SpecialCurrencyItemID, CurrentSpecialCurrency - PlayerRuntimeData.SpecialCurrency);
+			InventoryComponent->RemoveItem(GemItemID, CurrentGem - PlayerRuntimeData.Gem);
 		}
 	}
 	else
@@ -250,7 +259,8 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 			}
 		}
 
-		if (!PlayerCharacter->EquipWeaponFromInventory(PlayerRuntimeData.EquippedWeaponID))
+		UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent();
+		if (!PlayerEquipmentComponent || !PlayerEquipmentComponent->EquipWeaponFromInventory(PlayerRuntimeData.EquippedWeaponID))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: Failed to restore equipped weapon. WeaponID=%s"),
 				*PlayerRuntimeData.EquippedWeaponID.ToString());
@@ -258,7 +268,10 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 	}
 	else
 	{
-		PlayerCharacter->OnWeaponChanged.Broadcast(PlayerCharacter->GetCurrentWeaponType());
+		const UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent();
+		PlayerCharacter->OnWeaponChanged.Broadcast(
+			PlayerEquipmentComponent ? PlayerEquipmentComponent->GetCurrentWeaponType() : EWeaponType::None
+		);
 	}
 }
 

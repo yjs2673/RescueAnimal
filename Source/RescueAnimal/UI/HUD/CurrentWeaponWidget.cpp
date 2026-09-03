@@ -6,6 +6,7 @@
 #include "RACharacter.h"
 #include "RAGameInstance.h"
 #include "RAStructTypes.h"
+#include "PlayerEquipmentComponent.h"
 
 void UCurrentWeaponWidget::NativeConstruct()
 {
@@ -44,7 +45,10 @@ UTexture2D* UCurrentWeaponWidget::GetCurrentWeaponItemIcon() const
 		return NoneIcon.Get();
 	}
 
-	const FName WeaponItemID = PlayerCharacter->GetCurrentWeaponItemID();
+	const UPlayerEquipmentComponent* PlayerEquipmentComponent = PlayerCharacter->GetPlayerEquipmentComponent();
+	const FName WeaponItemID = PlayerEquipmentComponent
+		? PlayerEquipmentComponent->GetCurrentWeaponItemID()
+		: NAME_None;
 	if (WeaponItemID.IsNone())
 	{
 		return NoneIcon.Get();

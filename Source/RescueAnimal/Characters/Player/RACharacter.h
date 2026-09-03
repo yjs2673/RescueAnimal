@@ -14,7 +14,6 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-struct FInputActionValue;
 
 class UUserWidget;
 class UMainHUDWidget;
@@ -44,7 +43,6 @@ class UPlayerInteractionComponent;
 class APortalActor;
 class AShopActor;
 class ALobbyNPC;
-class AAnimalBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -127,7 +125,7 @@ class ARACharacter : public ACharacter
 #pragma region Constructor & Tick & Begin & Death
 public:
 	ARACharacter();
-	virtual void Tick(float DeltaTime) override;
+	// virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
 
@@ -434,41 +432,13 @@ public:
 
 protected:
 #pragma region Base Action Func
-	void StartJump();
-	void Move(const FInputActionValue& Value);
-	void Look(const FInputActionValue& Value);
-	void Interact();
-	bool TryRescueNearbyAnimal();
-	AAnimalBase* FindNearbyRescueAnimal() const;
-	bool IsRescueKitEquipped() const;
-	void UseQuickSlotItem(int32 SlotIndex);
 	bool IsPortalTransitionInputLocked() const;
 
 	UFUNCTION()
 	void ApplyMovementStats();
-	void Dodge();
-	bool CanDodge() const;
-	void UpdateDodgeMovement(float DeltaTime);
-	void EndDodge();
 #pragma endregion Base Action Func
 
 #pragma region Equip Func
-	UFUNCTION(BlueprintCallable, Category = "Weapon") // 새로운 무기 장착, 이미 장착되어 있다면 교체
-	void EquipWeapon(AWeaponBase* NewWeapon);
-
-	UFUNCTION(BlueprintCallable, Category = "Weapon") // 장착 해제
-	void UnequipWeapon();
-
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	void HandleWeaponInteract();
-
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	void DropCurrentWeapon();
-public:
-	void SetNearbyWeapon(AWeaponBase* NewWeapon);
-	void ClearNearbyWeapon(AWeaponBase* WeaponToClear);
-
-protected:
 #pragma endregion Equip Func
 
 #pragma region Base Combat Func
@@ -517,28 +487,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Bow")
 	void EndBowAim();
 
-public:
-	UFUNCTION(BlueprintPure, Category = "Bow|Skill")
-	bool CanPrepareBowSkill() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
-	void SetBowPreviewArrowStaticMesh(UStaticMesh* NewPreviewArrowStaticMesh);
-
-	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
-	void ResetBowPreviewArrowStaticMesh();
-
-	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
-	void SetBowPreviewArrowVFX(
-		UNiagaraSystem* NewPreviewArrowVFX,
-		FVector RelativeLocation,
-		FRotator RelativeRotation,
-		FVector RelativeScale
-	);
-
-	UFUNCTION(BlueprintCallable, Category = "Bow|Skill")
-	void ClearBowPreviewArrowVFX();
-
-protected:
 #pragma endregion Bow Attack Func
 
 #pragma region Anim Montage Func
@@ -619,14 +567,6 @@ public:
 		class AController* EventInstigator,
 		AActor* DamageCauser) override;
 
-#pragma region Delicate Func
-	UFUNCTION(BlueprintPure, Category = "Weapon")
-	EWeaponType GetCurrentWeaponType() const;
-
-	UFUNCTION(BlueprintPure, Category = "Weapon")
-	FName GetCurrentWeaponItemID() const;
-#pragma endregion Delicate Func
-
 #pragma region Runtime Data Func
 	UFUNCTION(BlueprintCallable, Category = "Runtime")
 	void SaveRuntimeDataToGameInstance();
@@ -634,18 +574,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime")
 	void LoadRuntimeDataFromGameInstance();
 #pragma endregion Runtime Data Func
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool UseInventoryItem(FName ItemID);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool UseConsumableItem(FName ItemID);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool EquipWeaponFromInventory(FName ItemID);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool UnequipCurrentWeaponToInventory();
 
 	UFUNCTION(BlueprintPure, Category = "State")
 	bool IsDodging() const { return bIsDodging; }
@@ -662,17 +590,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Components")
 	FORCEINLINE UPlayerSkillComponent* GetPlayerSkillComponent() const { return PlayerSkillComponent; }
 
-	UFUNCTION(BlueprintPure, Category = "Skill")
-	bool CanStartSkillAction(bool bAllowBowAiming = false) const;
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerMovementComponent* GetPlayerMovementComponent() const { return PlayerMovementComponent; }
 
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void BeginSkillAction();
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }
 
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void EndSkillAction();
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerEquipmentComponent* GetPlayerEquipmentComponent() const { return PlayerEquipmentComponent; }
 
-	UFUNCTION(BlueprintCallable, Category = "Skill")
-	void FaceSkillDirection();
+	UFUNCTION(BlueprintPure, Category = "Components")
+	FORCEINLINE UPlayerInteractionComponent* GetPlayerInteractionComponent() const { return PlayerInteractionComponent; }
 
 };
-

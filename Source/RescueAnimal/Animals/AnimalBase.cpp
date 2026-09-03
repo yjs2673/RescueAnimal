@@ -40,100 +40,38 @@ void AAnimalBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InitAnimalData();
-
-	UpdateHPBar();
-	HideHPBar();
-	HideSaveWidget();
-
-	if (bStartTrapped)
-	{
-		ApplyTrappedState();
-	}
-	else
-	{
-		StartWander();
-	}
-}
-
-void AAnimalBase::InitAnimalData()
-{
 	if (AnimalStateComponent)
 	{
 		AnimalStateComponent->InitAnimalData();
 	}
-}
 
-void AAnimalBase::SetAnimalState(EAnimalState NewState)
-{
-	if (AnimalStateComponent)
+	UpdateHPBar();
+
+	if (AnimalPresentationComponent)
 	{
-		AnimalStateComponent->SetAnimalState(NewState);
-		return;
+		AnimalPresentationComponent->HideHPBar();
+		AnimalPresentationComponent->HideSaveWidget();
 	}
 
-	AnimalState = NewState;
+	if (bStartTrapped)
+	{
+		if (AnimalRescueComponent)
+		{
+			AnimalRescueComponent->ApplyTrappedState();
+		}
+	}
+	else
+	{
+		if (AnimalAIComponent)
+		{
+			AnimalAIComponent->StartWander();
+		}
+	}
 }
 
 bool AAnimalBase::Rescue()
 {
 	return AnimalRescueComponent && AnimalRescueComponent->Rescue();
-}
-
-void AAnimalBase::SetOwningCamp(AEnemyCampActor* InCamp)
-{
-	if (AnimalRescueComponent)
-	{
-		AnimalRescueComponent->SetOwningCamp(InCamp);
-		return;
-	}
-
-	OwningCamp = InCamp;
-}
-
-bool AAnimalBase::CanBeRescued() const
-{
-	return AnimalRescueComponent && AnimalRescueComponent->CanBeRescued();
-}
-
-void AAnimalBase::ApplyTrappedState()
-{
-	if (AnimalRescueComponent)
-	{
-		AnimalRescueComponent->ApplyTrappedState();
-	}
-}
-
-void AAnimalBase::ApplyRescuedState()
-{
-	if (AnimalRescueComponent)
-	{
-		AnimalRescueComponent->ApplyRescuedState();
-	}
-}
-
-void AAnimalBase::ApplyRuntimeRescuedState()
-{
-	if (AnimalRescueComponent)
-	{
-		AnimalRescueComponent->ApplyRuntimeRescuedState();
-	}
-}
-
-void AAnimalBase::ShowSaveWidget()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->ShowSaveWidget();
-	}
-}
-
-void AAnimalBase::HideSaveWidget()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->HideSaveWidget();
-	}
 }
 
 float AAnimalBase::TakeDamage(
@@ -171,77 +109,5 @@ void AAnimalBase::UpdateHPBar()
 	if (AnimalPresentationComponent)
 	{
 		AnimalPresentationComponent->UpdateHPBar();
-	}
-}
-
-void AAnimalBase::ShowHPBar()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->ShowHPBar();
-	}
-}
-
-void AAnimalBase::HideHPBar()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->HideHPBar();
-	}
-}
-
-void AAnimalBase::StartWander()
-{
-	if (AnimalAIComponent)
-	{
-		AnimalAIComponent->StartWander();
-	}
-}
-
-void AAnimalBase::MoveToRandomLocation()
-{
-	if (AnimalAIComponent)
-	{
-		AnimalAIComponent->MoveToRandomLocation();
-	}
-}
-
-void AAnimalBase::StartFlee(AActor* ThreatActor)
-{
-	if (AnimalAIComponent)
-	{
-		AnimalAIComponent->StartFlee(ThreatActor);
-	}
-}
-
-void AAnimalBase::StopFlee()
-{
-	if (AnimalAIComponent)
-	{
-		AnimalAIComponent->StopFlee();
-	}
-}
-
-void AAnimalBase::StopMovement()
-{
-	if (AnimalAIComponent)
-	{
-		AnimalAIComponent->StopMovement();
-	}
-}
-
-void AAnimalBase::PlayAnimalDeathVisual()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->PlayAnimalDeathVisual();
-	}
-}
-
-void AAnimalBase::UpdateDeathFallRotation()
-{
-	if (AnimalPresentationComponent)
-	{
-		AnimalPresentationComponent->UpdateDeathFallRotation();
 	}
 }
