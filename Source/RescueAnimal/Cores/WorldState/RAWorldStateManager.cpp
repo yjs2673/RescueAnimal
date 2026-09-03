@@ -4,6 +4,7 @@
 #include "RAEnemyBase.h"
 #include "AnimalBase.h"
 #include "AnimalRescueComponent.h"
+#include "GameProgressUIComponent.h"
 #include "RAGameInstance.h"
 #include "RAPlayerController.h"
 
@@ -312,7 +313,10 @@ void ARAWorldStateManager::CheckAndHandleMapClear()
 		if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(
 			UGameplayStatics::GetPlayerController(this, 0)))
 		{
-			RAPlayerController->ShowFieldClearMessage(MapID);
+			if (UGameProgressUIComponent* GameProgressUIComponent = RAPlayerController->GetGameProgressUIComponent())
+			{
+				GameProgressUIComponent->ShowFieldClearMessage(MapID);
+			}
 		}
 		else
 		{

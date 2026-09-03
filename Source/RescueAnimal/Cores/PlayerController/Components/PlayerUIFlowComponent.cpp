@@ -3,6 +3,7 @@
 #include "RAPlayerController.h"
 #include "AnimalCollectionWidget.h"
 #include "InventoryWidget.h"
+#include "LevelTransitionComponent.h"
 #include "MainHUDWidget.h"
 #include "MapProgressWidget.h"
 #include "SettingWidget.h"
@@ -43,13 +44,13 @@ void UPlayerUIFlowComponent::InitializeHUD()
 			Controller->MainHUDWidget->AddToViewport();
 
 			Controller->MainHUDWidget->OnInventoryButtonClicked.AddDynamic(
-				Controller,
-				&ARAPlayerController::HandleInventoryButtonClicked
+				this,
+				&UPlayerUIFlowComponent::HandleInventoryButtonClicked
 			);
 
 			Controller->MainHUDWidget->OnSettingButtonClicked.AddDynamic(
-				Controller,
-				&ARAPlayerController::HandleSettingButtonClicked
+				this,
+				&UPlayerUIFlowComponent::HandleSettingButtonClicked
 			);
 		}
 	}
@@ -98,8 +99,8 @@ void UPlayerUIFlowComponent::OpenInventory()
 		if (Controller->InventoryWidget)
 		{
 			Controller->InventoryWidget->OnInventoryCloseRequested.AddDynamic(
-				Controller,
-				&ARAPlayerController::HandleInventoryCloseRequested
+				this,
+				&UPlayerUIFlowComponent::HandleInventoryCloseRequested
 			);
 		}
 	}
@@ -165,8 +166,8 @@ void UPlayerUIFlowComponent::OpenShop(AShopActor* ShopActor)
 		if (Controller->ShopWidget)
 		{
 			Controller->ShopWidget->OnShopCloseRequested.AddDynamic(
-				Controller,
-				&ARAPlayerController::CloseShop
+				this,
+				&UPlayerUIFlowComponent::HandleShopCloseRequested
 			);
 		}
 	}
@@ -265,8 +266,8 @@ void UPlayerUIFlowComponent::OpenAnimalCollection()
 		if (Controller->AnimalCollectionWidget)
 		{
 			Controller->AnimalCollectionWidget->OnAnimalCollectionCloseRequested.AddDynamic(
-				Controller,
-				&ARAPlayerController::HandleAnimalCollectionCloseRequested
+				this,
+				&UPlayerUIFlowComponent::HandleAnimalCollectionCloseRequested
 			);
 		}
 	}
@@ -395,8 +396,8 @@ void UPlayerUIFlowComponent::OpenSetting()
 		if (Controller->SettingWidget)
 		{
 			Controller->SettingWidget->OnSettingCloseRequested.AddDynamic(
-				Controller,
-				&ARAPlayerController::HandleSettingCloseRequested
+				this,
+				&UPlayerUIFlowComponent::HandleSettingCloseRequested
 			);
 		}
 	}
@@ -436,7 +437,7 @@ void UPlayerUIFlowComponent::CloseSetting()
 	{
 		SetUIInputMode();
 	}
-	else if (Controller->IsGameFlowMenuLevel())
+	else if (Controller->LevelTransitionComponent && Controller->LevelTransitionComponent->IsGameFlowMenuLevel())
 	{
 		Controller->SetIgnoreMoveInput(true);
 		Controller->SetIgnoreLookInput(true);
@@ -655,4 +656,90 @@ void UPlayerUIFlowComponent::RemoveModalWidgets()
 	Controller->bIsAnimalCollectionOpen = false;
 	Controller->bIsSettingOpen = false;
 	Controller->CurrentShopActor = nullptr;
+}
+
+UMainHUDWidget* UPlayerUIFlowComponent::GetMainHUDWidget() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller ? Controller->MainHUDWidget : nullptr;
+}
+
+bool UPlayerUIFlowComponent::IsInventoryOpen() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller && Controller->bIsInventoryOpen;
+}
+
+bool UPlayerUIFlowComponent::IsShopOpen() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller && Controller->bIsShopOpen;
+}
+
+bool UPlayerUIFlowComponent::IsAnimalCollectionOpen() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller && Controller->bIsAnimalCollectionOpen;
+}
+
+bool UPlayerUIFlowComponent::IsSettingOpen() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller && Controller->bIsSettingOpen;
+}
+
+bool UPlayerUIFlowComponent::IsPortalTransitionInputLocked() const
+{
+	const ARAPlayerController* Controller = GetOwnerController();
+	return Controller && (Controller->bIsPortalTransitionInputLocked || Controller->bIsSettingOpen);
+}
+
+void UPlayerUIFlowComponent::HandleInventoryButtonClicked()
+{
+	if (IsPortalTransitionInputLocked())
+	{
+		return;
+	}
+
+	ToggleInventory();
+}
+
+void UPlayerUIFlowComponent::HandleSettingButtonClicked()
+{
+	if (IsPortalTransitionInputLocked())
+	{
+		return;
+	}
+
+	ToggleSetting();
+}
+
+void UPlayerUIFlowComponent::HandleInventoryCloseRequested()
+{
+	if (IsPortalTransitionInputLocked())
+	{
+		return;
+	}
+
+	CloseInventory();
+}
+
+void UPlayerUIFlowComponent::HandleShopCloseRequested()
+{
+	CloseShop();
+}
+
+void UPlayerUIFlowComponent::HandleSettingCloseRequested()
+{
+	CloseSetting();
+}
+
+void UPlayerUIFlowComponent::HandleAnimalCollectionCloseRequested()
+{
+	if (IsPortalTransitionInputLocked())
+	{
+		return;
+	}
+
+	CloseAnimalCollection();
 }

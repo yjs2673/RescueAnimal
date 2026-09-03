@@ -89,16 +89,22 @@ void ULevelTransitionComponent::HandleControllerBeginPlay()
 
 	if (bIsGameFlowMenuLevel)
 	{
-		Controller->HideMainHUD();
 		Controller->SetIgnoreMoveInput(true);
 		Controller->SetIgnoreLookInput(true);
-		Controller->SetMenuInputMode();
+		if (Controller->PlayerUIFlowComponent)
+		{
+			Controller->PlayerUIFlowComponent->HideMainHUD();
+			Controller->PlayerUIFlowComponent->SetMenuInputMode();
+		}
 	}
 
 	if (bShouldStartFadeIn)
 	{
-		Controller->SetPortalTransitionInputLocked(true);
-		Controller->HideMainHUD();
+		if (Controller->PlayerUIFlowComponent)
+		{
+			Controller->PlayerUIFlowComponent->SetPortalTransitionInputLocked(true);
+			Controller->PlayerUIFlowComponent->HideMainHUD();
+		}
 		StartLevelFadeIn();
 	}
 }
@@ -186,13 +192,19 @@ void ULevelTransitionComponent::FinishLevelFadeIn()
 		Controller->bIsPortalTransitionInputLocked = false;
 		Controller->SetIgnoreMoveInput(true);
 		Controller->SetIgnoreLookInput(true);
-		Controller->HideMainHUD();
-		Controller->SetMenuInputMode();
+		if (Controller->PlayerUIFlowComponent)
+		{
+			Controller->PlayerUIFlowComponent->HideMainHUD();
+			Controller->PlayerUIFlowComponent->SetMenuInputMode();
+		}
 		return;
 	}
 
-	Controller->SetPortalTransitionInputLocked(false);
-	Controller->ShowMainHUD();
+	if (Controller->PlayerUIFlowComponent)
+	{
+		Controller->PlayerUIFlowComponent->SetPortalTransitionInputLocked(false);
+		Controller->PlayerUIFlowComponent->ShowMainHUD();
+	}
 }
 
 void ULevelTransitionComponent::StartViewportFadeOverlay(float FromOpacity, float ToOpacity, float Duration, bool bRemoveWhenFinished)
@@ -392,8 +404,11 @@ void ULevelTransitionComponent::TravelToLevelWithFade(FName TargetLevelName, flo
 		Controller->ActiveGameFlowMenuWidget->SetIsEnabled(false);
 	}
 
-	Controller->SetPortalTransitionInputLocked(true);
-	Controller->HideMainHUD();
+	if (Controller->PlayerUIFlowComponent)
+	{
+		Controller->PlayerUIFlowComponent->SetPortalTransitionInputLocked(true);
+		Controller->PlayerUIFlowComponent->HideMainHUD();
+	}
 	Controller->bShowMouseCursor = false;
 
 	FInputModeGameOnly InputMode;
@@ -468,7 +483,10 @@ void ULevelTransitionComponent::OpenPendingFadeTravelLevel()
 	if (Controller->PendingFadeTravelLevelName.IsNone())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[GameFlow] Pending travel cancelled: target level is None."));
-		Controller->SetPortalTransitionInputLocked(false);
+		if (Controller->PlayerUIFlowComponent)
+		{
+			Controller->PlayerUIFlowComponent->SetPortalTransitionInputLocked(false);
+		}
 		return;
 	}
 
@@ -524,7 +542,10 @@ void ULevelTransitionComponent::TryCreateGameFlowMenuWidget()
 	}
 
 	Controller->ActiveGameFlowMenuWidget->AddToViewport(200);
-	Controller->SetMenuInputMode();
+	if (Controller->PlayerUIFlowComponent)
+	{
+		Controller->PlayerUIFlowComponent->SetMenuInputMode();
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("[GameFlow] Menu widget displayed. Level=%s"), *CurrentLevelName);
 }

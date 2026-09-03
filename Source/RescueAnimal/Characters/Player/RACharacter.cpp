@@ -40,6 +40,8 @@
 #include "CrosshairBowWidget.h"
 #include "MainHUDWidget.h"
 #include "RAPlayerController.h"
+#include "GameProgressUIComponent.h"
+#include "PlayerUIFlowComponent.h"
 
 #include "Sound/SoundBase.h"
 
@@ -202,7 +204,8 @@ bool ARACharacter::IsPortalTransitionInputLocked() const
 {
 	if (const ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetController()))
 	{
-		return RAPlayerController->IsPortalTransitionInputLocked();
+		const UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
+		return PlayerUIFlowComponent && PlayerUIFlowComponent->IsPortalTransitionInputLocked();
 	}
 
 	return false;
@@ -255,7 +258,8 @@ void ARACharacter::BeginPlay()
 
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetController()))
 	{
-		if (UMainHUDWidget* HUDWidget = RAPlayerController->GetMainHUDWidget())
+		UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
+		if (UMainHUDWidget* HUDWidget = PlayerUIFlowComponent ? PlayerUIFlowComponent->GetMainHUDWidget() : nullptr)
 		{
 			CrosshairWidgetInstance = HUDWidget->GetCrosshairBowWidget();
 			if (CrosshairWidgetInstance)
@@ -300,7 +304,10 @@ void ARACharacter::HandleCharacterDeath() // 플레이어 사망 처리: 공격 
 
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetController()))
 	{
-		RAPlayerController->ShowGameOverMessage();
+		if (UGameProgressUIComponent* GameProgressUIComponent = RAPlayerController->GetGameProgressUIComponent())
+		{
+			GameProgressUIComponent->ShowGameOverMessage();
+		}
 	}
 	else
 	{

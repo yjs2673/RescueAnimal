@@ -3,6 +3,8 @@
 #include "Components/Button.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "RAPlayerController.h"
+#include "LevelTransitionComponent.h"
+#include "PlayerUIFlowComponent.h"
 
 void UGameFlowMenuWidget::NativeConstruct()
 {
@@ -70,7 +72,10 @@ void UGameFlowMenuWidget::StartGame()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[GameFlowMenu] Start game requested. Target=%s"), *StartGameTargetLevelName.ToString());
-	RAPlayerController->TravelToLevelWithFade(StartGameTargetLevelName);
+	if (ULevelTransitionComponent* LevelTransitionComponent = RAPlayerController->GetLevelTransitionComponent())
+	{
+		LevelTransitionComponent->TravelToLevelWithFade(StartGameTargetLevelName);
+	}
 }
 
 void UGameFlowMenuWidget::ReturnToTitle()
@@ -89,7 +94,10 @@ void UGameFlowMenuWidget::ReturnToTitle()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[GameFlowMenu] Return to title requested. Target=%s"), *TitleTargetLevelName.ToString());
-	RAPlayerController->TravelToLevelWithFade(TitleTargetLevelName);
+	if (ULevelTransitionComponent* LevelTransitionComponent = RAPlayerController->GetLevelTransitionComponent())
+	{
+		LevelTransitionComponent->TravelToLevelWithFade(TitleTargetLevelName);
+	}
 }
 
 void UGameFlowMenuWidget::QuitGame()
@@ -97,6 +105,15 @@ void UGameFlowMenuWidget::QuitGame()
 	APlayerController* PlayerController = GetOwningPlayer();
 
 	UE_LOG(LogTemp, Log, TEXT("[GameFlowMenu] Quit game requested."));
+	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(PlayerController))
+	{
+		if (ULevelTransitionComponent* LevelTransitionComponent = RAPlayerController->GetLevelTransitionComponent())
+		{
+			LevelTransitionComponent->QuitGame();
+			return;
+		}
+	}
+
 	UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
 }
 
@@ -114,7 +131,10 @@ void UGameFlowMenuWidget::HandleSettingButtonClicked()
 {
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetOwningPlayer()))
 	{
-		RAPlayerController->ToggleSetting();
+		if (UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent())
+		{
+			PlayerUIFlowComponent->ToggleSetting();
+		}
 	}
 }
 

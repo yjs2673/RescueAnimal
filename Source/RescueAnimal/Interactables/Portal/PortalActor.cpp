@@ -13,6 +13,7 @@
 #include "RACharacter.h"
 #include "RAGameInstance.h"
 #include "RAPlayerController.h"
+#include "PlayerUIFlowComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 APortalActor::APortalActor()
@@ -189,8 +190,11 @@ void APortalActor::TeleportPlayer(AActor* OverlappingActor)
 
 	if (ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(PlayerController))
 	{
-		RAPlayerController->SetPortalTransitionInputLocked(true);
-		RAPlayerController->HideMainHUD();
+		if (UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent())
+		{
+			PlayerUIFlowComponent->SetPortalTransitionInputLocked(true);
+			PlayerUIFlowComponent->HideMainHUD();
+		}
 	}
 	else
 	{

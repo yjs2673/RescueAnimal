@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "RACharacter.h"
 #include "RAPlayerController.h"
+#include "PlayerUIFlowComponent.h"
 
 AShopActor::AShopActor()
 {
@@ -83,7 +84,10 @@ void AShopActor::Interact(AActor* InteractingActor)
 		return;
 	}
 
-	PlayerController->OpenShop(this);
+	if (UPlayerUIFlowComponent* PlayerUIFlowComponent = PlayerController->GetPlayerUIFlowComponent())
+	{
+		PlayerUIFlowComponent->OpenShop(this);
+	}
 }
 
 void AShopActor::OnShopClosed()
