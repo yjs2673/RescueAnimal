@@ -34,11 +34,6 @@ void UPlayerSkillComponent::BeginPlay()
 	}
 }
 
-void UPlayerSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
 bool UPlayerSkillComponent::TryActivateSkill()
 {
 	if (!OwnerCharacter)
