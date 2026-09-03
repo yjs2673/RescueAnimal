@@ -138,13 +138,13 @@ void URAGameInstance::SavePlayerRuntimeData(ARACharacter* PlayerCharacter)
 	{
 		PlayerRuntimeData.InventoryItems = InventoryComponent->GetAllItems();
 		PlayerRuntimeData.Coin = InventoryComponent->GetItemCount(TEXT("Coin"));
-		PlayerRuntimeData.SpecialCurrency = InventoryComponent->GetItemCount(TEXT("SpecialCurrency"));
+		PlayerRuntimeData.Gem = InventoryComponent->GetItemCount(TEXT("Gem"));
 	}
 	else
 	{
 		PlayerRuntimeData.InventoryItems.Reset();
 		PlayerRuntimeData.Coin = 0;
-		PlayerRuntimeData.SpecialCurrency = 0;
+		PlayerRuntimeData.Gem = 0;
 		UE_LOG(LogTemp, Warning, TEXT("[RuntimeData] TODO: InventoryComponent is missing during save."));
 	}
 
@@ -216,15 +216,15 @@ void URAGameInstance::LoadPlayerRuntimeData(ARACharacter* PlayerCharacter)
 			InventoryComponent->RemoveItem(CoinItemID, CurrentCoin - PlayerRuntimeData.Coin);
 		}
 
-		const FName SpecialCurrencyItemID = TEXT("SpecialCurrency");
-		const int32 CurrentSpecialCurrency = InventoryComponent->GetItemCount(SpecialCurrencyItemID);
-		if (PlayerRuntimeData.SpecialCurrency > CurrentSpecialCurrency)
+		const FName GemItemID = TEXT("Gem");
+		const int32 CurrentGem = InventoryComponent->GetItemCount(GemItemID);
+		if (PlayerRuntimeData.Gem > CurrentGem)
 		{
-			InventoryComponent->AddItem(SpecialCurrencyItemID, PlayerRuntimeData.SpecialCurrency - CurrentSpecialCurrency);
+			InventoryComponent->AddItem(GemItemID, PlayerRuntimeData.Gem - CurrentGem);
 		}
-		else if (PlayerRuntimeData.SpecialCurrency < CurrentSpecialCurrency)
+		else if (PlayerRuntimeData.Gem < CurrentGem)
 		{
-			InventoryComponent->RemoveItem(SpecialCurrencyItemID, CurrentSpecialCurrency - PlayerRuntimeData.SpecialCurrency);
+			InventoryComponent->RemoveItem(GemItemID, CurrentGem - PlayerRuntimeData.Gem);
 		}
 	}
 	else
