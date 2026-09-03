@@ -1,12 +1,17 @@
 # RescueAnimal
 
 > Unreal Engine 5.5 기반 3인칭 액션 어드벤처 프로젝트  
-> 전투, 인벤토리, 상점, 동물 구조, 맵 진행도, 포탈 이동, 런타임 상태 복원을 C++ 중심으로 구현한 게임 클라이언트 포트폴리오입니다.
 
 ![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.5-0E1128?style=flat-square&logo=unrealengine)
 ![C++](https://img.shields.io/badge/C++-Gameplay%20Programming-00599C?style=flat-square&logo=cplusplus)
 ![UMG](https://img.shields.io/badge/UI-UMG-blue?style=flat-square)
 ![Enhanced Input](https://img.shields.io/badge/Input-Enhanced%20Input-purple?style=flat-square)
+
+<img width="400" height="225" alt="title2" src="https://github.com/user-attachments/assets/b5d08176-1724-47f0-9e4a-b7baceb410fa" />
+
+<br/>
+
+[시연 영상](https://youtu.be/PjtUzTu-J2A?si=u0yjA9Yk5aIsol0J)
 
 ---
 
