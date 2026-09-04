@@ -110,9 +110,14 @@ bool UEnemyAIComponent::CanChangeAIState(EEnemyAIState NewState) const
 		return false;
 	}
 
+	if (Enemy->bIsAttacking && NewState != EEnemyAIState::Attack && NewState != EEnemyAIState::Dead)
+	{
+		return false;
+	}
+
 	if (NewState == EEnemyAIState::Chase || NewState == EEnemyAIState::Attack)
 	{
-		return HasValidTarget();
+		return HasValidTarget() || (NewState == EEnemyAIState::Attack && Enemy->bIsAttacking);
 	}
 
 	if (NewState == EEnemyAIState::Patrol)
@@ -142,6 +147,42 @@ bool UEnemyAIComponent::ChangeAIState(EEnemyAIState NewState)
 	HandleAIStateEnter(PreviousState, NewState);
 
 	return true;
+}
+
+bool UEnemyAIComponent::RefreshAIStateFromTarget()
+{
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return false;
+	}
+
+	if (Enemy->bIsDead)
+	{
+		return ChangeAIState(EEnemyAIState::Dead);
+	}
+
+	if (Enemy->bIsAttacking)
+	{
+		return ChangeAIState(EEnemyAIState::Attack);
+	}
+
+	if (HasValidTarget())
+	{
+		return ChangeAIState(EEnemyAIState::Chase);
+	}
+
+	return ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
+}
+
+void UEnemyAIComponent::NotifyAttackStarted()
+{
+	ChangeAIState(EEnemyAIState::Attack);
+}
+
+void UEnemyAIComponent::NotifyAttackFinished()
+{
+	RefreshAIStateFromTarget();
 }
 
 void UEnemyAIComponent::HandleAIStateEnter(EEnemyAIState PreviousState, EEnemyAIState NewState)
@@ -214,8 +255,10 @@ void UEnemyAIComponent::OnDetectionSphereBeginOverlap(
 
 	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(OtherActor))
 	{
-		SetTargetActor(PlayerCharacter);
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Detected Player: %s"), *Enemy->GetName(), *OtherActor->GetName());
+		if (SetTargetActor(PlayerCharacter))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Detected Player: %s"), *Enemy->GetName(), *OtherActor->GetName());
+		}
 	}
 }
 
@@ -242,9 +285,16 @@ void UEnemyAIComponent::UpdateChase()
 	if (!Enemy || Enemy->bIsDead)
 		return;
 
+	if (Enemy->bIsAttacking)
+	{
+		ChangeAIState(EEnemyAIState::Attack);
+		StopOwnerMovement();
+		return;
+	}
+
 	if (!HasValidTarget())
 	{
-		ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
+		RefreshAIStateFromTarget();
 		UpdateCampWander();
 		return;
 	}
@@ -280,7 +330,6 @@ void UEnemyAIComponent::UpdateChase()
 	}
 	else
 	{
-		ChangeAIState(EEnemyAIState::Attack);
 		AIController->StopMovement();
 	}
 }
@@ -325,20 +374,20 @@ void UEnemyAIComponent::UpdateBowSpacing()
 		}
 	}
 
-	ChangeAIState(EEnemyAIState::Attack);
 	AIController->StopMovement();
 }
 
-void UEnemyAIComponent::SetTargetActor(AActor* NewTarget)
+bool UEnemyAIComponent::SetTargetActor(AActor* NewTarget)
 {
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || !IsValidCombatTarget(NewTarget))
 	{
-		return;
+		return false;
 	}
 
 	Enemy->TargetActor = NewTarget;
-	ChangeAIState(EEnemyAIState::Chase);
+	RefreshAIStateFromTarget();
+	return true;
 }
 
 void UEnemyAIComponent::ClearTargetActor()
@@ -350,7 +399,7 @@ void UEnemyAIComponent::ClearTargetActor()
 	Enemy->TargetActor = nullptr;
 
 	StopOwnerMovement();
-	ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
+	RefreshAIStateFromTarget();
 }
 
 bool UEnemyAIComponent::HasValidTarget() const
@@ -372,7 +421,7 @@ void UEnemyAIComponent::SetCampPatrolArea(const FVector& InCenter, float InRadiu
 
 	if (!HasValidTarget())
 	{
-		ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
+		RefreshAIStateFromTarget();
 	}
 }
 
@@ -389,7 +438,7 @@ void UEnemyAIComponent::ClearCampPatrolArea()
 
 	if (!HasValidTarget())
 	{
-		ChangeAIState(EEnemyAIState::Idle);
+		RefreshAIStateFromTarget();
 	}
 }
 
@@ -403,11 +452,11 @@ void UEnemyAIComponent::UpdateCampWander()
 
 	if (!Enemy->bUseCampPatrolArea || Enemy->CampPatrolRadius <= 0.0f || !Enemy->GetWorld())
 	{
-		ChangeAIState(EEnemyAIState::Idle);
+		RefreshAIStateFromTarget();
 		return;
 	}
 
-	ChangeAIState(EEnemyAIState::Patrol);
+	RefreshAIStateFromTarget();
 
 	const float CurrentTime = Enemy->GetWorld()->GetTimeSeconds();
 	if (CurrentTime - Enemy->LastCampWanderTime < Enemy->CampWanderInterval)

@@ -80,8 +80,10 @@ float ARAEnemyBase::TakeDamage(
 			: nullptr;
 		if (PlayerCharacter)
 		{
-			EnemyAIComponent->SetTargetActor(PlayerCharacter);
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Aggroed by damage from %s"), *GetName(), *PlayerCharacter->GetName());
+			if (EnemyAIComponent->SetTargetActor(PlayerCharacter))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("적 데미지 감지"));
+			}
 		}
 	}
 

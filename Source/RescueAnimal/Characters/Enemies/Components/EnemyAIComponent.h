@@ -35,7 +35,10 @@ public:
 	bool IsInAIState(EEnemyAIState State) const;
 	bool CanChangeAIState(EEnemyAIState NewState) const;
 	bool ChangeAIState(EEnemyAIState NewState);
-	void SetTargetActor(AActor* NewTarget);
+	bool RefreshAIStateFromTarget();
+	void NotifyAttackStarted();
+	void NotifyAttackFinished();
+	bool SetTargetActor(AActor* NewTarget);
 	void ClearTargetActor();
 	bool HasValidTarget() const;
 	void SetCampPatrolArea(const FVector& InCenter, float InRadius);

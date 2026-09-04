@@ -104,6 +104,11 @@ void UEnemyCombatComponent::UpdateAttack()
 	Enemy->bIsAttacking = true;
 	Enemy->LastAttackTime = CurrentTime;
 
+	if (Enemy->EnemyAIComponent)
+	{
+		Enemy->EnemyAIComponent->NotifyAttackStarted();
+	}
+
 	if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
 	{
 		AIController->StopMovement();
@@ -442,6 +447,11 @@ void UEnemyCombatComponent::EndAttack()
 	}
 	SetAttackMovementLocked(false);
 	Enemy->bMeleeDamageAppliedThisAttack = false;
+
+	if (Enemy->EnemyAIComponent)
+	{
+		Enemy->EnemyAIComponent->NotifyAttackFinished();
+	}
 }
 
 void UEnemyCombatComponent::ApplyDamageToTarget()
