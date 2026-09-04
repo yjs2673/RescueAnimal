@@ -165,7 +165,7 @@ void UEnemyRewardComponent::SpawnDropItems()
 		++SpawnedDropNumber;
 		const FName RuntimeItemSaveID(*FString::Printf(
 			TEXT("%s_%s_%d"),
-			*Enemy->GetName(),
+			*Enemy->ActorSaveID.ToString(),
 			*DropItemData.ItemID.ToString(),
 			SpawnedDropNumber
 		));
