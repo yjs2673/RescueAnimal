@@ -223,7 +223,14 @@ void ARAEnemyBase::UpdateHPBarVisibility()
 
 void ARAEnemyBase::Die()
 {
-	SetEnemyAIState(EEnemyAIState::Dead);
+	if (EnemyAIComponent)
+	{
+		EnemyAIComponent->ChangeAIState(EEnemyAIState::Dead);
+	}
+	else
+	{
+		SetEnemyAIState(EEnemyAIState::Dead);
+	}
 
 	if (EnemyRewardComponent)
 	{

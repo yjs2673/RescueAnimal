@@ -9,6 +9,8 @@ class ARAEnemyBase;
 class AController;
 class UPrimitiveComponent;
 
+enum class EEnemyAIState : uint8;
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class RESCUEANIMAL_API UEnemyAIComponent : public UActorComponent
 {
@@ -29,6 +31,10 @@ public:
 
 	void UpdateChase();
 	void UpdateBowSpacing();
+	EEnemyAIState GetCurrentAIState() const;
+	bool IsInAIState(EEnemyAIState State) const;
+	bool CanChangeAIState(EEnemyAIState NewState) const;
+	bool ChangeAIState(EEnemyAIState NewState);
 	void SetTargetActor(AActor* NewTarget);
 	void ClearTargetActor();
 	bool HasValidTarget() const;
@@ -48,4 +54,7 @@ public:
 
 private:
 	ARAEnemyBase* GetOwnerEnemy() const;
+	void HandleAIStateEnter(EEnemyAIState PreviousState, EEnemyAIState NewState);
+	void HandleAIStateExit(EEnemyAIState PreviousState, EEnemyAIState NewState);
+	void StopOwnerMovement();
 };

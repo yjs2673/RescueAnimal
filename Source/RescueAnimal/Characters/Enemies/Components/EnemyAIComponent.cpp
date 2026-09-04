@@ -38,6 +38,8 @@ void UEnemyAIComponent::BeginPlay()
 		Enemy->GetCharacterMovement()->bUseRVOAvoidance = Enemy->bUseEnemySeparation;
 		Enemy->GetCharacterMovement()->AvoidanceConsiderationRadius = Enemy->EnemySeparationRadius;
 	}
+
+	ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
 }
 
 void UEnemyAIComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -71,6 +73,131 @@ void UEnemyAIComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 ARAEnemyBase* UEnemyAIComponent::GetOwnerEnemy() const
 {
 	return Cast<ARAEnemyBase>(GetOwner());
+}
+
+EEnemyAIState UEnemyAIComponent::GetCurrentAIState() const
+{
+	const ARAEnemyBase* Enemy = GetOwnerEnemy();
+	return Enemy ? Enemy->GetEnemyAIState() : EEnemyAIState::Idle;
+}
+
+bool UEnemyAIComponent::IsInAIState(EEnemyAIState State) const
+{
+	return GetCurrentAIState() == State;
+}
+
+bool UEnemyAIComponent::CanChangeAIState(EEnemyAIState NewState) const
+{
+	const ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return false;
+	}
+
+	const EEnemyAIState CurrentState = Enemy->GetEnemyAIState();
+	if (CurrentState == NewState)
+	{
+		return false;
+	}
+
+	if (CurrentState == EEnemyAIState::Dead)
+	{
+		return false;
+	}
+
+	if (Enemy->bIsDead && NewState != EEnemyAIState::Dead)
+	{
+		return false;
+	}
+
+	if (NewState == EEnemyAIState::Chase || NewState == EEnemyAIState::Attack)
+	{
+		return HasValidTarget();
+	}
+
+	if (NewState == EEnemyAIState::Patrol)
+	{
+		return Enemy->bUseCampPatrolArea && Enemy->CampPatrolRadius > 0.0f;
+	}
+
+	return true;
+}
+
+bool UEnemyAIComponent::ChangeAIState(EEnemyAIState NewState)
+{
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return false;
+	}
+
+	if (!CanChangeAIState(NewState))
+	{
+		return false;
+	}
+
+	const EEnemyAIState PreviousState = Enemy->GetEnemyAIState();
+	HandleAIStateExit(PreviousState, NewState);
+	Enemy->SetEnemyAIState(NewState);
+	HandleAIStateEnter(PreviousState, NewState);
+
+	return true;
+}
+
+void UEnemyAIComponent::HandleAIStateEnter(EEnemyAIState PreviousState, EEnemyAIState NewState)
+{
+	(void)PreviousState;
+
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return;
+	}
+
+	switch (NewState)
+	{
+	case EEnemyAIState::Idle:
+		StopOwnerMovement();
+		Enemy->bWantsMovementThisTick = false;
+		break;
+	case EEnemyAIState::Patrol:
+		Enemy->StuckTime = 0.f;
+		break;
+	case EEnemyAIState::Chase:
+		Enemy->StuckTime = 0.f;
+		break;
+	case EEnemyAIState::Attack:
+		StopOwnerMovement();
+		Enemy->bWantsMovementThisTick = false;
+		break;
+	case EEnemyAIState::Dead:
+		StopOwnerMovement();
+		Enemy->TargetActor = nullptr;
+		Enemy->bWantsMovementThisTick = false;
+		break;
+	default:
+		break;
+	}
+}
+
+void UEnemyAIComponent::HandleAIStateExit(EEnemyAIState PreviousState, EEnemyAIState NewState)
+{
+	(void)PreviousState;
+	(void)NewState;
+}
+
+void UEnemyAIComponent::StopOwnerMovement()
+{
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return;
+	}
+
+	if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
+	{
+		AIController->StopMovement();
+	}
 }
 
 void UEnemyAIComponent::OnDetectionSphereBeginOverlap(
@@ -117,6 +244,7 @@ void UEnemyAIComponent::UpdateChase()
 
 	if (!HasValidTarget())
 	{
+		ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
 		UpdateCampWander();
 		return;
 	}
@@ -144,6 +272,7 @@ void UEnemyAIComponent::UpdateChase()
 
 	if (DistanceToTarget > GetAttackStartRange())
 	{
+		ChangeAIState(EEnemyAIState::Chase);
 		Enemy->StopHitMontage();
 		const EPathFollowingRequestResult::Type MoveResult =
 			AIController->MoveToActor(Enemy->TargetActor, GetChaseAcceptanceRadius(), false);
@@ -151,6 +280,7 @@ void UEnemyAIComponent::UpdateChase()
 	}
 	else
 	{
+		ChangeAIState(EEnemyAIState::Attack);
 		AIController->StopMovement();
 	}
 }
@@ -174,6 +304,7 @@ void UEnemyAIComponent::UpdateBowSpacing()
 
 	if (DistanceToTarget > TooFarDistance)
 	{
+		ChangeAIState(EEnemyAIState::Chase);
 		const EPathFollowingRequestResult::Type MoveResult =
 			AIController->MoveToActor(Enemy->TargetActor, Enemy->BowPreferredDistance, false);
 		Enemy->bWantsMovementThisTick = MoveResult != EPathFollowingRequestResult::Failed;
@@ -182,6 +313,7 @@ void UEnemyAIComponent::UpdateBowSpacing()
 
 	if (DistanceToTarget < TooCloseDistance)
 	{
+		ChangeAIState(EEnemyAIState::Chase);
 		const FVector AwayDirection = (CurrentLocation - TargetLocation).GetSafeNormal();
 		if (!AwayDirection.IsNearlyZero())
 		{
@@ -193,6 +325,7 @@ void UEnemyAIComponent::UpdateBowSpacing()
 		}
 	}
 
+	ChangeAIState(EEnemyAIState::Attack);
 	AIController->StopMovement();
 }
 
@@ -205,6 +338,7 @@ void UEnemyAIComponent::SetTargetActor(AActor* NewTarget)
 	}
 
 	Enemy->TargetActor = NewTarget;
+	ChangeAIState(EEnemyAIState::Chase);
 }
 
 void UEnemyAIComponent::ClearTargetActor()
@@ -215,10 +349,8 @@ void UEnemyAIComponent::ClearTargetActor()
 
 	Enemy->TargetActor = nullptr;
 
-	if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
-	{
-		AIController->StopMovement();
-	}
+	StopOwnerMovement();
+	ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
 }
 
 bool UEnemyAIComponent::HasValidTarget() const
@@ -237,6 +369,11 @@ void UEnemyAIComponent::SetCampPatrolArea(const FVector& InCenter, float InRadiu
 	Enemy->CampPatrolRadius = FMath::Max(0.0f, InRadius);
 	Enemy->bUseCampPatrolArea = Enemy->CampPatrolRadius > 0.0f;
 	Enemy->LastCampWanderTime = -1000.0f;
+
+	if (!HasValidTarget())
+	{
+		ChangeAIState(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle);
+	}
 }
 
 void UEnemyAIComponent::ClearCampPatrolArea()
@@ -249,6 +386,11 @@ void UEnemyAIComponent::ClearCampPatrolArea()
 	Enemy->CampPatrolCenter = FVector::ZeroVector;
 	Enemy->CampPatrolRadius = 0.0f;
 	Enemy->LastCampWanderTime = -1000.0f;
+
+	if (!HasValidTarget())
+	{
+		ChangeAIState(EEnemyAIState::Idle);
+	}
 }
 
 void UEnemyAIComponent::UpdateCampWander()
@@ -261,8 +403,11 @@ void UEnemyAIComponent::UpdateCampWander()
 
 	if (!Enemy->bUseCampPatrolArea || Enemy->CampPatrolRadius <= 0.0f || !Enemy->GetWorld())
 	{
+		ChangeAIState(EEnemyAIState::Idle);
 		return;
 	}
+
+	ChangeAIState(EEnemyAIState::Patrol);
 
 	const float CurrentTime = Enemy->GetWorld()->GetTimeSeconds();
 	if (CurrentTime - Enemy->LastCampWanderTime < Enemy->CampWanderInterval)
