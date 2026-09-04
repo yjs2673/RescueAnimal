@@ -67,7 +67,7 @@ void ARAWorldStateManager::ApplySavedWorldState()
 		const FName ActorSaveID = GetSaveIDFromActor(Enemy, TEXT("ActorSaveID"));
 		if (ActorSaveID.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Enemy ActorSaveID is None. Actor=%s"), *Enemy->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("[WorldStateManager] Enemy ActorSaveID is None. Actor=%s"), *ActorSaveID.ToString());
 			AliveEnemyCount++;
 			continue;
 		}

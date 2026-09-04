@@ -151,7 +151,7 @@ void UEnemyCombatComponent::PerformPunchAttack()
 
 	if (!PlayAttackMontage(Enemy->AttackMontage))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Punch AttackMontage is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Punch AttackMontage is missing"), *Enemy->ActorSaveID.ToString());
 		EndAttack();
 		return;
 	}
@@ -179,7 +179,7 @@ void UEnemyCombatComponent::PerformSwordAttack()
 	UAnimMontage* MontageToPlay = Enemy->SwordAttackMontage ? Enemy->SwordAttackMontage : Enemy->AttackMontage;
 	if (!MontageToPlay || !Enemy->GetMesh() || !Enemy->GetMesh()->GetAnimInstance())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Sword AttackMontage is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Sword AttackMontage is missing"), *Enemy->ActorSaveID.ToString());
 		EndAttack();
 		return;
 	}
@@ -223,7 +223,7 @@ void UEnemyCombatComponent::PerformBowAttack()
 	UAnimMontage* MontageToPlay = Enemy->BowAttackMontage ? Enemy->BowAttackMontage : Enemy->AttackMontage;
 	if (!MontageToPlay || !Enemy->GetMesh() || !Enemy->GetMesh()->GetAnimInstance())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow AttackMontage is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow AttackMontage is missing"), *Enemy->ActorSaveID.ToString());
 		EndAttack();
 		return;
 	}
@@ -324,7 +324,7 @@ void UEnemyCombatComponent::PlayBowWeaponMontageSection(FName SectionName)
 	UAnimInstance* WeaponAnimInstance = Enemy->CurrentWeapon->WeaponSkeletalMesh->GetAnimInstance();
 	if (!WeaponAnimInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow weapon anim instance is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Bow weapon anim instance is missing"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
@@ -481,7 +481,7 @@ void UEnemyCombatComponent::ApplyDamageToTarget()
 	{
 		if (PlayerCharacter->IsDodging())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack missed because target is dodging."), *Enemy->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack missed because target is dodging."), *Enemy->ActorSaveID.ToString());
 			return;
 		}
 	}
@@ -490,7 +490,7 @@ void UEnemyCombatComponent::ApplyDamageToTarget()
 	{
 		if (Animal->IsTrapped())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack ignored because target animal is trapped."), *Enemy->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Attack ignored because target animal is trapped."), *Enemy->ActorSaveID.ToString());
 			return;
 		}
 	}
@@ -510,7 +510,7 @@ void UEnemyCombatComponent::ApplyDamageToTarget()
 	);
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Requested %.1f damage to %s / Applied=%.1f"),
-		*Enemy->GetName(),
+		*Enemy->ActorSaveID.ToString(),
 		Enemy->AttackDamage,
 		*Enemy->TargetActor->GetName(),
 		AppliedDamage);
@@ -534,7 +534,7 @@ void UEnemyCombatComponent::FireArrowAtTarget()
 
 	if (!Enemy->BowProjectileClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] BowProjectileClass is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] BowProjectileClass is missing"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
@@ -589,6 +589,6 @@ void UEnemyCombatComponent::FireArrowAtTarget()
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Fired arrow at %s"),
-		*Enemy->GetName(),
+		*Enemy->ActorSaveID.ToString(),
 		*Enemy->TargetActor->GetName());
 }

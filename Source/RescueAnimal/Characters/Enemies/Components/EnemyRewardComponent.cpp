@@ -64,7 +64,7 @@ void UEnemyRewardComponent::GrantEXPToKiller()
 	UPlayerStatComponent* PlayerStatComponent = PlayerCharacter->FindComponentByClass<UPlayerStatComponent>();
 	if (!PlayerStatComponent)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to grant EXP: PlayerStatComponent is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to grant EXP: PlayerStatComponent is missing"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
@@ -72,7 +72,7 @@ void UEnemyRewardComponent::GrantEXPToKiller()
 	PlayerStatComponent->AddEXP(Enemy->EXPReward);
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Granted %d EXP to %s"),
-		*Enemy->GetName(),
+		*Enemy->ActorSaveID.ToString(),
 		Enemy->EXPReward,
 		*PlayerCharacter->GetName());
 }
@@ -94,14 +94,14 @@ void UEnemyRewardComponent::SpawnDropItems()
 
 	if (!Enemy->DropItemActorClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] DropItemActorClass is missing"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] DropItemActorClass is missing"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
 	UWorld* World = Enemy->GetWorld();
 	if (!World)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop items: World is null"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop items: World is null"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
@@ -118,7 +118,7 @@ void UEnemyRewardComponent::SpawnDropItems()
 	{
 		if (DropItemData.ItemID.IsNone())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Skipped drop item: ItemID is None"), *Enemy->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Skipped drop item: ItemID is None"), *Enemy->ActorSaveID.ToString());
 			continue;
 		}
 
@@ -157,7 +157,7 @@ void UEnemyRewardComponent::SpawnDropItems()
 		if (!DropItemActor)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn drop item: %s"),
-				*Enemy->GetName(),
+				*Enemy->ActorSaveID.ToString(),
 				*DropItemData.ItemID.ToString());
 			continue;
 		}
@@ -193,14 +193,14 @@ void UEnemyRewardComponent::SpawnDropItems()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[%s] Runtime drop state was not registered: WorldStateManager or MapID is missing. ItemSaveID=%s"),
-				*Enemy->GetName(),
+				*Enemy->ActorSaveID.ToString(),
 				*RuntimeItemSaveID.ToString());
 		}
 
 		UGameplayStatics::FinishSpawningActor(DropItemActor, SpawnTransform);
 
 		UE_LOG(LogTemp, Warning, TEXT("[%s] Spawned drop item: %s x%d / ItemSaveID=%s"),
-			*Enemy->GetName(),
+			*Enemy->ActorSaveID.ToString(),
 			*DropItemData.ItemID.ToString(),
 			DropCount,
 			*RuntimeItemSaveID.ToString());

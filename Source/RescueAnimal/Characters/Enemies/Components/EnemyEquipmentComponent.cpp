@@ -53,7 +53,7 @@ void UEnemyEquipmentComponent::EquipDefaultWeapon()
 	);
 	if (!SpawnedWeapon)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn enemy weapon"), *Enemy->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Failed to spawn enemy weapon"), *Enemy->ActorSaveID.ToString());
 		return;
 	}
 
@@ -111,7 +111,7 @@ void UEnemyEquipmentComponent::EquipWeapon(AWeaponBase* NewWeapon)
 	SyncCombatDataFromWeapon();
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s] Equipped Enemy Weapon: %s | Socket: %s"),
-		*Enemy->GetName(),
+		*Enemy->ActorSaveID.ToString(),
 		*Enemy->CurrentWeapon->GetName(),
 		*AttachSocketName.ToString());
 }

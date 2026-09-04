@@ -104,7 +104,7 @@ void ARAEnemyBase::SetEnemyAIState(EEnemyAIState NewState)
 		? StaticEnum<EEnemyAIState>()->GetNameStringByValue(static_cast<int64>(NewState))
 		: TEXT("Unknown");
 
-	UE_LOG(LogTemp, Log, TEXT("[EnemyFSM] %s state changed: %s -> %s"), *GetName(), *PreviousStateName, *NewStateName);
+	UE_LOG(LogTemp, Log, TEXT("[EnemyFSM] %s state changed: %s -> %s"), *ActorSaveID.ToString(), *PreviousStateName, *NewStateName);
 	CurrentAIState = NewState;
 }
 
@@ -129,6 +129,11 @@ void ARAEnemyBase::Tick(float DeltaTime)
 void ARAEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
+}
+
+FString ARAEnemyBase::GetDebugName() const
+{
+	return ActorSaveID.ToString();
 }
 
 void ARAEnemyBase::OnDetectionSphereBeginOverlap(

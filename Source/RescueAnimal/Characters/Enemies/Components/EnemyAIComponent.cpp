@@ -293,7 +293,7 @@ void UEnemyAIComponent::OnDetectionSphereBeginOverlap(
 	{
 		if (SetTargetActor(PlayerCharacter))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[%s] Detected Player: %s"), *Enemy->GetName(), *OtherActor->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("[%s] Detected Player: %s"), *Enemy->ActorSaveID.ToString(), *OtherActor->GetName());
 		}
 	}
 }
@@ -310,7 +310,7 @@ void UEnemyAIComponent::OnDetectionSphereEndOverlap(
 
 	if (OtherActor && OtherActor == Enemy->TargetActor)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Lost Target: %s"), *Enemy->GetName(), *OtherActor->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Lost Target: %s"), *Enemy->ActorSaveID.ToString(), *OtherActor->GetName());
 		ClearTargetActor();
 	}
 }

@@ -50,6 +50,7 @@ protected:
 protected:
 	virtual void InitializeStats();
 	virtual void PlayHitMontage();
+	virtual FString GetDebugName() const;
 
 	virtual void UpdateHPBar();
 

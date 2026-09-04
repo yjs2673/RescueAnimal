@@ -38,7 +38,7 @@ float ARACreatureBase::TakeDamage(
 	CurrentHP -= ActualDamage;
 	UpdateHPBar();
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Took Damage: %.1f / HP: %.1f"), *GetName(), ActualDamage, CurrentHP);
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Took Damage: %.1f / HP: %.1f"), *GetDebugName(), ActualDamage, CurrentHP);
 
 	if (CurrentHP <= 0.f)
 	{
@@ -82,7 +82,7 @@ void ARACreatureBase::Die()
 
 	bIsDead = true;
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s] Dead"), *GetName());
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Dead"), *GetDebugName());
 
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
@@ -111,6 +111,11 @@ void ARACreatureBase::StopHitMontage()
 		AnimInstance->Montage_Stop(0.1f, CurrentHitMontage);
 
 	CurrentHitMontage = nullptr;
+}
+
+FString ARACreatureBase::GetDebugName() const
+{
+	return GetName();
 }
 
 void ARACreatureBase::UpdateHPBar()
