@@ -71,10 +71,13 @@ bool UEnemyCombatComponent::IsBowCharging() const
 bool UEnemyCombatComponent::CanAttack() const
 {
 	const ARAEnemyBase* Enemy = GetOwnerEnemy();
-	if (!Enemy || Enemy->bIsDead || Enemy->bIsAttacking)
+	if (!Enemy || Enemy->bIsDead)
 		return false;
 
 	if (!Enemy->EnemyAIComponent || !Enemy->EnemyAIComponent->HasValidTarget())
+		return false;
+
+	if (Enemy->EnemyAIComponent->IsInAIState(EEnemyAIState::Attack))
 		return false;
 
 	const float DistanceToTarget = FVector::Dist(Enemy->GetActorLocation(), Enemy->TargetActor->GetActorLocation());
@@ -101,7 +104,6 @@ void UEnemyCombatComponent::UpdateAttack()
 	if (CurrentTime - Enemy->LastAttackTime < Enemy->AttackCooldown)
 		return;
 
-	Enemy->bIsAttacking = true;
 	Enemy->LastAttackTime = CurrentTime;
 
 	if (Enemy->EnemyAIComponent)
@@ -191,8 +193,6 @@ void UEnemyCombatComponent::PerformSwordAttack()
 		EndAttack();
 		return;
 	}
-
-	SetAttackMovementLocked(true);
 
 	Enemy->GetWorldTimerManager().ClearTimer(Enemy->MeleeHitTimerHandle);
 	Enemy->GetWorldTimerManager().SetTimer(
@@ -297,7 +297,6 @@ void UEnemyCombatComponent::ReleaseBowChargeAtTarget()
 	{
 		Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->MoveSpeed;
 	}
-	SetAttackMovementLocked(true);
 	FaceTargetActor();
 
 	UAnimMontage* MontageToPlay = Enemy->BowAttackMontage ? Enemy->BowAttackMontage : Enemy->AttackMontage;
@@ -345,23 +344,6 @@ void UEnemyCombatComponent::FaceTargetActor()
 		return;
 
 	Enemy->SetActorRotation(FlatDirection.Rotation());
-}
-
-void UEnemyCombatComponent::SetAttackMovementLocked(bool bLocked)
-{
-	ARAEnemyBase* Enemy = GetOwnerEnemy();
-	if (!Enemy)
-		return;
-
-	Enemy->bIsAttackMovementLocked = bLocked;
-
-	if (bLocked)
-	{
-		if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
-		{
-			AIController->StopMovement();
-		}
-	}
 }
 
 void UEnemyCombatComponent::PlayMeleeHitEffects(const FVector& HitLocation)
@@ -439,18 +421,36 @@ void UEnemyCombatComponent::EndAttack()
 	Enemy->GetWorldTimerManager().ClearTimer(Enemy->BowFireTimerHandle);
 	Enemy->GetWorldTimerManager().ClearTimer(Enemy->AttackEndTimerHandle);
 	Enemy->GetWorldTimerManager().ClearTimer(Enemy->MeleeHitTimerHandle);
-	Enemy->bIsAttacking = false;
 	Enemy->bIsBowCharging = false;
 	if (Enemy->GetCharacterMovement())
 	{
 		Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->MoveSpeed;
 	}
-	SetAttackMovementLocked(false);
 	Enemy->bMeleeDamageAppliedThisAttack = false;
 
 	if (Enemy->EnemyAIComponent)
 	{
 		Enemy->EnemyAIComponent->NotifyAttackFinished();
+	}
+}
+
+void UEnemyCombatComponent::CancelAttackForDeath()
+{
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+		return;
+
+	Enemy->GetWorldTimerManager().ClearTimer(Enemy->BowFireTimerHandle);
+	Enemy->GetWorldTimerManager().ClearTimer(Enemy->AttackEndTimerHandle);
+	Enemy->GetWorldTimerManager().ClearTimer(Enemy->MeleeHitTimerHandle);
+
+	Enemy->bIsBowCharging = false;
+	Enemy->bBowArrowFiredThisAttack = false;
+	Enemy->bMeleeDamageAppliedThisAttack = false;
+
+	if (Enemy->GetCharacterMovement())
+	{
+		Enemy->GetCharacterMovement()->MaxWalkSpeed = Enemy->MoveSpeed;
 	}
 }
 

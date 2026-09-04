@@ -32,10 +32,10 @@ public:
 	void ReleaseBowChargeAtTarget();
 	void PlayBowWeaponMontageSection(FName SectionName);
 	void FaceTargetActor();
-	void SetAttackMovementLocked(bool bLocked);
 	void PlayMeleeHitEffects(const FVector& HitLocation);
 	void SpawnHitVFX(UNiagaraSystem* NiagaraSystem, const FVector& SpawnLocation, const FRotator& SpawnRotation, const FLinearColor& Color, float Scale, float Lifetime);
 	void EndAttack();
+	void CancelAttackForDeath();
 	void ApplyDamageToTarget();
 	void TriggerMeleeHit();
 	void FireArrowAtTarget();

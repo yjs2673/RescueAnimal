@@ -349,9 +349,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat|Bow")
 	bool bIsBowCharging = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
-	bool bIsAttackMovementLocked = false;
-
 	UPROPERTY(Transient)
 	bool bWantsMovementThisTick = false;
 

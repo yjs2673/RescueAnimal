@@ -110,14 +110,14 @@ bool UEnemyAIComponent::CanChangeAIState(EEnemyAIState NewState) const
 		return false;
 	}
 
-	if (Enemy->bIsAttacking && NewState != EEnemyAIState::Attack && NewState != EEnemyAIState::Dead)
+	if (IsInAIState(EEnemyAIState::Attack) && NewState != EEnemyAIState::Dead)
 	{
 		return false;
 	}
 
 	if (NewState == EEnemyAIState::Chase || NewState == EEnemyAIState::Attack)
 	{
-		return HasValidTarget() || (NewState == EEnemyAIState::Attack && Enemy->bIsAttacking);
+		return HasValidTarget();
 	}
 
 	if (NewState == EEnemyAIState::Patrol)
@@ -130,18 +130,28 @@ bool UEnemyAIComponent::CanChangeAIState(EEnemyAIState NewState) const
 
 bool UEnemyAIComponent::ChangeAIState(EEnemyAIState NewState)
 {
+	return ChangeAIStateInternal(NewState, false);
+}
+
+bool UEnemyAIComponent::ChangeAIStateInternal(EEnemyAIState NewState, bool bForce)
+{
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 	{
 		return false;
 	}
 
-	if (!CanChangeAIState(NewState))
+	if (!bForce && !CanChangeAIState(NewState))
 	{
 		return false;
 	}
 
 	const EEnemyAIState PreviousState = Enemy->GetEnemyAIState();
+	if (PreviousState == NewState)
+	{
+		return false;
+	}
+
 	HandleAIStateExit(PreviousState, NewState);
 	Enemy->SetEnemyAIState(NewState);
 	HandleAIStateEnter(PreviousState, NewState);
@@ -162,11 +172,6 @@ bool UEnemyAIComponent::RefreshAIStateFromTarget()
 		return ChangeAIState(EEnemyAIState::Dead);
 	}
 
-	if (Enemy->bIsAttacking)
-	{
-		return ChangeAIState(EEnemyAIState::Attack);
-	}
-
 	if (HasValidTarget())
 	{
 		return ChangeAIState(EEnemyAIState::Chase);
@@ -182,7 +187,38 @@ void UEnemyAIComponent::NotifyAttackStarted()
 
 void UEnemyAIComponent::NotifyAttackFinished()
 {
-	RefreshAIStateFromTarget();
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return;
+	}
+
+	if (Enemy->bIsDead)
+	{
+		ChangeAIStateInternal(EEnemyAIState::Dead, true);
+		return;
+	}
+
+	if (HasValidTarget())
+	{
+		ChangeAIStateInternal(EEnemyAIState::Chase, true);
+		return;
+	}
+
+	ChangeAIStateInternal(Enemy->bUseCampPatrolArea ? EEnemyAIState::Patrol : EEnemyAIState::Idle, true);
+}
+
+void UEnemyAIComponent::NotifyOwnerDied()
+{
+	ARAEnemyBase* Enemy = GetOwnerEnemy();
+	if (!Enemy)
+	{
+		return;
+	}
+
+	Enemy->TargetActor = nullptr;
+	StopOwnerMovement();
+	ChangeAIState(EEnemyAIState::Dead);
 }
 
 void UEnemyAIComponent::HandleAIStateEnter(EEnemyAIState PreviousState, EEnemyAIState NewState)
@@ -285,9 +321,8 @@ void UEnemyAIComponent::UpdateChase()
 	if (!Enemy || Enemy->bIsDead)
 		return;
 
-	if (Enemy->bIsAttacking)
+	if (IsInAIState(EEnemyAIState::Attack))
 	{
-		ChangeAIState(EEnemyAIState::Attack);
 		StopOwnerMovement();
 		return;
 	}
@@ -296,15 +331,6 @@ void UEnemyAIComponent::UpdateChase()
 	{
 		RefreshAIStateFromTarget();
 		UpdateCampWander();
-		return;
-	}
-
-	if (Enemy->bIsAttackMovementLocked)
-	{
-		if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
-		{
-			AIController->StopMovement();
-		}
 		return;
 	}
 
@@ -445,7 +471,7 @@ void UEnemyAIComponent::ClearCampPatrolArea()
 void UEnemyAIComponent::UpdateCampWander()
 {
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
-	if (!Enemy || Enemy->bIsDead || Enemy->bIsAttacking || Enemy->bIsAttackMovementLocked)
+	if (!Enemy || Enemy->bIsDead || IsInAIState(EEnemyAIState::Attack))
 	{
 		return;
 	}
@@ -562,7 +588,7 @@ float UEnemyAIComponent::GetChaseAcceptanceRadius() const
 void UEnemyAIComponent::UpdateMovementStuckCheck(float DeltaTime)
 {
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
-	if (!Enemy || !Enemy->bUseStuckRecovery || Enemy->bIsDead || Enemy->bIsAttacking || Enemy->bIsAttackMovementLocked)
+	if (!Enemy || !Enemy->bUseStuckRecovery || Enemy->bIsDead || IsInAIState(EEnemyAIState::Attack))
 	{
 		if (Enemy)
 		{
@@ -684,7 +710,7 @@ bool UEnemyAIComponent::TryMoveToStrafeLocationAroundTarget()
 void UEnemyAIComponent::ApplySeparationFromNearbyEnemies(float DeltaTime)
 {
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
-	if (!Enemy || !Enemy->bUseEnemySeparation || Enemy->bIsDead || Enemy->bIsAttacking || Enemy->bIsAttackMovementLocked || Enemy->EnemySeparationRadius <= 0.f)
+	if (!Enemy || !Enemy->bUseEnemySeparation || Enemy->bIsDead || IsInAIState(EEnemyAIState::Attack) || Enemy->EnemySeparationRadius <= 0.f)
 	{
 		return;
 	}

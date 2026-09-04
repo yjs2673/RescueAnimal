@@ -225,9 +225,14 @@ void ARAEnemyBase::UpdateHPBarVisibility()
 
 void ARAEnemyBase::Die()
 {
+	if (EnemyCombatComponent)
+	{
+		EnemyCombatComponent->CancelAttackForDeath();
+	}
+
 	if (EnemyAIComponent)
 	{
-		EnemyAIComponent->ChangeAIState(EEnemyAIState::Dead);
+		EnemyAIComponent->NotifyOwnerDied();
 	}
 	else
 	{

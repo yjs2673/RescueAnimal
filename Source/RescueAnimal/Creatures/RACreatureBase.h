@@ -32,9 +32,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Creature|Stat")
 	float CurrentHP = 100.f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
-	bool bIsAttacking = false;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Creature|State")
 	bool bIsDead = false;
 

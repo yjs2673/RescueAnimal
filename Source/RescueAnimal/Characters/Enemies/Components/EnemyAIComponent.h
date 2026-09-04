@@ -38,6 +38,7 @@ public:
 	bool RefreshAIStateFromTarget();
 	void NotifyAttackStarted();
 	void NotifyAttackFinished();
+	void NotifyOwnerDied();
 	bool SetTargetActor(AActor* NewTarget);
 	void ClearTargetActor();
 	bool HasValidTarget() const;
@@ -57,6 +58,7 @@ public:
 
 private:
 	ARAEnemyBase* GetOwnerEnemy() const;
+	bool ChangeAIStateInternal(EEnemyAIState NewState, bool bForce);
 	void HandleAIStateEnter(EEnemyAIState PreviousState, EEnemyAIState NewState);
 	void HandleAIStateExit(EEnemyAIState PreviousState, EEnemyAIState NewState);
 	void StopOwnerMovement();
