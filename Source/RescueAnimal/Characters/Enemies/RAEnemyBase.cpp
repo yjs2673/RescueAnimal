@@ -88,6 +88,24 @@ float ARAEnemyBase::TakeDamage(
 	return AppliedDamage;
 }
 
+void ARAEnemyBase::SetEnemyAIState(EEnemyAIState NewState)
+{
+	if (CurrentAIState == NewState)
+	{
+		return;
+	}
+
+	const FString PreviousStateName = StaticEnum<EEnemyAIState>()
+		? StaticEnum<EEnemyAIState>()->GetNameStringByValue(static_cast<int64>(CurrentAIState))
+		: TEXT("Unknown");
+	const FString NewStateName = StaticEnum<EEnemyAIState>()
+		? StaticEnum<EEnemyAIState>()->GetNameStringByValue(static_cast<int64>(NewState))
+		: TEXT("Unknown");
+
+	UE_LOG(LogTemp, Log, TEXT("[EnemyFSM] %s state changed: %s -> %s"), *GetName(), *PreviousStateName, *NewStateName);
+	CurrentAIState = NewState;
+}
+
 void ARAEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -205,6 +223,8 @@ void ARAEnemyBase::UpdateHPBarVisibility()
 
 void ARAEnemyBase::Die()
 {
+	SetEnemyAIState(EEnemyAIState::Dead);
+
 	if (EnemyRewardComponent)
 	{
 		EnemyRewardComponent->GrantEXPToKiller();

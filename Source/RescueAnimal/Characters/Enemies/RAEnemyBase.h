@@ -32,6 +32,16 @@ enum class EEnemyAttackType : uint8
 	Bow		UMETA(DisplayName = "Bow")
 };
 
+UENUM(BlueprintType)
+enum class EEnemyAIState : uint8
+{
+	Idle	UMETA(DisplayName = "Idle"),
+	Patrol	UMETA(DisplayName = "Patrol"),
+	Chase	UMETA(DisplayName = "Chase"),
+	Attack	UMETA(DisplayName = "Attack"),
+	Dead	UMETA(DisplayName = "Dead")
+};
+
 UCLASS()
 class RESCUEANIMAL_API ARAEnemyBase : public ARACreatureBase
 {
@@ -64,6 +74,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Components")
 	FORCEINLINE UEnemyRewardComponent* GetEnemyRewardComponent() const { return EnemyRewardComponent; }
 
+	UFUNCTION(BlueprintPure, Category = "Enemy|AI")
+	FORCEINLINE EEnemyAIState GetEnemyAIState() const { return CurrentAIState; }
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|AI")
+	void SetEnemyAIState(EEnemyAIState NewState);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -80,6 +96,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	EEnemyAttackType AttackType = EEnemyAttackType::Punch;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|AI")
+	EEnemyAIState CurrentAIState = EEnemyAIState::Idle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Combat")
 	float AttackDamage = 10.f;
