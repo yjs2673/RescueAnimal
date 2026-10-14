@@ -1,4 +1,5 @@
 #include "RAEnemyBase.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Components/SphereComponent.h"
 #include "DropItemActor.h"
 #include "RACharacter.h"
@@ -122,6 +123,7 @@ void ARAEnemyBase::BeginPlay()
 
 void ARAEnemyBase::Tick(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_ActorTick);
 	Super::Tick(DeltaTime);
 	UpdateHPBarVisibility();
 }
@@ -211,6 +213,7 @@ void ARAEnemyBase::UpdateHPBar()
 
 void ARAEnemyBase::UpdateHPBarVisibility()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_HPBarVisibility);
 	if (!HPBarWidgetComponent)
 	{
 		return;
@@ -230,6 +233,7 @@ void ARAEnemyBase::UpdateHPBarVisibility()
 
 void ARAEnemyBase::Die()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_Death);
 	if (EnemyCombatComponent)
 	{
 		EnemyCombatComponent->CancelAttackForDeath();

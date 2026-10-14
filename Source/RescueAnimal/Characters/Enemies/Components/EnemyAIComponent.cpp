@@ -1,4 +1,5 @@
 #include "EnemyAIComponent.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "RAEnemyBase.h"
 #include "AnimalBase.h"
@@ -44,6 +45,7 @@ void UEnemyAIComponent::BeginPlay()
 
 void UEnemyAIComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_AI_Update);
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
@@ -135,6 +137,7 @@ bool UEnemyAIComponent::ChangeAIState(EEnemyAIState NewState)
 
 bool UEnemyAIComponent::ChangeAIStateInternal(EEnemyAIState NewState, bool bForce)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_StateTransition);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 	{
@@ -285,6 +288,7 @@ void UEnemyAIComponent::OnDetectionSphereBeginOverlap(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_TargetDetection);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead)
 		return;
@@ -304,6 +308,7 @@ void UEnemyAIComponent::OnDetectionSphereEndOverlap(
 	UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_TargetLost);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 		return;
@@ -317,6 +322,7 @@ void UEnemyAIComponent::OnDetectionSphereEndOverlap(
 
 void UEnemyAIComponent::UpdateChase()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_ChaseUpdate);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead)
 		return;
@@ -362,6 +368,7 @@ void UEnemyAIComponent::UpdateChase()
 
 void UEnemyAIComponent::UpdateBowSpacing()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_BowSpacing);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || !Enemy->TargetActor)
 		return;
@@ -496,6 +503,7 @@ void UEnemyAIComponent::UpdateCampWander()
 
 void UEnemyAIComponent::MoveToRandomCampLocation()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_WanderMoveRequest);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || !Enemy->GetWorld())
 	{
@@ -587,6 +595,7 @@ float UEnemyAIComponent::GetChaseAcceptanceRadius() const
 
 void UEnemyAIComponent::UpdateMovementStuckCheck(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_StuckCheck);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || !Enemy->bUseStuckRecovery || Enemy->bIsDead || IsInAIState(EEnemyAIState::Attack))
 	{
@@ -639,6 +648,7 @@ void UEnemyAIComponent::UpdateMovementStuckCheck(float DeltaTime)
 
 void UEnemyAIComponent::HandleMovementStuck()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_StuckRecovery);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 		return;
@@ -709,6 +719,7 @@ bool UEnemyAIComponent::TryMoveToStrafeLocationAroundTarget()
 
 void UEnemyAIComponent::ApplySeparationFromNearbyEnemies(float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_Separation);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || !Enemy->bUseEnemySeparation || Enemy->bIsDead || IsInAIState(EEnemyAIState::Attack) || Enemy->EnemySeparationRadius <= 0.f)
 	{

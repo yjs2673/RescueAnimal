@@ -1,4 +1,5 @@
 #include "EnemyCombatComponent.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "RAEnemyBase.h"
 #include "EnemyAIComponent.h"
@@ -31,6 +32,7 @@ void UEnemyCombatComponent::BeginPlay()
 
 void UEnemyCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_CombatUpdate);
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
@@ -70,6 +72,7 @@ bool UEnemyCombatComponent::IsBowCharging() const
 
 bool UEnemyCombatComponent::CanAttack() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_CombatCheck);
 	const ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead)
 		return false;
@@ -122,6 +125,7 @@ void UEnemyCombatComponent::UpdateAttack()
 
 void UEnemyCombatComponent::PerformAttack()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_AttackStart);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 		return;
@@ -285,6 +289,7 @@ void UEnemyCombatComponent::ScheduleAttackEnd(float Delay)
 
 void UEnemyCombatComponent::ReleaseBowChargeAtTarget()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_BowRelease);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead || !Enemy->EnemyAIComponent || !Enemy->EnemyAIComponent->HasValidTarget())
 	{
@@ -407,6 +412,7 @@ void UEnemyCombatComponent::SpawnHitVFX(UNiagaraSystem* NiagaraSystem, const FVe
 
 void UEnemyCombatComponent::EndAttack()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_AttackEnd);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy)
 		return;
@@ -456,6 +462,7 @@ void UEnemyCombatComponent::CancelAttackForDeath()
 
 void UEnemyCombatComponent::ApplyDamageToTarget()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_ApplyDamage);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead || !Enemy->EnemyAIComponent || !Enemy->EnemyAIComponent->HasValidTarget())
 		return;
@@ -523,6 +530,7 @@ void UEnemyCombatComponent::TriggerMeleeHit()
 
 void UEnemyCombatComponent::FireArrowAtTarget()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(Enemy_FireArrow);
 	ARAEnemyBase* Enemy = GetOwnerEnemy();
 	if (!Enemy || Enemy->bIsDead || !Enemy->EnemyAIComponent || !Enemy->EnemyAIComponent->HasValidTarget())
 		return;
