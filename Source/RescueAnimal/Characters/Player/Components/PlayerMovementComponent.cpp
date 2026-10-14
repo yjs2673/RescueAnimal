@@ -35,7 +35,17 @@ ARACharacter* UPlayerMovementComponent::GetOwnerCharacter() const
 void UPlayerMovementComponent::StartJump()
 {
 	ARACharacter* Character = GetOwnerCharacter();
-	if (!Character || Character->IsPortalTransitionInputLocked() || Character->bIsDodging)
+	if (!Character)
+		return;
+
+	if (Character->IsPortalTransitionInputLocked())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RAInput] Jump blocked by PortalTransitionInputLock. Character=%s"),
+			*GetNameSafe(Character));
+		return;
+	}
+
+	if (Character->bIsDodging)
 		return;
 
 	if (Character->CanJump() && Character->JumpSound)
@@ -49,11 +59,22 @@ void UPlayerMovementComponent::StartJump()
 void UPlayerMovementComponent::Move(const FInputActionValue& Value)
 {
 	ARACharacter* Character = GetOwnerCharacter();
-	if (!Character || Character->IsPortalTransitionInputLocked())
+	if (!Character)
 		return;
 
-	if (Character->StatComponent && Character->StatComponent->IsDead())
+	if (Character->IsPortalTransitionInputLocked())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RAInput] Move blocked by PortalTransitionInputLock. Character=%s"),
+			*GetNameSafe(Character));
 		return;
+	}
+
+	if (Character->StatComponent && Character->StatComponent->IsDead())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RAInput] Move blocked because character is dead. Character=%s"),
+			*GetNameSafe(Character));
+		return;
+	}
 
 	if (Character->bIsDodging)
 		return;
@@ -82,8 +103,15 @@ void UPlayerMovementComponent::Move(const FInputActionValue& Value)
 void UPlayerMovementComponent::Look(const FInputActionValue& Value)
 {
 	ARACharacter* Character = GetOwnerCharacter();
-	if (!Character || Character->IsPortalTransitionInputLocked())
+	if (!Character)
 		return;
+
+	if (Character->IsPortalTransitionInputLocked())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[RAInput] Look blocked by PortalTransitionInputLock. Character=%s"),
+			*GetNameSafe(Character));
+		return;
+	}
 
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 	if (Character->GetController())

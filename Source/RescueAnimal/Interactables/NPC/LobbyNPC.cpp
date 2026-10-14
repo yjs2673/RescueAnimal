@@ -142,11 +142,10 @@ void ALobbyNPC::ShowDialogueChoices()
 		return;
 	}
 
-	PlayerController->bShowMouseCursor = true;
-	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
-	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	PlayerController->SetInputMode(InputMode);
+	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+	{
+		PlayerCharacter->SetUIOnlyInputMode(DialogueWidget);
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Dialogue choice menu displayed."));
 }
@@ -241,11 +240,10 @@ void ALobbyNPC::StartIntroDialogue()
 			DialogueWidget->AddToViewport();
 			DialogueWidget->BeginDialogue(IntroDialogueLines);
 
-			PlayerController->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			PlayerController->SetInputMode(InputMode);
+			if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+			{
+				PlayerCharacter->SetUIOnlyInputMode(DialogueWidget);
+			}
 
 			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Intro dialogue widget displayed."));
 			return;
@@ -314,11 +312,10 @@ void ALobbyNPC::ShowProgressDialogue()
 
 			DialogueWidget->BeginDialogue(ProgressDialogueLines);
 
-			PlayerController->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			PlayerController->SetInputMode(InputMode);
+			if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+			{
+				PlayerCharacter->SetUIOnlyInputMode(DialogueWidget);
+			}
 
 			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Progress dialogue widget displayed."));
 			return;
@@ -363,11 +360,10 @@ void ALobbyNPC::ShowEndingLockedDialogue()
 			EndingLockedDialogueLines.Add(EndingLockedText);
 			DialogueWidget->BeginDialogue(EndingLockedDialogueLines);
 
-			PlayerController->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			PlayerController->SetInputMode(InputMode);
+			if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+			{
+				PlayerCharacter->SetUIOnlyInputMode(DialogueWidget);
+			}
 			return;
 		}
 	}
@@ -439,11 +435,10 @@ void ALobbyNPC::StartEndingDialogue()
 			DialogueWidget->AddToViewport();
 			DialogueWidget->BeginDialogue(EndingDialogueLines);
 
-			PlayerController->bShowMouseCursor = true;
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(DialogueWidget->TakeWidget());
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			PlayerController->SetInputMode(InputMode);
+			if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)))
+			{
+				PlayerCharacter->SetUIOnlyInputMode(DialogueWidget);
+			}
 
 			UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Ending dialogue widget displayed."));
 			return;
@@ -772,34 +767,28 @@ void ALobbyNPC::OnDialogueChoiceMenuClosed()
 
 void ALobbyNPC::DisablePlayerControlForDialogue()
 {
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	if (!PlayerController)
+	ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (!PlayerCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Dialogue input lock skipped: PlayerController is unavailable."));
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Dialogue input lock skipped: PlayerCharacter is unavailable."));
 		return;
 	}
 
-	PlayerController->SetIgnoreMoveInput(true);
-	PlayerController->SetIgnoreLookInput(true);
+	PlayerCharacter->SetGameplayInputIgnored(true);
 
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Player movement and look input disabled for dialogue."));
 }
 
 void ALobbyNPC::EnablePlayerControlAfterDialogue()
 {
-	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	if (!PlayerController)
+	ARACharacter* PlayerCharacter = Cast<ARACharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	if (!PlayerCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Dialogue input restore skipped: PlayerController is unavailable."));
+		UE_LOG(LogTemp, Warning, TEXT("[LobbyNPC] Dialogue input restore skipped: PlayerCharacter is unavailable."));
 		return;
 	}
 
-	PlayerController->SetIgnoreMoveInput(false);
-	PlayerController->SetIgnoreLookInput(false);
-	PlayerController->bShowMouseCursor = false;
-
-	FInputModeGameOnly InputMode;
-	PlayerController->SetInputMode(InputMode);
+	PlayerCharacter->RestoreGameInputMode();
 
 	UE_LOG(LogTemp, Log, TEXT("[LobbyNPC] Player input restored after dialogue."));
 }

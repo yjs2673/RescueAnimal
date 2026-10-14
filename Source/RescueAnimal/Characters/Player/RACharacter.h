@@ -428,6 +428,15 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void SetGameplayInputIgnored(bool bIgnored);
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void SetUIOnlyInputMode(UUserWidget* WidgetToFocus);
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void RestoreGameInputMode();
 #pragma endregion Input Binding Func
 
 protected:

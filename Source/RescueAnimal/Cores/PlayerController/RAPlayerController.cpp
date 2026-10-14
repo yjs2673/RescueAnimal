@@ -8,7 +8,7 @@
 
 ARAPlayerController::ARAPlayerController()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	PlayerUIFlowComponent = CreateDefaultSubobject<UPlayerUIFlowComponent>(TEXT("PlayerUIFlowComponent"));
 	GameProgressUIComponent = CreateDefaultSubobject<UGameProgressUIComponent>(TEXT("GameProgressUIComponent"));

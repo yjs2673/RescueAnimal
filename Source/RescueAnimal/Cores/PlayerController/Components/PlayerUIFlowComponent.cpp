@@ -1,6 +1,7 @@
 #include "PlayerUIFlowComponent.h"
 
 #include "RAPlayerController.h"
+#include "RACharacter.h"
 #include "AnimalCollectionWidget.h"
 #include "InventoryWidget.h"
 #include "LevelTransitionComponent.h"
@@ -178,8 +179,15 @@ void UPlayerUIFlowComponent::OpenShop(AShopActor* ShopActor)
 		Controller->ShopWidget->AddToViewport();
 
 		Controller->bIsShopOpen = true;
-		Controller->SetIgnoreMoveInput(true);
-		Controller->SetIgnoreLookInput(true);
+		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+		{
+			PlayerCharacter->SetGameplayInputIgnored(true);
+		}
+		else
+		{
+			Controller->SetIgnoreMoveInput(true);
+			Controller->SetIgnoreLookInput(true);
+		}
 		SetUIInputMode();
 
 		Controller->CurrentShopActor = ShopActor;
@@ -200,8 +208,15 @@ void UPlayerUIFlowComponent::CloseShop()
 	}
 
 	Controller->bIsShopOpen = false;
-	Controller->SetIgnoreMoveInput(false);
-	Controller->SetIgnoreLookInput(false);
+	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+	{
+		PlayerCharacter->SetGameplayInputIgnored(false);
+	}
+	else
+	{
+		Controller->ResetIgnoreMoveInput();
+		Controller->ResetIgnoreLookInput();
+	}
 
 	if (Controller->bIsInventoryOpen || Controller->bIsAnimalCollectionOpen || Controller->bIsSettingOpen)
 	{
@@ -407,8 +422,15 @@ void UPlayerUIFlowComponent::OpenSetting()
 		Controller->SettingWidget->AddToViewport(300);
 
 		Controller->bIsSettingOpen = true;
-		Controller->SetIgnoreMoveInput(true);
-		Controller->SetIgnoreLookInput(true);
+		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+		{
+			PlayerCharacter->SetGameplayInputIgnored(true);
+		}
+		else
+		{
+			Controller->SetIgnoreMoveInput(true);
+			Controller->SetIgnoreLookInput(true);
+		}
 		SetSettingInputMode();
 	}
 }
@@ -439,14 +461,19 @@ void UPlayerUIFlowComponent::CloseSetting()
 	}
 	else if (Controller->LevelTransitionComponent && Controller->LevelTransitionComponent->IsGameFlowMenuLevel())
 	{
-		Controller->SetIgnoreMoveInput(true);
-		Controller->SetIgnoreLookInput(true);
+		if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+		{
+			PlayerCharacter->SetGameplayInputIgnored(true);
+		}
+		else
+		{
+			Controller->SetIgnoreMoveInput(true);
+			Controller->SetIgnoreLookInput(true);
+		}
 		SetMenuInputMode();
 	}
 	else
 	{
-		Controller->SetIgnoreMoveInput(false);
-		Controller->SetIgnoreLookInput(false);
 		SetGameInputMode();
 	}
 }
@@ -499,6 +526,14 @@ void UPlayerUIFlowComponent::SetPortalTransitionInputLocked(bool bLocked)
 
 	Controller->bIsPortalTransitionInputLocked = bLocked;
 
+	UE_LOG(LogTemp, Warning, TEXT("[RAInput] SetPortalTransitionInputLocked(%s). Controller=%s SettingOpen=%s ShopOpen=%s InventoryOpen=%s CollectionOpen=%s"),
+		bLocked ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(Controller),
+		Controller->bIsSettingOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsShopOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsInventoryOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsAnimalCollectionOpen ? TEXT("true") : TEXT("false"));
+
 	if (bLocked)
 	{
 		CloseSetting();
@@ -506,8 +541,20 @@ void UPlayerUIFlowComponent::SetPortalTransitionInputLocked(bool bLocked)
 		CloseAnimalCollection();
 	}
 
-	Controller->SetIgnoreMoveInput(bLocked);
-	Controller->SetIgnoreLookInput(bLocked);
+	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+	{
+		PlayerCharacter->SetGameplayInputIgnored(bLocked);
+	}
+	else if (bLocked)
+	{
+		Controller->SetIgnoreMoveInput(true);
+		Controller->SetIgnoreLookInput(true);
+	}
+	else
+	{
+		Controller->ResetIgnoreMoveInput();
+		Controller->ResetIgnoreLookInput();
+	}
 }
 
 void UPlayerUIFlowComponent::SetGameInputMode()
@@ -521,8 +568,27 @@ void UPlayerUIFlowComponent::SetGameInputMode()
 	Controller->bShowMouseCursor = Controller->bShowMouseCursorInGame;
 	SetMouseCursorType(Controller->NormalMouseCursor.GetValue());
 
-	FInputModeGameOnly InputMode;
-	Controller->SetInputMode(InputMode);
+	UE_LOG(LogTemp, Warning, TEXT("[RAInput] SetGameInputMode. Controller=%s PortalLock=%s SettingOpen=%s ShopOpen=%s InventoryOpen=%s CollectionOpen=%s Pawn=%s"),
+		*GetNameSafe(Controller),
+		Controller->bIsPortalTransitionInputLocked ? TEXT("true") : TEXT("false"),
+		Controller->bIsSettingOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsShopOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsInventoryOpen ? TEXT("true") : TEXT("false"),
+		Controller->bIsAnimalCollectionOpen ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(Controller->GetPawn()));
+
+	if (ARACharacter* PlayerCharacter = Cast<ARACharacter>(Controller->GetPawn()))
+	{
+		PlayerCharacter->RestoreGameInputMode();
+	}
+	else
+	{
+		Controller->ResetIgnoreMoveInput();
+		Controller->ResetIgnoreLookInput();
+
+		FInputModeGameOnly InputMode;
+		Controller->SetInputMode(InputMode);
+	}
 }
 
 void UPlayerUIFlowComponent::SetUIInputMode()

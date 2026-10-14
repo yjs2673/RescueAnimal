@@ -33,6 +33,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
 #include "InputAction.h"
 
 #include "Blueprint/UserWidget.h"
@@ -134,7 +135,23 @@ void ARACharacter::NotifyControllerChanged()
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("[RAInput] MappingContext added. Character=%s Controller=%s MappingContext=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(PlayerController),
+				*GetNameSafe(DefaultMappingContext));
 		}
+		else
+		{
+			UE_LOG(LogTemplateCharacter, Error, TEXT("[RAInput] Failed to get EnhancedInputLocalPlayerSubsystem. Character=%s Controller=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(PlayerController));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemplateCharacter, Error, TEXT("[RAInput] NotifyControllerChanged has no PlayerController. Character=%s Controller=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(Controller));
 	}
 }
 
@@ -142,6 +159,15 @@ void ARACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+		UE_LOG(LogTemplateCharacter, Warning, TEXT("[RAInput] Character SetupPlayerInputComponent. Character=%s InputComponent=%s Move=%s Look=%s Attack=%s Interact=%s Dodge=%s Jump=%s"),
+			*GetNameSafe(this),
+			*GetNameSafe(PlayerInputComponent),
+			*GetNameSafe(MoveAction),
+			*GetNameSafe(LookAction),
+			*GetNameSafe(AttackAction),
+			*GetNameSafe(InteractAction),
+			*GetNameSafe(DodgeAction),
+			*GetNameSafe(JumpAction));
 		
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, PlayerMovementComponent, &UPlayerMovementComponent::StartJump);
@@ -200,12 +226,88 @@ void ARACharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 }
 #pragma endregion Input Binding Func
 
+void ARACharacter::SetGameplayInputIgnored(bool bIgnored)
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	if (bIgnored)
+	{
+		PlayerController->SetIgnoreMoveInput(true);
+		PlayerController->SetIgnoreLookInput(true);
+	}
+	else
+	{
+		PlayerController->ResetIgnoreMoveInput();
+		PlayerController->ResetIgnoreLookInput();
+	}
+
+	UE_LOG(LogTemplateCharacter, Warning, TEXT("[RAInput] SetGameplayInputIgnored(%s). Character=%s Controller=%s MoveIgnored=%s LookIgnored=%s"),
+		bIgnored ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(this),
+		*GetNameSafe(PlayerController),
+		PlayerController->IsMoveInputIgnored() ? TEXT("true") : TEXT("false"),
+		PlayerController->IsLookInputIgnored() ? TEXT("true") : TEXT("false"));
+}
+
+void ARACharacter::SetUIOnlyInputMode(UUserWidget* WidgetToFocus)
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	SetGameplayInputIgnored(true);
+
+	PlayerController->bShowMouseCursor = true;
+
+	FInputModeUIOnly InputMode;
+	if (WidgetToFocus)
+	{
+		InputMode.SetWidgetToFocus(WidgetToFocus->TakeWidget());
+	}
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PlayerController->SetInputMode(InputMode);
+
+	if (WidgetToFocus)
+	{
+		WidgetToFocus->SetKeyboardFocus();
+	}
+}
+
+void ARACharacter::RestoreGameInputMode()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController)
+	{
+		return;
+	}
+
+	SetGameplayInputIgnored(false);
+
+	PlayerController->bShowMouseCursor = false;
+
+	FInputModeGameOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+}
+
 bool ARACharacter::IsPortalTransitionInputLocked() const
 {
 	if (const ARAPlayerController* RAPlayerController = Cast<ARAPlayerController>(GetController()))
 	{
 		const UPlayerUIFlowComponent* PlayerUIFlowComponent = RAPlayerController->GetPlayerUIFlowComponent();
-		return PlayerUIFlowComponent && PlayerUIFlowComponent->IsPortalTransitionInputLocked();
+		const bool bLocked = PlayerUIFlowComponent && PlayerUIFlowComponent->IsPortalTransitionInputLocked();
+		if (bLocked)
+		{
+			UE_LOG(LogTemplateCharacter, Warning, TEXT("[RAInput] Character input blocked by UI flow. Character=%s Controller=%s"),
+				*GetNameSafe(this),
+				*GetNameSafe(RAPlayerController));
+		}
+		return bLocked;
 	}
 
 	return false;
