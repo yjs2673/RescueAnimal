@@ -1,14 +1,4 @@
-# Enemy AI 성능 연구 — PHASE 1 / PHASE 2
-
-- 작성일: 2026-10-15. 분석 기준 커밋: `8c811f1` (`Enemy: ABP 로직 수정`).
-- 엔진: 프로젝트의 `EngineAssociation` 및 로컬 설치 기준 UE 5.5.
-- 현재 단계: C++ 구조 분석 및 CPU Trace Instrumentation. 성능 데이터는 아직 없음.
-- 이번 변경에는 최적화, Test Harness, 테스트 맵, 판단 주기 변경, CSV 전용 계측을 포함하지 않는다.
-- 아래 수치 중 시간·거리 기본값은 소스 설정값이며 실측 성능이 아니다. Blueprint/인스턴스에서 덮어쓸 수 있다.
-
-## 1. 분석 범위와 확인 한계
-
-Source 전체 파일 목록과 Enemy 참조·Spawn 호출을 검색하고 Enemy, Creature, Camp, WorldState, GameMode 및 공유 화살 경로를 읽었다. `.uasset`/`.umap`의 Blueprint 그래프와 인스턴스 설정은 이 분석에서 검사하지 않았다. 실제 Enemy Blueprint, AIController/Auto Possess AI, NavMesh, Animation Blueprint, AnimNotify 연결은 Editor에서 확인해야 한다.
+# Enemy AI 성능 연구
 
 ### [Enemy AI 구조]
 
@@ -45,8 +35,6 @@ ARAWorldStateManager
 ATestEnemy : AActor
 └─ 데미지 로그용 별도 Actor, Tick 없음. 실제 Enemy FSM의 하위 클래스가 아님
 ```
-
-코드 경로는 `Source/RescueAnimal/Characters/Enemies`, `Creatures`, `Camp`, `Cores/WorldState`이다. Actor Tick과 각 Component Tick은 별도 스케줄링 단위이며, 위 나열을 이들 사이의 확정 실행 순서로 해석하지 않는다.
 
 ### FSM / 탐지 / 거리 / 이동
 
@@ -112,92 +100,3 @@ ATestEnemy : AActor
 | 같은 Combat 파일 | `ReleaseBowChargeAtTarget` → `Enemy_BowRelease`; `EndAttack` → `Enemy_AttackEnd`; `ApplyDamageToTarget` → `Enemy_ApplyDamage`; `FireArrowAtTarget` → `Enemy_FireArrow` | Tick 밖 Timer/Notify 비용 포함. 근접 타격/활 차징·발사/공격 종료 정상 여부 |
 
 총 20개 Scope를 함수 단위로 추가했다. 실행되지 않은 분기의 Scope는 Trace에 나타나지 않는 것이 정상이다. 추가 계측 비용은 존재하며 아직 측정하지 않았다. Before/After에는 동일한 계측을 유지한다. 필요 시 동일 소스에서 CPU Trace on/off 대조 실행으로 계측 영향을 별도 점검한다.
-
-### Scope 해석 주의
-
-- `Enemy_AI_Update`는 AI Component Tick의 동기 CPU 비용이다. Combat Tick, Actor Tick, 이벤트 콜백, 엔진의 별도 Movement/Animation/비동기 작업까지 합친 'Enemy 전체 비용'이 아니다.
-- `Enemy_ChaseUpdate`에는 상태 판단, 타깃 검증, 순찰 분기, 이동 요청이 함께 있다. 기존 구현에서 이 책임이 섞여 있으므로 순수 판단 시간처럼 이름 붙이지 않았다. `Enemy_CombatCheck`는 `CanAttack`만 포함하며 쿨다운 검사는 상위 CombatUpdate에 남는다.
-- `Enemy_StateTransition`은 실패/동일 상태 전환 **시도**도 포함한다. 성공한 전환 수나 탐지 지연을 직접 의미하지 않는다.
-- `Enemy_TargetDetection`/`Enemy_TargetLost`는 Overlap 콜백 처리 시간이다. Physics broadphase 및 Overlap 검출 비용 전체는 포함하지 않으며 비플레이어 Overlap의 조기 반환도 포함한다.
-- `Enemy_Separation`은 Query와 결과 처리 및 입력 추가를 포함한다. Query만의 시간은 아니다. `Enemy_StuckRecovery`는 실제 복구 함수 호출 비용이며 자식 WanderMoveRequest를 포함할 수 있다.
-- `Enemy_ApplyDamage`는 동기 VFX/SFX 요청과 타깃의 데미지 처리까지 포함할 수 있다. `Enemy_FireArrow`는 생성 비용이며 비행·충돌 수명 전체는 아니다. `Enemy_Death`에도 보상·드롭·월드 상태 갱신이 포함된다.
-- 함수 진입부터 계측하므로 Dead 등 조기 반환도 호출 수에 포함한다. 함수 실행 시간과 게임플레이 반응 지연은 서로 다른 지표다.
-- Insights에서 **GameThread와 동일 측정 구간**으로 범위를 한정한다. 부모 Inclusive에 자식 Inclusive를 더하면 중복 집계된다. `Enemy_AI_Update + Enemy_ChaseUpdate + Enemy_Separation`을 AI 총 비용으로 보고하지 않는다.
-- `Enemy_AI_Update`의 선택 구간 Total Inclusive / 해당 구간 Game Frame 수 = 모든 Enemy의 프레임당 평균 AI Component CPU 시간. Total Inclusive / 호출 수 = 호출당 평균이며 서로 다른 지표다. Total 단위(s/ms)를 반드시 확인해 환산한다.
-- Actor/Combat/이벤트 시간을 합산할 때도 호출 트리의 중첩을 먼저 확인한다. 전체 Enemy 비용은 엔진 경로까지 별도 분석해야 하며 `Enemy_*` 전체 합계로 대체하지 않는다.
-
-## 3. 개발자가 실행할 검증 및 캡처
-
-### 빌드와 기능 확인
-
-1. 변경된 코드를 빌드한 바이너리인지 확인한다. Game Development 빌드와 Editor 모듈은 별개다. PIE/Standalone Editor 실행에는 Editor 모듈 재빌드 또는 해당 `.cpp` 변경의 Live Coding 적용이 필요하다.
-2. 실제 사용하는 Enemy Blueprint/무기별로 탐지 → Chase → Attack, 타깃 해제 → Patrol/Idle을 확인한다. 현 구현에 없는 Return 상태 전환을 기대하지 않는다.
-3. 순찰 영역 내 이동, 좁은 장애물/Enemy 밀집 시 Stuck Recovery, 사망 몽타주·보상·파괴까지 확인한다. Death 후 남아 있는 Tick은 현 Baseline 동작으로 기록한다.
-4. CPU Trace에서 `Enemy_AI_Update`, `Enemy_CombatUpdate`, `Enemy_HPBarVisibility` 및 발생시킨 이벤트 Scope가 보이는지 확인한다. 화면 동작과 Trace 확인은 아직 개발자가 수행해야 한다.
-
-### 캡처 절차
-
-UE 5.5 설치 소스의 `CpuProfilerTrace.h` 및 `TraceAuxiliary.cpp`에서 Scope와 콘솔 명령을 확인했다. 채널/파일 캡처는 [Epic Unreal Insights Reference](https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-insights-reference-in-unreal-engine-5), Bookmark와 세션 분석은 [Epic Trace Quick Start](https://dev.epicgames.com/documentation/en-us/unreal-engine/trace-quick-start-guide-in-unreal-engine)를 참고한다. 웹 문서는 최신 버전으로 표시될 수 있으므로 로컬 5.5 소스와 Editor 명령 응답을 우선한다.
-
-권장: 고정한 맵·시나리오를 Standalone 또는 Development Build에서 실행한다. 실행 인자로 `-trace=cpu,frame,bookmark -tracefile`을 사용하거나, 콘솔에서 다음과 같이 캡처한다. 파일명은 매 실행 다르게 지정한다.
-
-```text
-Trace.Status
-Trace.File Enemy_Baseline_N050_R01.utrace cpu,frame,bookmark
-stat unit
-```
-
-이미 캡처 중이면 먼저 `Trace.Stop`으로 기존 캡처를 끝낸 뒤 새 파일을 시작한다. 10초 Warm-up 후:
-
-```text
-Trace.Bookmark MeasureBegin_N050_R01
-csvprofile start
-```
-
-30초 측정 후:
-
-```text
-Trace.Bookmark MeasureEnd_N050_R01
-csvprofile stop
-Trace.Stop
-```
-
-수동 입력 사이에는 시간 차이가 있다. 실제 Bookmark 타임스탬프와 CSV 캡처 구간을 확인하고, 이를 정확히 동기화된 자동 30초 테스트라고 보고하지 않는다. 시작·종료 콘솔 입력 경계 프레임 처리 규칙도 기록한다. 향후 PHASE 3에서 필요하면 측정 경계 자동화를 구현한다.
-
-- Trace 파일은 콘솔이 출력한 실제 저장 경로를 기록한다. 기본 프로젝트 `Saved/Profiling` 및 CSV `Saved/Profiling/CSV`를 확인한다.
-- `.utrace`를 Unreal Insights에서 열고 Timing Insights → GameThread → 측정 Bookmark 사이 구간 선택 → Timers에서 `Enemy_` 검색. Count, Total Inclusive, Total Exclusive와 호출 트리를 저장한다.
-- 이번 CPU Scope는 CSV 열을 자동으로 생성하지 않는다. **AI 함수 시간은 Insights**, 프레임/스레드 통계는 해당 캡처에 실제 존재하는 CSV 열과 Insights에서 얻는다. CSV에 `Enemy_AI_Update`가 없다고 계측 실패로 판단하지 않는다.
-- `stat unit`은 실행 중 확인용이며 P95/30초 평균의 원자료로 대체하지 않는다. 원본 프레임별 Frame Time에서 산술 평균과 P95를 계산하고, Game Thread 시간은 별도 지표로 유지한다. P95는 각 실행의 프레임 시간 정렬 후 nearest-rank(`ceil(0.95 * N)`) 등 선택한 방식을 Before/After에 동일 적용한다.
-- 평균 함수 호출 시간의 P95는 P95 Frame Time이 아니다. 3회 반복 결과는 실행별 결과와 변동폭을 함께 보존한다.
-
-### 고정·기록할 조건
-
-- 연구 조건 초안: Enemy 10/25/50/100/150, 선택적으로 200; Warm-up 10초, Measurement 30초, 각 3회. 최종 조건은 개발자가 결정한다.
-- 커밋/계측 버전, 엔진 버전, 빌드 종류, CPU/GPU/RAM, 실행 방식, 맵, Enemy BP/무기·애니메이션, 실제 생존 수, 배치·밀집도, 타깃 경로/속도, 카메라 위치, 해상도·Scalability, VSync/FPS 제한, 로그 정책, Trace 채널을 기록한다.
-- 저장된 처치 상태와 Camp 설정, Player 사망/무적 조건, NavMesh 및 AIController 설정도 기록한다. 무적 Dummy는 피해/Hit Montage 경로를 바꿀 수 있으므로 원 Gameplay와 동일한 Attack 비용이라고 가정하지 않는다.
-- Idle에서도 Separation과 CharacterMovement는 실행될 수 있다. 'Idle = FSM만의 순수 비용'으로 해석하지 않는다. 난수 순찰·복구와 프레임 간격으로 실행 편차가 있으므로 3회 반복하고 이를 한계로 남긴다.
-- 탐지 → Chase 지연은 이번 CPU Duration만으로 측정되지 않는다. 현재 Overlap에서 동기 상태 전환하더라도 실제 범위 진입부터의 지연과 같지 않다. 추후 동일한 진입 경로와 대상 식별/타임스탬프 방식으로 별도 측정한다.
-
-## 4. 변경 영향 및 작업 기록
-
-| 항목 | 이번 작업 | 담당 |
-| --- | --- | --- |
-| 연구 질문·일정·측정 원칙 | 사용자 요구를 기준으로 기록 | 개발자 정의 |
-| 구조 분석·비용 후보 | C++ 근거와 Blueprint 미확인 범위 구분 | AI 지원 |
-| Instrumentation | 3개 `.cpp`, include 3줄 + 정적 Scope 20줄 | AI 작성 보조, 개발자 최종 Review |
-| Gameplay 영향 | 제어 흐름 변경 없음. Trace 활성 시 기록 오버헤드 존재 | 코드 비교 + 개발자 플레이 검증 |
-| 테스트 조건·Editor 설정 | 문서에 초안/확인 목록 제공 | 개발자 최종 결정 |
-| Insights 실행·실측·적합성 | 미수행 | 개발자 |
-| 병목 판정·대안·최적화 | Baseline 전달 전 보류 | AI 분석 보조, 개발자 방향 결정 |
-| Before/After·반응성·포트폴리오 결과 | 실측 전 공란 유지 | 개발자 검증, AI 정리 보조 |
-
-빌드/정적 검증 결과는 아래에 별도로 기록한다. 빌드 성공은 Editor Gameplay 회귀 검증이나 성능 개선의 증거가 아니다.
-
-### 검증 기록
-
-- `git diff --check`: 계측 추가 후 통과.
-- Scope/include 줄을 제외한 세 C++ 파일을 HEAD와 비교: 모두 일치. Gameplay 코드 변경 없음 확인.
-- `Build.bat RescueAnimal Win64 Development -Project=<프로젝트>/RescueAnimal.uproject -WaitMutex -NoHotReloadFromIDE`: 성공(exit code 0). 변경한 세 `.cpp` 컴파일 및 `RescueAnimal.exe` 링크 완료.
-- Editor 모듈 빌드/Live Coding 적용은 수행하지 않음. 실행 중인 Editor를 종료하거나 Gameplay 측정을 대신 수행하지 않음.
-- 실제 Editor 동작 및 Insights Scope 표시: 개발자 확인 대기.
-- Baseline, 병목, 개선율, 반응성 실측: 데이터 없음.
